@@ -40,6 +40,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added line-by-line annotations to `train/independent_dqn_pytorch.py` and noted this in `docs/ONBOARDING.md`.
 - Logged Q&A defining what "PettingZoo Parallel" means.
 - Added `docs/RESOURCES.md` with official links (PettingZoo/Gymnasium), GitHub repos, and learning resources.
+- Added Stanford CS234 YouTube playlist to `docs/RESOURCES.md`.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

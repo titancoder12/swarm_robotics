@@ -11,3 +11,4 @@
 ## Learning Resources
 - [OpenAI Spinning Up: Introduction](https://spinningup.openai.com/en/latest/user/introduction.html)
 - [YouTube: RL Resource Video](https://www.youtube.com/watch?v=to-lHJfK4pw)
+- [YouTube: Stanford CS234 Playlist](https://www.youtube.com/watch?v=EvHRQhMX7_w&list=PLoROMvodv4rPwxE0ONYRa_itZFdaKCylL)
