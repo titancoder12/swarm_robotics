@@ -39,6 +39,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Expanded `docs/ToDo.md` with sim-to-real training checks and logged the related Q&A.
 - Added line-by-line annotations to `train/independent_dqn_pytorch.py` and noted this in `docs/ONBOARDING.md`.
 - Logged Q&A defining what "PettingZoo Parallel" means.
+- Added `docs/RESOURCES.md` with official links (PettingZoo/Gymnasium), GitHub repos, and learning resources.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`
