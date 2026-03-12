@@ -41,6 +41,10 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged Q&A defining what "PettingZoo Parallel" means.
 - Added `docs/RESOURCES.md` with official links (PettingZoo/Gymnasium), GitHub repos, and learning resources.
 - Added Stanford CS234 YouTube playlist to `docs/RESOURCES.md`.
+- Logged beginner learning path Q&A in `docs/QandA.md`.
+- Logged a Q&A summarizing how to learn the repo by following the environment, custom DQN trainer, backend dispatcher, and demo flow.
+- Logged a beginner-oriented Q&A mapping core RL concepts directly onto the main environment and DQN trainer files.
+- Logged a Q&A describing a minimal-change Raspberry Pi + Arduino sim-to-real architecture with a Pi-side real-world adapter and Arduino low-level control layer.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

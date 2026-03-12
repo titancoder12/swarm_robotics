@@ -50,5 +50,17 @@ A: **Partly.** `batch_size` and `lr` control the **stochastic gradient descent**
 ## Q: What does "PettingZoo Parallel" mean?
 A: It refers to PettingZoo's **Parallel API** for multi-agent environments. All agents act at the same timestep, and `step()` takes a dict of actions for all active agents, then returns dicts of observations, rewards, terminations, truncations, and infos keyed by agent ID.
 
+## Q: How should I learn this project from scratch as a beginner?
+A: Start with this sequence: (1) RL basics and terms, (2) environment/MDP in `env/swarm_env.py`, (3) custom DQN training in `train/independent_dqn_pytorch.py`, (4) inference in `train/demo.py`, (5) backend switching via `train/train.py` (custom/SB3/RLlib), then (6) sim-to-real considerations in `docs/ToDo.md`.
+
 ## Q: For sim-to-real transfer, what should we pay attention to during training?
 A: Focus on **domain gap**: match observation normalization and action scaling, add sensor/dynamics noise, include delays, and train with randomized environments. Consider safety penalties and curriculum training. These items were added to `docs/ToDo.md`.
+
+## Q: Can you teach me the code and the RL flow in this repo?
+A: Start from `env/swarm_env.py`: that file is the environment and defines the RL problem through `reset()`, `step()`, observations, rewards, and episode endings. Then read `train/independent_dqn_pytorch.py`: that file is the learning loop that collects transitions, stores them in replay buffers, samples minibatches, computes Bellman targets, and updates Q-networks. `train/train.py` is only a dispatcher that picks the backend (`custom`, `sb3`, or `rllib`), and `train/demo.py` is inference-only for running trained checkpoints.
+
+## Q: Can you explain RL concepts for a beginner by mapping them directly to this repo?
+A: Yes. In this repo, the **environment/MDP** is `env/swarm_env.py`, the **state/observation** is the vector built by `_get_obs()`, the **action space** is the 9-way discrete table from `_build_action_table()`, the **reward** is computed in `step()` and `_handle_targets()`, the **policy/value model** is `QNetwork` in `train/independent_dqn_pytorch.py`, and the **learning loop** is `train()` in that same file. The easiest way to learn RL here is to follow one cycle: observation → action selection → `env.step()` → reward/next observation → replay buffer → Bellman update.
+
+## Q: How should we architect sim-to-real deployment on a Raspberry Pi with an Arduino sensor/motor layer while minimizing code changes?
+A: Keep the learned policy and observation/action shapes unchanged as much as possible. Put a **real-world adapter** on the Raspberry Pi that replaces the simulator’s `_get_obs()` and `step()` side effects: it should read fused sensor data from the Arduino and Pi-side estimators, build the same normalized observation vector the policy expects, run inference, and send a high-level action command to a low-level controller. The Arduino should remain a real-time I/O layer for sensors and motor control, while the Pi stays the policy/runtime “brain.” Use a small message contract such as `sensor_packet -> observation_builder -> policy_inference -> action_command -> motor_controller`, with safety overrides outside the policy.
