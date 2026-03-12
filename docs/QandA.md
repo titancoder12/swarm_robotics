@@ -67,3 +67,9 @@ A: Keep the learned policy and observation/action shapes unchanged as much as po
 
 ## Q: What files implement the first sim-to-real deployment skeleton in this repo?
 A: The detailed design is documented in `docs/SimToReal.md`. The Pi-side runtime skeleton lives in `robot/`: `sensor_bridge.py` reads `SensorPacket` data, `observation_builder.py` converts packets into policy observations, `policy_runner.py` loads the trained DQN checkpoint and runs inference, `action_bridge.py` maps actions into high-level commands, and `runtime.py` connects the loop together. This keeps `env/` and `train/` largely unchanged.
+
+## Q: Can you explain `QNetwork`, the Bellman update, and one full training iteration in this repo together?
+A: Yes. `QNetwork` in `train/independent_dqn_pytorch.py` is a small MLP that maps one observation vector to one Q-value per discrete action. The Bellman target in `train()` is `reward + gamma * max_a' Q_target(next_obs, a')` unless the episode ended, and training minimizes the gap between that target and the current `Q(obs, action)`. One full training iteration is: build actions with epsilon-greedy, call `env.step()`, store transitions in replay, sample random minibatches after warmup, compute Bellman targets, update the online network, and periodically copy weights to the target network.
+
+## Q: Where is the standalone doc that explains `QNetwork`, the Bellman update, and one full training iteration?
+A: See `docs/DQN_EXPLAINED.md`. It consolidates the explanation of tensor shapes, the Bellman target used in the custom trainer, and the step-by-step control flow of one training iteration in `train/independent_dqn_pytorch.py`.

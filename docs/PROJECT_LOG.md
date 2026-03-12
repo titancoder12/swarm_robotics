@@ -46,6 +46,8 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a beginner-oriented Q&A mapping core RL concepts directly onto the main environment and DQN trainer files.
 - Logged a Q&A describing a minimal-change Raspberry Pi + Arduino sim-to-real architecture with a Pi-side real-world adapter and Arduino low-level control layer.
 - Added `docs/SimToReal.md` with a detailed Raspberry Pi + Arduino deployment design and added a `robot/` package containing `SensorBridge`, `ObservationBuilder`, `PolicyRunner`, `ActionBridge`, and a runtime loop skeleton.
+- Logged a Q&A summarizing `QNetwork`, the Bellman update, and one full DQN training iteration in the custom trainer.
+- Added `docs/DQN_EXPLAINED.md` to capture the custom DQN trainer explanation in one place and logged a Q&A pointing to it.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`
