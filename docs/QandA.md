@@ -73,3 +73,6 @@ A: Yes. `QNetwork` in `train/independent_dqn_pytorch.py` is a small MLP that map
 
 ## Q: Where is the standalone doc that explains `QNetwork`, the Bellman update, and one full training iteration?
 A: See `docs/DQN_EXPLAINED.md`. It consolidates the explanation of tensor shapes, the Bellman target used in the custom trainer, and the step-by-step control flow of one training iteration in `train/independent_dqn_pytorch.py`.
+
+## Q: What are `custom`, `sb3`, and `rllib`, and when should I pick each one?
+A: They are the three training backends selected by `train/train.py`. `custom` runs the repo’s own PyTorch DQN trainer in `train/independent_dqn_pytorch.py`, which is the easiest option for learning and modifying the algorithm. `sb3` runs Stable-Baselines3 DQN through `train/sb3_dqn.py`, which is simpler than RLlib and useful when you want a standard library implementation with fewer moving parts. `rllib` runs Ray RLlib DQN through `train/rllib_dqn.py`, which is heavier but more suitable when you want richer multi-agent/distributed tooling. In this repo, start with `custom` for understanding and experiments, use `sb3` when you want a cleaner library baseline, and reach for `rllib` only if you specifically need Ray/RLlib capabilities.

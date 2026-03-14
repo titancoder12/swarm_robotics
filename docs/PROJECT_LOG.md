@@ -48,6 +48,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added `docs/SimToReal.md` with a detailed Raspberry Pi + Arduino deployment design and added a `robot/` package containing `SensorBridge`, `ObservationBuilder`, `PolicyRunner`, `ActionBridge`, and a runtime loop skeleton.
 - Logged a Q&A summarizing `QNetwork`, the Bellman update, and one full DQN training iteration in the custom trainer.
 - Added `docs/DQN_EXPLAINED.md` to capture the custom DQN trainer explanation in one place and logged a Q&A pointing to it.
+- Logged a Q&A comparing the `custom`, `sb3`, and `rllib` training backends and when to choose each one.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`
