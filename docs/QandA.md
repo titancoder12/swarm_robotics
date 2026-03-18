@@ -82,3 +82,9 @@ A: Yes, for the policy portion it is very close. The key pieces in `train/demo.p
 
 ## Q: Is the `robot/` directory meant to support that sim-to-real inference loop?
 A: Yes. `robot/policy_runner.py` handles checkpoint loading and inference, `robot/observation_builder.py` turns sensor packets into policy observations, `robot/sensor_bridge.py` reads incoming sensor data, `robot/action_bridge.py` maps discrete actions into high-level robot commands, and `robot/runtime.py` wires the loop together. It is the Pi-side deployment skeleton for the same inference pattern used in the custom demo.
+
+## Q: Can we just share the checkpoint and a small inference snippet with the robot developer instead of asking them to use this repo’s `robot/` package?
+A: Yes, that can be a reasonable integration strategy. The robot developer does not need to adopt this whole repo if you give them the exact model-loading code, the network definition, the action mapping, and the observation contract. The important constraint is not code ownership but interface compatibility: the checkpoint format, observation feature order/normalization, and action semantics must match training exactly. Also, large checkpoints usually should not be committed directly to Git unless you intentionally use an artifact mechanism such as Git LFS or release assets.
+
+## Q: If we use the `robot/` package on the Raspberry Pi, do we still need `env/`, `train/`, or `swarm_env.py`?
+A: You do not need `env/swarm_env.py` for robot inference. After refactoring, the intended minimal runtime dependency is `robot/`, `env/config.py`, `models/q_network.py`, and the checkpoint. The Raspberry Pi no longer needs `train/independent_dqn_pytorch.py` just to load the custom DQN model.

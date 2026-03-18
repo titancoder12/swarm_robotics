@@ -261,6 +261,19 @@ The remaining work is robot-specific integration:
 - implement the final command protocol between Pi and Arduino
 - enforce safety checks around actuation
 
+### Current Shared-Code Boundary
+
+The robot runtime does not need `env/swarm_env.py` because it does not run the simulator on the Raspberry Pi.
+
+After refactoring, the intended shared deployment pieces are:
+
+- `robot/`
+- `env/config.py`
+- `models/q_network.py`
+- the checkpoint artifact
+
+This removes the Pi-side dependency on `train/independent_dqn_pytorch.py` while preserving checkpoint compatibility with the existing custom trainer.
+
 ## 10) Runtime Loop Design
 
 The real-world runtime should run at a fixed frequency, for example:

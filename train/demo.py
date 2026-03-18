@@ -14,7 +14,7 @@ if ROOT not in sys.path:
 
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
-from train.independent_dqn_pytorch import QNetwork
+from models.q_network import QNetwork
 
 
 def parse_args(argv=None):

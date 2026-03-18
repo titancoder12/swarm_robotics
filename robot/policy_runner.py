@@ -6,7 +6,7 @@ import numpy as np
 import torch
 
 from env.config import SwarmConfig
-from train.independent_dqn_pytorch import QNetwork
+from models.q_network import QNetwork
 
 
 class PolicyRunner:
@@ -40,4 +40,3 @@ class PolicyRunner:
             obs_tensor = torch.tensor(observation, dtype=torch.float32, device=self.device).unsqueeze(0)
             q_vals = self.model(obs_tensor)
             return int(torch.argmax(q_vals, dim=1).item())
-

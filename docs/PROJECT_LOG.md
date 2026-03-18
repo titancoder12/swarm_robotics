@@ -51,6 +51,9 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A comparing the `custom`, `sb3`, and `rllib` training backends and when to choose each one.
 - Logged a Q&A clarifying that the sim-to-real policy loop can mirror the custom demo inference loop, with sensor-built observations and a real-world action bridge replacing `env.step(...)`.
 - Expanded `docs/SimToReal.md` to map the `robot/` package onto the custom demo inference loop and logged a Q&A confirming that `robot/` is the Pi-side sim-to-real deployment skeleton.
+- Logged a Q&A covering the tradeoff between sharing only the checkpoint plus a minimal inference snippet versus requiring robot-side adoption of this repo’s `robot/` package.
+- Logged a Q&A clarifying the actual minimal Pi-side runtime dependencies: `swarm_env.py` is not needed, but the current `robot/` package still depends on `env/config.py` and `train/independent_dqn_pytorch.py` for `QNetwork`.
+- Extracted `QNetwork` into `models/q_network.py` and updated training, demo, and robot inference code to share it, removing the robot runtime's dependency on the training script.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

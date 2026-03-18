@@ -22,6 +22,7 @@ if ROOT not in sys.path:  # Ensure local imports work.
 
 from env.config import SwarmConfig  # Environment config.
 from env.swarm_env import SwarmEnv  # PettingZoo env.
+from models.q_network import QNetwork  # Shared Q-network definition.
 
 
 @dataclass  # Declarative hyperparameter container.
@@ -83,24 +84,6 @@ def _dict_to_array(data, agent_ids, dtype=None):
 
 def _array_to_dict(arr, agent_ids):
     return {agent: arr[i] for i, agent in enumerate(agent_ids)}
-
-
-class QNetwork(nn.Module):
-    """Small MLP mapping observations to Q-values for each discrete action."""
-    def __init__(self, obs_dim: int, action_dim: int):
-        super().__init__()
-        # Two hidden layers with ReLU nonlinearity.
-        self.net = nn.Sequential(
-            nn.Linear(obs_dim, 128),  # Input -> hidden.
-            nn.ReLU(),  # Nonlinearity.
-            nn.Linear(128, 128),  # Hidden -> hidden.
-            nn.ReLU(),  # Nonlinearity.
-            nn.Linear(128, action_dim),  # Hidden -> Q-values for each action.
-        )
-
-    def forward(self, x):
-        """Return Q-values for each action."""
-        return self.net(x)  # Forward pass.
 
 
 def linear_schedule(start: float, end: float, step: int, decay_steps: int) -> float:
