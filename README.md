@@ -1,3 +1,4 @@
+
 # Swarm RL PyGame Environment (Stigmergy)
 
 A minimal multi-agent PyGame environment for swarm RL with pheromone stigmergy, using the PettingZoo Parallel API, plus random rollout and DQN training scripts.
