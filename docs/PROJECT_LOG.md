@@ -53,6 +53,11 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Expanded `docs/SimToReal.md` to map the `robot/` package onto the custom demo inference loop and logged a Q&A confirming that `robot/` is the Pi-side sim-to-real deployment skeleton.
 - Logged a Q&A covering the tradeoff between sharing only the checkpoint plus a minimal inference snippet versus requiring robot-side adoption of this repo’s `robot/` package.
 - Logged a Q&A clarifying the actual minimal Pi-side runtime dependencies: `swarm_env.py` is not needed, but the current `robot/` package still depends on `env/config.py` and `train/independent_dqn_pytorch.py` for `QNetwork`.
+- Logged a Q&A confirming that the separate `AntSwarmFirmware` repo looks like Raspberry Pi-side runtime code, based on its Python script, systemd service, and serial communication with an ESP32.
+- Added a `pi/` reference integration layer based on the `AntSwarmFirmware` structure, showing how Raspberry Pi code can reuse `robot/`, `models/q_network.py`, and `env/config.py` to run the trained policy on the physical robot.
+- Logged a Q&A summarizing what `ant.py` currently does: serial connection, scan reading, handcrafted free-space action selection, and ESP32 command transmission.
+- Added `pi/ants.py` as a compatibility-first Raspberry Pi control script matching the current rule-based behavior and added `docs/PI_MIGRATION.md` to guide gradual migration from that baseline toward model-based control.
+- Added `pi/ants.service` as a compatibility-first systemd unit mirroring the current Raspberry Pi deployment pattern and documented the path-adjustment requirement in `docs/PI_MIGRATION.md`.
 - Extracted `QNetwork` into `models/q_network.py` and updated training, demo, and robot inference code to share it, removing the robot runtime's dependency on the training script.
 
 ## Key Commands

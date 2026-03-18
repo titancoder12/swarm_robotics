@@ -274,6 +274,32 @@ After refactoring, the intended shared deployment pieces are:
 
 This removes the Pi-side dependency on `train/independent_dqn_pytorch.py` while preserving checkpoint compatibility with the existing custom trainer.
 
+## 10) Pi-Side Example Based on Existing Robot Code
+
+This repository also includes a `pi/` folder that shows how a Raspberry Pi runtime can be built from the structure of the existing `AntSwarmFirmware` code while reusing this repo's deployment modules.
+
+Files:
+
+- `pi/esp32_robot.py`
+  A Pi-side serial client modeled after the existing `ant.py` pattern for communicating with an ESP32 over `/dev/serial0`
+
+- `pi/esp32_sensor_adapter.py`
+  Converts incoming ESP32 scan lines into `robot.messages.SensorPacket`
+
+- `pi/esp32_action_bridge.py`
+  Translates generic `ActionCommand` outputs into the current ESP32 command protocol (`turn`, `move`, `stop`, `brake`)
+
+- `pi/run_policy.py`
+  The Pi runtime entry point that connects:
+  `ESP32 serial -> SensorPacket -> ObservationBuilder -> PolicyRunner -> CommandMapper -> ESP32ActionBridge`
+
+This `pi/` example is intentionally separate from `robot/`:
+
+- `robot/` provides reusable deployment abstractions
+- `pi/` shows how to adapt a concrete Raspberry Pi + ESP32 control stack onto those abstractions
+
+The `pi/` code is a reference integration layer, not a claim that the current observation mapping is already calibrated for your robot. In particular, scan angle bucketing, action-to-motion mapping, speed estimation, and target/neighbor features will need to be tuned to match your hardware and the observation contract used during training.
+
 ## 10) Runtime Loop Design
 
 The real-world runtime should run at a fixed frequency, for example:

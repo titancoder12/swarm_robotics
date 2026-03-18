@@ -88,3 +88,18 @@ A: Yes, that can be a reasonable integration strategy. The robot developer does 
 
 ## Q: If we use the `robot/` package on the Raspberry Pi, do we still need `env/`, `train/`, or `swarm_env.py`?
 A: You do not need `env/swarm_env.py` for robot inference. After refactoring, the intended minimal runtime dependency is `robot/`, `env/config.py`, `models/q_network.py`, and the checkpoint. The Raspberry Pi no longer needs `train/independent_dqn_pytorch.py` just to load the custom DQN model.
+
+## Q: Does the `AntSwarmFirmware` repo look like Raspberry Pi-side robot code?
+A: Yes, it looks like Raspberry Pi-side runtime code rather than microcontroller firmware. The repo contains a Python script (`ant.py`) and a systemd service (`ant.service`), and `ant.py` opens `/dev/serial0` with `pyserial`, imports `cv2`, and sends high-level commands to an ESP32. That is consistent with Linux userspace code running on a Raspberry Pi and delegating low-level control to a microcontroller.
+
+## Q: Is there an example in this repo showing how to adapt Raspberry Pi code like `AntSwarmFirmware` to run the learned policy?
+A: Yes. The `pi/` folder is a Pi-side reference integration built from that pattern. `pi/esp32_robot.py` wraps the ESP32 serial protocol, `pi/esp32_sensor_adapter.py` converts scan lines into `SensorPacket`, `pi/esp32_action_bridge.py` maps policy actions back into the ESP32 command set, and `pi/run_policy.py` connects those pieces to `robot/`, `models/q_network.py`, and `env/config.py` so the checkpoint can drive the physical robot.
+
+## Q: What does `ant.py` in the separate `AntSwarmFirmware` repo currently do?
+A: It is a Raspberry Pi-side Python control loop that connects to an ESP32 over `/dev/serial0`, reads JSON sensor scan lines, picks a simple handcrafted movement direction based on free space, and sends high-level serial commands like turn/move/stop to the ESP32. It is not running the learned model; it is running a rule-based obstacle-avoidance style behavior.
+
+## Q: Is there a compatibility-first Pi script in this repo so the robot developer can switch repos without losing the current behavior?
+A: Yes. `pi/ants.py` was added as a compatibility-first copy of the current Raspberry Pi control script. The intent is that the developer can clone this repo and keep using the same rule-based serial control loop immediately, then follow `docs/PI_MIGRATION.md` to transition gradually toward the shared deployment modules and the learned model.
+
+## Q: Is there also a systemd service file in this repo to mirror the current Raspberry Pi deployment setup?
+A: Yes. `pi/ants.service` was added as a compatibility-first systemd unit matching the existing Raspberry Pi launch pattern. It is meant to start `pi/ants.py` at boot, but the robot developer should update `WorkingDirectory` and `ExecStart` if the repo is cloned somewhere other than `/home/pi/ant`.

@@ -1,0 +1,18 @@
+[Unit]
+Description=Ant Robot Controller
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/ant
+ExecStart=/usr/bin/python3 /home/pi/ant/pi/ants.py
+Restart=always
+RestartSec=3
+
+# Serial access
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
