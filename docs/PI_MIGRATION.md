@@ -1,18 +1,18 @@
 # Pi Migration Guide
 
-This document is for the robot developer who currently has working Raspberry Pi code similar to `AntSwarmFirmware/ant.py` and wants to migrate gradually toward running the learned model from this repository.
+This document describes how the Raspberry Pi runtime can evolve from the current rule-based control loop to running the learned model from this repository.
 
 The goal is explicit:
 
 - keep today's working robot behavior intact
-- let the developer clone this repo onto the Raspberry Pi and continue working immediately
+- keep the Raspberry Pi workflow intact while the codebase evolves
 - introduce model-based control in small, low-risk steps
 
 ## 1) Compatibility Baseline
 
-The file `pi/ants.py` is included as a compatibility-first copy of the current Raspberry Pi control script.
+The file `pi/ants.py` is included as a preserved copy of the current Raspberry Pi control script.
 
-Its purpose is not to be architecturally elegant. Its purpose is to preserve the current workflow so the robot developer loses nothing by switching to this repo as the working tree.
+Its purpose is not to be architecturally elegant. Its purpose is to preserve the current workflow while the codebase transitions toward model-based control.
 
 `pi/ants.py` currently does the same basic job as the original script:
 
@@ -21,7 +21,7 @@ Its purpose is not to be architecturally elegant. Its purpose is to preserve the
 - choose a movement direction with simple handcrafted free-space logic
 - send movement commands like `move(...)`, `turn(...)`, `stop(...)`, and `brake(...)`
 
-This gives the robot developer a safe baseline:
+This gives a safe baseline:
 
 - first prove the robot still behaves the same
 - only then start introducing shared modules and model inference
@@ -63,7 +63,7 @@ At this phase:
 - keep the same ESP32 command protocol
 - keep the same scan parsing assumptions
 
-Only refactor the transport layer so the codebase starts using shared Pi-side helpers without changing robot behavior.
+Only refactor the transport layer so the Pi runtime starts using shared helpers without changing robot behavior.
 
 ### Phase 2: Build `SensorPacket` from Real Sensor Data
 
@@ -78,7 +78,7 @@ Important:
 - this is where observation correctness starts to matter
 - if the model was trained on a 19-dimensional observation, the real sensor pipeline must preserve the same feature order and scaling
 
-Initially, some channels may remain placeholders while the developer brings up the pipeline.
+Initially, some channels may remain placeholders while the pipeline is being brought up.
 
 ### Phase 3: Build and Log Observations Without Using Them for Control
 
@@ -139,7 +139,7 @@ At this phase:
 
 ### Phase 6: Switch Control From Rule-Based to Model-Based
 
-Only after the previous steps are stable should the developer replace the handcrafted chooser in `pi/ants.py` with the learned-policy path in `pi/run_policy.py`.
+Only after the previous steps are stable should the handcrafted chooser in `pi/ants.py` be replaced with the learned-policy path in `pi/run_policy.py`.
 
 The transition should look like this:
 
@@ -151,11 +151,24 @@ The transition should look like this:
 
 This should be a deliberate cutover, not an early experiment.
 
-## 4) What the Robot Developer Needs to Learn
+`pi/run_policy.py` is the intended end state of the migration.
 
-The developer does not need to learn the whole simulator or training stack.
+In other words:
 
-They mainly need to understand five things:
+- `pi/ants.py` represents the baseline that preserves the current Raspberry Pi behavior
+- `pi/run_policy.py` represents the migrated Raspberry Pi runtime that uses the learned RL policy instead of handcrafted rule-based action selection
+
+That does not automatically mean `pi/run_policy.py` is already a final production deployment. It is the architectural target of the migration. Real hardware tuning may still be required for:
+
+- observation correctness
+- action-to-motion mapping
+- timing and control frequency
+- safety behavior
+- sensor calibration
+
+## 4) Key Components
+
+The full simulator and training stack are not required to begin this migration. The main components are:
 
 1. `pi/ants.py`
    This preserves today's behavior.
@@ -172,7 +185,7 @@ They mainly need to understand five things:
 5. `models/q_network.py` and `robot/policy_runner.py`
    This loads the saved checkpoint and runs inference.
 
-That is enough to begin migration.
+That is enough to begin the migration.
 
 ## 5) What Will Still Need Real Hardware Work
 
@@ -191,11 +204,11 @@ The following parts still require robot-specific tuning:
 
 Those are hardware integration problems, not just software import problems.
 
-## 6) Recommended First Task for the Robot Developer
+## 6) Recommended First Task
 
 The first concrete task should be:
 
-1. clone this repo on the Raspberry Pi
+1. run this repo on the Raspberry Pi
 2. run `pi/ants.py` or install `pi/ants.service`
 3. confirm the robot behaves the same as before
 4. only then begin the migration phases above
@@ -206,14 +219,14 @@ This keeps the migration low-risk and prevents a tooling refactor from being con
 
 To mirror the current Raspberry Pi deployment style, this repo also includes `pi/ants.service`.
 
-It is a compatibility-first systemd unit intended to match the existing launch pattern:
+It is a systemd unit intended to match the existing launch pattern:
 
 - runs as user `pi`
 - starts the Python control script at boot
 - restarts automatically on failure
 - writes logs to the systemd journal
 
-Before using it on a real Raspberry Pi, the developer should verify:
+Before using it on a real Raspberry Pi, verify:
 
 - the repo checkout path matches the `WorkingDirectory`
 - the `ExecStart` path matches where this repo is cloned

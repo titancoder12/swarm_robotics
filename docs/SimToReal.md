@@ -276,12 +276,12 @@ This removes the Pi-side dependency on `train/independent_dqn_pytorch.py` while 
 
 ## 10) Pi-Side Example Based on Existing Robot Code
 
-This repository also includes a `pi/` folder that shows how a Raspberry Pi runtime can be built from the structure of the existing `AntSwarmFirmware` code while reusing this repo's deployment modules.
+This repository also includes a `pi/` folder that shows how the Raspberry Pi runtime can be built from the existing serial-control structure while reusing the deployment modules in this codebase.
 
 Files:
 
 - `pi/esp32_robot.py`
-  A Pi-side serial client modeled after the existing `ant.py` pattern for communicating with an ESP32 over `/dev/serial0`
+  A Pi-side serial client following the existing `ants.py` communication pattern for talking to an ESP32 over `/dev/serial0`
 
 - `pi/esp32_sensor_adapter.py`
   Converts incoming ESP32 scan lines into `robot.messages.SensorPacket`
@@ -296,7 +296,7 @@ Files:
 This `pi/` example is intentionally separate from `robot/`:
 
 - `robot/` provides reusable deployment abstractions
-- `pi/` shows how to adapt a concrete Raspberry Pi + ESP32 control stack onto those abstractions
+- `pi/` provides the Raspberry Pi + ESP32 runtime built on top of those abstractions
 
 The `pi/` code is a reference integration layer, not a claim that the current observation mapping is already calibrated for your robot. In particular, scan angle bucketing, action-to-motion mapping, speed estimation, and target/neighbor features will need to be tuned to match your hardware and the observation contract used during training.
 
