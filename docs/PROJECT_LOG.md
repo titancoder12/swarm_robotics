@@ -49,6 +49,8 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A summarizing `QNetwork`, the Bellman update, and one full DQN training iteration in the custom trainer.
 - Added `docs/DQN_EXPLAINED.md` to capture the custom DQN trainer explanation in one place and logged a Q&A pointing to it.
 - Logged a Q&A comparing the `custom`, `sb3`, and `rllib` training backends and when to choose each one.
+- Logged a Q&A clarifying that the sim-to-real policy loop can mirror the custom demo inference loop, with sensor-built observations and a real-world action bridge replacing `env.step(...)`.
+- Expanded `docs/SimToReal.md` to map the `robot/` package onto the custom demo inference loop and logged a Q&A confirming that `robot/` is the Pi-side sim-to-real deployment skeleton.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

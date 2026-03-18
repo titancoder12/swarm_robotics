@@ -215,6 +215,52 @@ The deployment skeleton added in this repository introduces the following Pi-sid
 
 These are deliberately separate from `env/` and `train/` so the training code remains clean.
 
+### How `robot/` Maps to the Demo Inference Loop
+
+The `robot/` package is built to support a sim-to-real runtime that mirrors the custom inference path in `train/demo.py`.
+
+In the demo code, the critical policy steps are:
+
+- load the trained model
+- turn an observation into `obs_tensor`
+- run the network to get Q-values
+- take `argmax` to select the action
+- hand that action to the next execution stage
+
+On the robot, those responsibilities are split across the Pi-side modules as follows:
+
+- `robot/policy_runner.py`
+  Loads the trained checkpoint and runs inference. This corresponds to the `load_models(...)`, `q_vals = net(obs_tensor)`, and `argmax(...)` parts of the demo loop.
+
+- `robot/observation_builder.py`
+  Builds the policy observation vector from real sensor data. This is the real-world replacement for the simulator's `_get_obs()`.
+
+- `robot/sensor_bridge.py`
+  Receives sensor packets from serial or another transport so the Pi can ingest Arduino-side data.
+
+- `robot/action_bridge.py`
+  Converts the discrete action ID into a high-level command such as `(throttle, turn)` and sends it to the low-level controller.
+
+- `robot/runtime.py`
+  Connects the end-to-end loop:
+  `read sensor packet -> build observation -> run policy -> build command -> send command`
+
+So yes, the `robot/` directory exists specifically to support the sim-to-real loop:
+
+1. read sensors
+2. build `obs`
+3. create `obs_tensor`
+4. run the model
+5. choose the action
+6. translate that action into physical commands
+
+The remaining work is robot-specific integration:
+
+- define the exact sensor packet schema
+- ensure observation normalization matches training
+- implement the final command protocol between Pi and Arduino
+- enforce safety checks around actuation
+
 ## 10) Runtime Loop Design
 
 The real-world runtime should run at a fixed frequency, for example:
