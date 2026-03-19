@@ -97,3 +97,4 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged the exact changed-file list relative to revision `8ac33636556db0af11cd7c09b9b57e03d94a40d1`.
 - Added `docs/API_REFERENCE.md`, a code-grounded developer API/specification reference covering the environment contract, 23-dim observation layout, 9-action mapping, dynamics, rewards, config fields, and training/evaluation/experiment entry points.
 - Added focused companion specs `docs/OBSERVATION_SPEC.md` and `docs/ACTION_SPEC.md` so developers can reference the current observation and action contracts without reading the full API reference.
+- Added `docs/CONFIG_REFERENCE.md` and `docs/EXPERIMENT_API.md` to split the config surface and experiment framework into focused developer references.

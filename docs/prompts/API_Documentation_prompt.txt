@@ -302,7 +302,7 @@ Created docs/API_REFERENCE.md.
     for easier reference.
 
 
-    Output 2:
+Output 2:
     Added the split-out specs:
 
   - docs/OBSERVATION_SPEC.md
@@ -321,3 +321,25 @@ Created docs/API_REFERENCE.md.
       - focused observation vector contract
   - docs/ACTION_SPEC.md
       - focused action-space contract
+
+Output 3:
+Added:
+
+  - docs/CONFIG_REFERENCE.md
+  - docs/EXPERIMENT_API.md
+
+  So the focused reference set is now:
+
+  - docs/API_REFERENCE.md
+  - docs/OBSERVATION_SPEC.md
+  - docs/ACTION_SPEC.md
+  - docs/CONFIG_REFERENCE.md
+  - docs/EXPERIMENT_API.md
+
+  That gives you separate docs for:
+
+  - full API
+  - observation contract
+  - action contract
+  - config surface
+  - experiment/evaluation framework
