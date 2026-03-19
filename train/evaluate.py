@@ -14,6 +14,7 @@ if ROOT not in sys.path:
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
+from models.rule_based_policy import RuleBasedSwarmPolicy
 from train.experiment_utils import CSVLogger, add_env_config_args, make_swarm_config, write_json
 
 
@@ -21,6 +22,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--shared-policy", action="store_true")
+    parser.add_argument("--policy-kind", choices=["dqn", "rule_based"], default="dqn")
     parser.add_argument("--episodes", type=int, default=10)
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
@@ -46,6 +48,10 @@ def _load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: i
     return nets, device
 
 
+def _build_rule_based_policies(cfg: SwarmConfig, seed: int):
+    return [RuleBasedSwarmPolicy(cfg, seed=seed + i) for i in range(cfg.n_agents)]
+
+
 def run(args):
     os.makedirs(args.output_dir, exist_ok=True)
     cfg = make_swarm_config(args)
@@ -54,7 +60,13 @@ def run(args):
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
     obs_dim = obs.shape[1]
-    nets, device = _load_models(args.checkpoint_dir, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
+    nets = []
+    policies = []
+    device = torch.device("cpu")
+    if args.policy_kind == "dqn":
+        nets, device = _load_models(args.checkpoint_dir, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
+    else:
+        policies = _build_rule_based_policies(cfg, args.seed)
 
     logger = CSVLogger(
         os.path.join(args.output_dir, "eval_metrics.csv"),
@@ -84,10 +96,13 @@ def run(args):
             while True:
                 actions = np.zeros(cfg.n_agents, dtype=np.int64)
                 for i in range(cfg.n_agents):
-                    with torch.no_grad():
-                        obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
-                        q_vals = nets[i](obs_tensor)
-                        actions[i] = int(torch.argmax(q_vals, dim=1).item())
+                    if args.policy_kind == "dqn":
+                        with torch.no_grad():
+                            obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
+                            q_vals = nets[i](obs_tensor)
+                            actions[i] = int(torch.argmax(q_vals, dim=1).item())
+                    else:
+                        actions[i] = int(policies[i].act(obs[i]))
 
                 action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
                 next_obs_dict, rewards_dict, terminations, truncations, info_dict = env.step(action_dict)
@@ -128,6 +143,7 @@ def run(args):
         {
             "episodes": args.episodes,
             "obs_dim": obs_dim,
+            "policy_kind": args.policy_kind,
             "metrics": {
                 "mean_reward": float(np.mean([row["mean_episode_reward"] for row in summaries])) if summaries else 0.0,
                 "mean_food_retrieved": float(np.mean([row["food_retrieved"] for row in summaries])) if summaries else 0.0,

@@ -88,3 +88,6 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added `collective_intelligence_scaling` to the shared experiment registry with agent-count sweeps for pheromone-on vs pheromone-off conditions and a default 20-trial setup.
 - Extended the shared experiment runner to honor per-experiment default trial counts, carry case metadata into trial/aggregate CSVs, and derive `efficiency_per_robot` only in the aggregation layer.
 - Extended analysis plotting with grouped error-bar plots and generated collective-scaling outputs for completion time, swarm efficiency, pheromone usage, and efficiency per robot versus swarm size.
+- Added a rule-based swarm baseline policy that consumes the standard 23-dim observation and outputs the same 9 discrete actions used by the learned controllers.
+- Extended the shared evaluation pipeline and experiment runner to support `rl_algorithm_comparison`, including DQN, shared-policy DQN, and rule-based cases under the same eval/output schema.
+- Added analysis-layer derived metrics for `convergence_speed` and `time_to_first_food` plus algorithm-comparison plots for food retrieval, efficiency, convergence speed, and overall efficiency bars.
