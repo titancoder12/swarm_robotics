@@ -14,7 +14,7 @@ if ROOT not in sys.path:
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
-from train.experiment_utils import CSVLogger, write_json
+from train.experiment_utils import CSVLogger, add_env_config_args, make_swarm_config, write_json
 
 
 def parse_args(argv=None):
@@ -25,6 +25,7 @@ def parse_args(argv=None):
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output-dir", type=str, default="runs/eval")
+    add_env_config_args(parser)
     return parser.parse_args(argv)
 
 
@@ -47,7 +48,7 @@ def _load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: i
 
 def run(args):
     os.makedirs(args.output_dir, exist_ok=True)
-    cfg = SwarmConfig(n_agents=args.n_agents)
+    cfg = make_swarm_config(args)
     env = SwarmEnv(cfg, headless=True)
     obs_dict, _ = env.reset(seed=args.seed)
     agent_ids = env.possible_agents
@@ -136,8 +137,8 @@ def run(args):
             },
         },
     )
+    return args.output_dir
 
 
 if __name__ == "__main__":
     run(parse_args())
-

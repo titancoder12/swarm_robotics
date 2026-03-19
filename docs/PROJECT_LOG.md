@@ -62,6 +62,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Extracted `QNetwork` into `models/q_network.py` and updated training, demo, and robot inference code to share it, removing the robot runtime's dependency on the training script.
 - Upgraded the environment for science-fair-grade stigmergic foraging support by adding configurable nest mechanics, food pickup and nest delivery, richer local observations (nest direction, food presence, carrying state), nest rendering, and aligned the robot observation builder to the new observation contract.
 - Upgraded the custom training pipeline for research-grade experiments by adding structured episode/evaluation logging, checkpoint metadata, optional deterministic evaluation during training, training plot generation, and standalone evaluation/plot scripts while preserving the existing DQN CLI flow.
+- Added a reusable experiment framework on top of the existing trainer/evaluator, including shared env sweep flags, benchmark experiment definitions, a central experiment runner, aggregated trial metrics with mean/std, and publication-style summary plots under the existing `runs/`, `results/`, and `analysis/` structure.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

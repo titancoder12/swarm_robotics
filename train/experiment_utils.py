@@ -4,7 +4,9 @@ import csv
 import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable
+from typing import Any, Dict, Iterable, List
+
+from env.config import SwarmConfig
 
 
 def make_run_dir(output_dir: str, experiment_name: str) -> str:
@@ -74,3 +76,48 @@ def plot_training_metrics(csv_path: str, out_dir: str) -> None:
         fig.savefig(os.path.join(out_dir, filename))
         plt.close(fig)
 
+
+def add_env_config_args(parser) -> None:
+    """Add shared environment override flags to a CLI parser."""
+    parser.add_argument("--n-targets", type=int, default=4)
+    parser.add_argument("--n-obstacles", type=int, default=6)
+    parser.add_argument("--max-steps-per-episode", type=int, default=600)
+    parser.add_argument("--dynamics-mode", choices=["tank", "hover", "mixed"], default="tank")
+    parser.add_argument("--pheromone-disabled", action="store_true")
+    parser.add_argument("--failed-agent-count", type=int, default=0)
+    parser.add_argument("--observation-noise-std", type=float, default=0.0)
+
+
+def make_swarm_config(args) -> SwarmConfig:
+    """Build a SwarmConfig from parsed CLI args without changing defaults elsewhere."""
+    pheromone_enabled = not getattr(args, "pheromone_disabled", False)
+    return SwarmConfig(
+        n_agents=getattr(args, "n_agents", 6),
+        n_targets=getattr(args, "n_targets", 4),
+        n_obstacles=getattr(args, "n_obstacles", 6),
+        max_steps=getattr(args, "max_steps_per_episode", 600),
+        dynamics_mode=getattr(args, "dynamics_mode", "tank"),
+        pheromone_enabled=pheromone_enabled,
+        render_pheromone=pheromone_enabled,
+        obs_include_pheromone=pheromone_enabled,
+        failed_agent_count=getattr(args, "failed_agent_count", 0),
+        observation_noise_std=getattr(args, "observation_noise_std", 0.0),
+    )
+
+
+def load_csv_rows(path: str) -> List[Dict[str, str]]:
+    """Load a CSV file into a list of dict rows."""
+    with open(path, "r", encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def aggregate_rows(rows: List[Dict[str, float]], metric_keys: List[str]) -> Dict[str, float]:
+    """Compute mean/std aggregates for a list of metric dicts."""
+    import numpy as np
+
+    summary: Dict[str, float] = {}
+    for key in metric_keys:
+        values = np.array([float(row[key]) for row in rows], dtype=np.float32) if rows else np.array([], dtype=np.float32)
+        summary[f"{key}_mean"] = float(values.mean()) if values.size else 0.0
+        summary[f"{key}_std"] = float(values.std()) if values.size else 0.0
+    return summary

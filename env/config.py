@@ -66,6 +66,8 @@ class SwarmConfig:
     nest_enabled: bool = True
     require_nest_delivery: bool = True
     coverage_cell_size: int = 24
+    failed_agent_count: int = 0
+    observation_noise_std: float = 0.0
 
     # Rendering
     render_pheromone: bool = True

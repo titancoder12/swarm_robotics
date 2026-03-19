@@ -107,6 +107,7 @@ class SwarmEnv(ParallelEnv):
         self.coverage_grid = None
         self.covered_cells = 0
         self.total_cover_cells = 1
+        self.failed_agent_indices: set[int] = set()
 
         self.step_count = 0
         self.terminated = False
@@ -173,6 +174,7 @@ class SwarmEnv(ParallelEnv):
         self._spawn_agents()
         self.food_delivered = 0
         self._init_coverage_grid()
+        self._assign_failed_agents()
         self._update_coverage()
 
         # Optional pheromone grid for stigmergy.
@@ -219,6 +221,8 @@ class SwarmEnv(ParallelEnv):
         }
 
         for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices:
+                continue
             action_id = int(actions[i])
             throttle, turn = self.action_table[action_id]
             # Propose next state from dynamics, then check collisions.
@@ -266,6 +270,7 @@ class SwarmEnv(ParallelEnv):
             "exploration_coverage": self._coverage_ratio(),
             "pheromone_usage": pheromone_usage,
             "episode_length": self.step_count,
+            "failed_agents": len(self.failed_agent_indices),
             "reward_breakdown": reward_breakdown,
         }
         infos = {agent: info for agent in self.possible_agents}
@@ -301,9 +306,12 @@ class SwarmEnv(ParallelEnv):
             pygame.draw.circle(self._screen, (50, 80, 140), (int(nx), int(ny)), int(self.cfg.nest_radius // 2))
 
         # Agents (body + heading line).
-        for agent in self.agent_states:
+        for i, agent in enumerate(self.agent_states):
             x, y = int(agent.x), int(agent.y)
-            body_color = (220, 120, 60) if agent.carrying_food else (200, 160, 50)
+            if i in self.failed_agent_indices:
+                body_color = (120, 120, 120)
+            else:
+                body_color = (220, 120, 60) if agent.carrying_food else (200, 160, 50)
             pygame.draw.circle(self._screen, body_color, (x, y), int(self.cfg.agent_radius))
             hx = x + int(math.cos(agent.theta) * self.cfg.agent_radius)
             hy = y + int(math.sin(agent.theta) * self.cfg.agent_radius)
@@ -375,6 +383,15 @@ class SwarmEnv(ParallelEnv):
             self.nest_position = (self.width * 0.5, self.height * 0.5)
             return
         self.nest_position = self._sample_free_position(self.cfg.nest_radius)
+
+    def _assign_failed_agents(self):
+        """Randomly choose a subset of agents that are inactive for the episode."""
+        failed = min(max(self.cfg.failed_agent_count, 0), self.cfg.n_agents)
+        if failed <= 0:
+            self.failed_agent_indices = set()
+            return
+        indices = self.rng.choice(self.cfg.n_agents, size=failed, replace=False)
+        self.failed_agent_indices = {int(i) for i in np.atleast_1d(indices)}
 
     def _spawn_obstacles(self):
         """Create random obstacle rectangles with simple overlap avoidance."""
@@ -567,6 +584,11 @@ class SwarmEnv(ParallelEnv):
                 parts.append(carrying)
             parts.append(pheromone)
             obs = np.concatenate(parts).astype(np.float32)
+            if idx in self.failed_agent_indices:
+                obs[:] = 0.0
+            elif self.cfg.observation_noise_std > 0:
+                noise = self.rng.normal(0.0, self.cfg.observation_noise_std, size=obs.shape)
+                obs = np.clip(obs + noise.astype(np.float32), -1.0, 1.0)
             obs_list.append(obs)
         return np.stack(obs_list, axis=0)
 

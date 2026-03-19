@@ -24,7 +24,14 @@ if ROOT not in sys.path:  # Ensure local imports work.
 from env.config import SwarmConfig  # Environment config.
 from env.swarm_env import SwarmEnv  # PettingZoo env.
 from models.q_network import QNetwork  # Shared Q-network definition.
-from train.experiment_utils import CSVLogger, make_run_dir, plot_training_metrics, write_json
+from train.experiment_utils import (
+    CSVLogger,
+    add_env_config_args,
+    make_run_dir,
+    make_swarm_config,
+    plot_training_metrics,
+    write_json,
+)
 
 
 @dataclass  # Declarative hyperparameter container.
@@ -159,7 +166,7 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
 def train(args):
     """Train independent (or shared) DQN policies for each agent."""
     # 1) Environment and config setup.
-    cfg = SwarmConfig(n_agents=args.n_agents)  # Env config.
+    cfg = make_swarm_config(args)  # Env config.
     dqn_cfg = DQNConfig()  # Training config.
 
     env = SwarmEnv(cfg, headless=args.headless)  # Create env.
@@ -404,6 +411,7 @@ def train(args):
                 "checkpoint_dir": args.save_dir,
             },
         )
+        return run_dir
     finally:
         episode_logger.close()
         eval_logger.close()
@@ -426,6 +434,7 @@ def parse_args(argv=None):
     parser.add_argument("--eval-every", type=int, default=0, help="Evaluate every N training steps (0 = disabled)")
     parser.add_argument("--eval-episodes", type=int, default=5)
     parser.add_argument("--no-plots", action="store_true")
+    add_env_config_args(parser)
     return parser.parse_args(argv)
 
 
