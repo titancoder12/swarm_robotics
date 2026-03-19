@@ -300,3 +300,24 @@ Created docs/API_REFERENCE.md.
   - docs/OBSERVATION_SPEC.md
   - docs/ACTION_SPEC.md
     for easier reference.
+
+
+    Output 2:
+    Added the split-out specs:
+
+  - docs/OBSERVATION_SPEC.md
+  - docs/ACTION_SPEC.md
+
+  They are implementation-grounded extracts of the current contracts from:
+
+  - _compute_obs_dim() and _get_obs() in env/swarm_env.py
+  - _build_action_table() and the dynamics drivers in env/swarm_env.py
+
+  So the current doc set for this area is now:
+
+  - docs/API_REFERENCE.md
+      - full developer API/spec
+  - docs/OBSERVATION_SPEC.md
+      - focused observation vector contract
+  - docs/ACTION_SPEC.md
+      - focused action-space contract
