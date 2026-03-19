@@ -39,3 +39,5 @@ Thumbs.db
 
 # Workspace
 swarm_sim.code-workspace
+
+.mplcache/

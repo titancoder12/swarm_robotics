@@ -83,3 +83,8 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Add carry state + nest reward (optional)
 - Add two pheromone channels (food vs nest)
 - Improve training stability or add PPO alternative
+
+## 2026-03-18
+- Added `collective_intelligence_scaling` to the shared experiment registry with agent-count sweeps for pheromone-on vs pheromone-off conditions and a default 20-trial setup.
+- Extended the shared experiment runner to honor per-experiment default trial counts, carry case metadata into trial/aggregate CSVs, and derive `efficiency_per_robot` only in the aggregation layer.
+- Extended analysis plotting with grouped error-bar plots and generated collective-scaling outputs for completion time, swarm efficiency, pheromone usage, and efficiency per robot versus swarm size.

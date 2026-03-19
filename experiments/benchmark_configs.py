@@ -4,29 +4,59 @@ from __future__ import annotations
 def get_experiment_cases(name: str):
     """Return named experiment sweeps using existing trainer/evaluator flags."""
     registry = {
-        "swarm_scaling": [
-            {"case_name": "agents_3", "train_args": ["--n-agents", "3"]},
-            {"case_name": "agents_6", "train_args": ["--n-agents", "6"]},
-            {"case_name": "agents_10", "train_args": ["--n-agents", "10"]},
-        ],
-        "stigmergy_ablation": [
-            {"case_name": "pheromone_on", "train_args": []},
-            {"case_name": "pheromone_off", "train_args": ["--pheromone-disabled"]},
-        ],
-        "baseline_comparison": [
-            {"case_name": "independent_dqn", "train_args": []},
-            {"case_name": "shared_dqn", "train_args": ["--shared-policy"]},
-        ],
-        "robot_failure_test": [
-            {"case_name": "failed_0", "train_args": ["--failed-agent-count", "0"]},
-            {"case_name": "failed_1", "train_args": ["--failed-agent-count", "1"]},
-            {"case_name": "failed_2", "train_args": ["--failed-agent-count", "2"]},
-        ],
-        "noise_robustness": [
-            {"case_name": "noise_0p00", "train_args": ["--observation-noise-std", "0.0"]},
-            {"case_name": "noise_0p05", "train_args": ["--observation-noise-std", "0.05"]},
-            {"case_name": "noise_0p10", "train_args": ["--observation-noise-std", "0.10"]},
-        ],
+        "swarm_scaling": {
+            "default_trials": 3,
+            "cases": [
+                {"case_name": "agents_3", "train_args": ["--n-agents", "3"], "n_agents": 3},
+                {"case_name": "agents_6", "train_args": ["--n-agents", "6"], "n_agents": 6},
+                {"case_name": "agents_10", "train_args": ["--n-agents", "10"], "n_agents": 10},
+            ],
+        },
+        "stigmergy_ablation": {
+            "default_trials": 3,
+            "cases": [
+                {"case_name": "pheromone_on", "train_args": [], "condition": "pheromone_on"},
+                {"case_name": "pheromone_off", "train_args": ["--pheromone-disabled"], "condition": "pheromone_off"},
+            ],
+        },
+        "baseline_comparison": {
+            "default_trials": 3,
+            "cases": [
+                {"case_name": "independent_dqn", "train_args": [], "condition": "independent_dqn"},
+                {"case_name": "shared_dqn", "train_args": ["--shared-policy"], "condition": "shared_dqn"},
+            ],
+        },
+        "robot_failure_test": {
+            "default_trials": 3,
+            "cases": [
+                {"case_name": "failed_0", "train_args": ["--failed-agent-count", "0"], "failed_agents": 0},
+                {"case_name": "failed_1", "train_args": ["--failed-agent-count", "1"], "failed_agents": 1},
+                {"case_name": "failed_2", "train_args": ["--failed-agent-count", "2"], "failed_agents": 2},
+            ],
+        },
+        "noise_robustness": {
+            "default_trials": 3,
+            "cases": [
+                {"case_name": "noise_0p00", "train_args": ["--observation-noise-std", "0.0"], "noise_std": 0.0},
+                {"case_name": "noise_0p05", "train_args": ["--observation-noise-std", "0.05"], "noise_std": 0.05},
+                {"case_name": "noise_0p10", "train_args": ["--observation-noise-std", "0.10"], "noise_std": 0.10},
+            ],
+        },
+        "collective_intelligence_scaling": {
+            "default_trials": 20,
+            "cases": [
+                {"case_name": "agents_1_pheromone_on", "train_args": ["--n-agents", "1"], "n_agents": 1, "condition": "pheromone_on"},
+                {"case_name": "agents_2_pheromone_on", "train_args": ["--n-agents", "2"], "n_agents": 2, "condition": "pheromone_on"},
+                {"case_name": "agents_3_pheromone_on", "train_args": ["--n-agents", "3"], "n_agents": 3, "condition": "pheromone_on"},
+                {"case_name": "agents_5_pheromone_on", "train_args": ["--n-agents", "5"], "n_agents": 5, "condition": "pheromone_on"},
+                {"case_name": "agents_10_pheromone_on", "train_args": ["--n-agents", "10"], "n_agents": 10, "condition": "pheromone_on"},
+                {"case_name": "agents_1_pheromone_off", "train_args": ["--n-agents", "1", "--pheromone-disabled"], "n_agents": 1, "condition": "pheromone_off"},
+                {"case_name": "agents_2_pheromone_off", "train_args": ["--n-agents", "2", "--pheromone-disabled"], "n_agents": 2, "condition": "pheromone_off"},
+                {"case_name": "agents_3_pheromone_off", "train_args": ["--n-agents", "3", "--pheromone-disabled"], "n_agents": 3, "condition": "pheromone_off"},
+                {"case_name": "agents_5_pheromone_off", "train_args": ["--n-agents", "5", "--pheromone-disabled"], "n_agents": 5, "condition": "pheromone_off"},
+                {"case_name": "agents_10_pheromone_off", "train_args": ["--n-agents", "10", "--pheromone-disabled"], "n_agents": 10, "condition": "pheromone_off"},
+            ],
+        },
     }
     if name == "all":
         return registry

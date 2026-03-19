@@ -10,7 +10,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from analysis.plot_metrics import plot_bar_with_error, plot_mean_std_curve
+from analysis.plot_metrics import (
+    plot_bar_with_error,
+    plot_grouped_errorbar,
+    plot_mean_std_curve,
+)
 from experiments.benchmark_configs import get_experiment_cases
 from train.evaluate import parse_args as parse_eval_args, run as run_eval
 from train.experiment_utils import aggregate_rows, load_csv_rows
@@ -38,10 +42,11 @@ def parse_args(argv=None):
             "baseline_comparison",
             "robot_failure_test",
             "noise_robustness",
+            "collective_intelligence_scaling",
         ],
         default="all",
     )
-    parser.add_argument("--trials", type=int, default=3)
+    parser.add_argument("--trials", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--total-steps", type=int, default=10000)
     parser.add_argument("--eval-every", type=int, default=2000)
@@ -107,9 +112,25 @@ def _aggregate_eval_curves(run_dirs: list[str], metric_key: str):
     return curves
 
 
+def _metadata_fields(case: dict) -> dict:
+    fields = {}
+    for key in ("n_agents", "condition", "failed_agents", "noise_std"):
+        if key in case:
+            fields[key] = case[key]
+    return fields
+
+
+def _efficiency_per_robot(food_retrieved: float, n_agents: float | int | None) -> float:
+    if not n_agents:
+        return 0.0
+    return float(food_retrieved) / float(n_agents)
+
+
 def run_experiments(args):
     registry = get_experiment_cases(args.experiment)
-    for experiment_name, cases in registry.items():
+    for experiment_name, experiment_spec in registry.items():
+        cases = experiment_spec["cases"]
+        trial_count = args.trials if args.trials is not None else int(experiment_spec.get("default_trials", 3))
         trial_rows = []
         aggregate_rows_out = []
         analysis_out_dir = os.path.join(args.analysis_dir, experiment_name)
@@ -121,8 +142,9 @@ def run_experiments(args):
             case_name = case["case_name"]
             run_dirs = []
             case_trial_rows = []
+            case_metadata = _metadata_fields(case)
 
-            for trial in range(args.trials):
+            for trial in range(trial_count):
                 seed = args.seed + trial
                 train_cli, save_dir = _case_train_args(args, experiment_name, case_name, seed, case["train_args"])
                 train_args = parse_train_args(train_cli)
@@ -153,16 +175,24 @@ def run_experiments(args):
                 final_row["experiment"] = experiment_name
                 final_row["case_name"] = case_name
                 final_row["seed"] = seed
+                final_row.update(case_metadata)
+                final_row["efficiency_per_robot"] = _efficiency_per_robot(
+                    final_row["food_retrieved"], case_metadata.get("n_agents")
+                )
                 trial_rows.append(final_row)
                 case_trial_rows.append(final_row)
 
             numeric_case_rows = [
-                {key: float(row[key]) for key in METRIC_KEYS}
+                {
+                    key: float(row[key])
+                    for key in METRIC_KEYS + ["efficiency_per_robot"]
+                }
                 for row in case_trial_rows
             ]
-            summary = aggregate_rows(numeric_case_rows, METRIC_KEYS)
+            summary = aggregate_rows(numeric_case_rows, METRIC_KEYS + ["efficiency_per_robot"])
             summary["experiment"] = experiment_name
             summary["case_name"] = case_name
+            summary.update(case_metadata)
             aggregate_rows_out.append(summary)
 
             if not args.no_plots:
@@ -181,11 +211,13 @@ def run_experiments(args):
 
         _write_csv(
             os.path.join(results_out_dir, "trial_metrics.csv"),
-            ["experiment", "case_name", "seed"] + METRIC_KEYS,
+            ["experiment", "case_name", "seed", "n_agents", "condition", "failed_agents", "noise_std"]
+            + METRIC_KEYS
+            + ["efficiency_per_robot"],
             trial_rows,
         )
-        aggregate_fieldnames = ["experiment", "case_name"]
-        for key in METRIC_KEYS:
+        aggregate_fieldnames = ["experiment", "case_name", "n_agents", "condition", "failed_agents", "noise_std"]
+        for key in METRIC_KEYS + ["efficiency_per_robot"]:
             aggregate_fieldnames.extend([f"{key}_mean", f"{key}_std"])
         _write_csv(
             os.path.join(results_out_dir, "aggregate_metrics.csv"),
@@ -194,16 +226,62 @@ def run_experiments(args):
         )
 
         if not args.no_plots:
-            for metric in ["food_retrieved", "exploration_coverage", "swarm_efficiency", "mean_episode_reward"]:
-                plot_bar_with_error(
+            if experiment_name == "collective_intelligence_scaling":
+                plot_grouped_errorbar(
                     aggregate_rows_out,
-                    label_key="case_name",
-                    mean_key=f"{metric}_mean",
-                    std_key=f"{metric}_std",
-                    out_path=os.path.join(analysis_out_dir, f"{metric}_summary.png"),
-                    ylabel=metric.replace("_", " ").title(),
-                    title=f"{experiment_name}: {metric.replace('_', ' ').title()}",
+                    x_key="n_agents",
+                    mean_key="episode_length_mean",
+                    std_key="episode_length_std",
+                    group_key="condition",
+                    out_path=os.path.join(analysis_out_dir, "completion_time_vs_agents.png"),
+                    xlabel="Number of Agents",
+                    ylabel="Episode Length",
+                    title="Collective Intelligence Scaling: Completion Time vs Agents",
                 )
+                plot_grouped_errorbar(
+                    aggregate_rows_out,
+                    x_key="n_agents",
+                    mean_key="swarm_efficiency_mean",
+                    std_key="swarm_efficiency_std",
+                    group_key="condition",
+                    out_path=os.path.join(analysis_out_dir, "efficiency_vs_agents.png"),
+                    xlabel="Number of Agents",
+                    ylabel="Swarm Efficiency",
+                    title="Collective Intelligence Scaling: Efficiency vs Agents",
+                )
+                plot_grouped_errorbar(
+                    aggregate_rows_out,
+                    x_key="n_agents",
+                    mean_key="pheromone_usage_mean",
+                    std_key="pheromone_usage_std",
+                    group_key="condition",
+                    out_path=os.path.join(analysis_out_dir, "pheromone_usage_vs_agents.png"),
+                    xlabel="Number of Agents",
+                    ylabel="Pheromone Usage",
+                    title="Collective Intelligence Scaling: Pheromone Usage vs Agents",
+                )
+                plot_grouped_errorbar(
+                    aggregate_rows_out,
+                    x_key="n_agents",
+                    mean_key="efficiency_per_robot_mean",
+                    std_key="efficiency_per_robot_std",
+                    group_key="condition",
+                    out_path=os.path.join(analysis_out_dir, "efficiency_per_robot_vs_agents.png"),
+                    xlabel="Number of Agents",
+                    ylabel="Efficiency Per Robot",
+                    title="Collective Intelligence Scaling: Efficiency Per Robot vs Agents",
+                )
+            else:
+                for metric in ["food_retrieved", "exploration_coverage", "swarm_efficiency", "mean_episode_reward"]:
+                    plot_bar_with_error(
+                        aggregate_rows_out,
+                        label_key="case_name",
+                        mean_key=f"{metric}_mean",
+                        std_key=f"{metric}_std",
+                        out_path=os.path.join(analysis_out_dir, f"{metric}_summary.png"),
+                        ylabel=metric.replace("_", " ").title(),
+                        title=f"{experiment_name}: {metric.replace('_', ' ').title()}",
+                    )
 
 
 if __name__ == "__main__":

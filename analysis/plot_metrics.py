@@ -13,6 +13,15 @@ if ROOT not in sys.path:
 from train.experiment_utils import plot_training_metrics
 
 
+def _load_pyplot():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    return plt
+
+
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv-path", type=str, required=True)
@@ -29,7 +38,7 @@ def main(argv=None):
 
 def plot_mean_std_curve(curves, x_key: str, y_key: str, out_path: str, xlabel: str, ylabel: str, title: str, label: str):
     """Plot a mean curve with +/- one standard deviation shading."""
-    import matplotlib.pyplot as plt
+    plt = _load_pyplot()
 
     if not curves:
         return
@@ -59,7 +68,7 @@ def plot_mean_std_curve(curves, x_key: str, y_key: str, out_path: str, xlabel: s
 
 def plot_bar_with_error(rows, label_key: str, mean_key: str, std_key: str, out_path: str, ylabel: str, title: str):
     """Plot bar charts with error bars for aggregated experiment metrics."""
-    import matplotlib.pyplot as plt
+    plt = _load_pyplot()
 
     if not rows:
         return
@@ -75,6 +84,47 @@ def plot_bar_with_error(rows, label_key: str, mean_key: str, std_key: str, out_p
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(True, axis="y", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(out_path)
+    plt.close(fig)
+
+
+def plot_grouped_errorbar(
+    rows,
+    x_key: str,
+    mean_key: str,
+    std_key: str,
+    group_key: str,
+    out_path: str,
+    xlabel: str,
+    ylabel: str,
+    title: str,
+):
+    """Plot grouped mean/std lines against a numeric x-axis."""
+    plt = _load_pyplot()
+
+    if not rows:
+        return
+
+    grouped = {}
+    for row in rows:
+        group = row.get(group_key, "default")
+        grouped.setdefault(group, []).append(row)
+
+    fig, ax = plt.subplots(figsize=(7.5, 4.5))
+    for group, group_rows in sorted(grouped.items()):
+        ordered = sorted(group_rows, key=lambda row: float(row[x_key]))
+        xs = [float(row[x_key]) for row in ordered]
+        means = [float(row[mean_key]) for row in ordered]
+        stds = [float(row[std_key]) for row in ordered]
+        label = str(group).replace("_", " ")
+        ax.errorbar(xs, means, yerr=stds, marker="o", linewidth=2, capsize=4, label=label)
+
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.legend()
+    ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(out_path)
     plt.close(fig)
