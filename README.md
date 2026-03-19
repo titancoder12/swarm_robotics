@@ -1,3 +1,13 @@
+# Artificial Collective Intelligence: Carpenter Ant-Inspired Stigmergic Swarm Robotics for Decentralized Systems Using Deep Reinforcement Learning
+
+Individual ants possess limited cognitive capacity. Yet when thousands interact, colonies exhibit coordinated collective intelligence. This intelligence is not centralized in a single agent but emerges from decentralized interactions shaped by evolutionary processes. A key coordination mechanism is stigmergy—indirect communication through environmental modification (e.g., pheromone trails) that agents can sense and exploit.
+
+Inspired by carpenter ants, this research investigates artificial collective intelligence arising from decentralized interactions with the environment, developing a computational framework for swarm robotics that contrasts with prevailing models of intelligence relying on large-scale centralized computing. To enable scalable experimentation, a custom multi-agent reinforcement learning simulation environment was created for decentralized policy learning. A physical swarm robotics platform was then constructed to evaluate the learned behaviours in the real world.
+
+By coupling learned behaviours with shared “digital pheromone” fields, the system demonstrates how collective intelligence emerges from distributed agents, contributing to the emerging field of Physical AI, where intelligent algorithms interact directly with and control physical systems rather than operating only in digital environments. The robotic platform used to evaluate the system provides an accessible testbed for future swarm robotics research and is fully open-source, including algorithms, models, mechanical designs, firmware, component specifications, and assembly documentation. 
+
+Decentralized swarm systems have applications in environments where communication infrastructure is unreliable or centralized control is fragile, such as planetary exploration and disaster response. By leveraging local decision-making and redundancy, stigmergic swarm systems provide resilience, adaptability, and robustness under uncertainty.
+
 
 # Swarm RL PyGame Environment (Stigmergy)
 
