@@ -60,6 +60,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added `pi/ants.service` as a systemd unit mirroring the current Raspberry Pi deployment pattern and documented the path-adjustment requirement in `docs/PI_MIGRATION.md`.
 - Expanded `docs/PI_MIGRATION.md` to state explicitly that `pi/run_policy.py` is the intended migrated end state, while `pi/ants.py` remains the baseline, and logged the matching Q&A.
 - Extracted `QNetwork` into `models/q_network.py` and updated training, demo, and robot inference code to share it, removing the robot runtime's dependency on the training script.
+- Upgraded the environment for science-fair-grade stigmergic foraging support by adding configurable nest mechanics, food pickup and nest delivery, richer local observations (nest direction, food presence, carrying state), nest rendering, and aligned the robot observation builder to the new observation contract.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`

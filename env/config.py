@@ -13,6 +13,7 @@ class SwarmConfig:
     n_obstacles: int = 6
     agent_radius: float = 10.0
     target_radius: float = 10.0
+    nest_radius: float = 22.0
     max_steps: int = 600
 
     # Action space (discrete)
@@ -39,6 +40,10 @@ class SwarmConfig:
     lidar_step: float = 6.0
     obs_include_pheromone: bool = True
     pheromone_samples: int = 3
+    obs_include_food_presence: bool = True
+    obs_include_nest_direction: bool = True
+    obs_include_carrying: bool = True
+    food_presence_radius: float = 120.0
 
     # Pheromone grid
     pheromone_enabled: bool = True
@@ -46,11 +51,18 @@ class SwarmConfig:
     pheromone_deposit: float = 1.0
     pheromone_decay: float = 0.985
     pheromone_diffuse_rate: float = 0.25
+    pheromone_deposit_carrying_scale: float = 1.5
 
     # Rewards
     reward_target: float = 8.0
     reward_step: float = -0.01
     reward_collision: float = -0.2
+    reward_pickup: float = 1.5
+    reward_nest_delivery: float = 10.0
+
+    # Task
+    nest_enabled: bool = True
+    require_nest_delivery: bool = True
 
     # Rendering
     render_pheromone: bool = True

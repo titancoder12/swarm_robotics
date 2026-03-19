@@ -22,6 +22,7 @@ class AgentState:
     v: float = 0.0
     omega: float = 0.0
     v_lat: float = 0.0
+    carrying_food: bool = False
 
 
 class DynamicsDriver:
@@ -101,6 +102,8 @@ class SwarmEnv(ParallelEnv):
         self.agent_states: List[AgentState] = []
         self.targets: List[Tuple[float, float]] = []
         self.obstacles: List[pygame.Rect] = []
+        self.nest_position: Tuple[float, float] = (self.width * 0.5, self.height * 0.5)
+        self.food_delivered = 0
 
         self.step_count = 0
         self.terminated = False
@@ -135,9 +138,12 @@ class SwarmEnv(ParallelEnv):
         return (
             self.cfg.lidar_rays
             + 2  # target vector
+            + (2 if self.cfg.obs_include_nest_direction else 0)
             + 2  # neighbor vector
             + 2  # heading (sin, cos)
             + 1  # speed
+            + (1 if self.cfg.obs_include_food_presence else 0)
+            + (1 if self.cfg.obs_include_carrying else 0)
             + self.cfg.pheromone_samples
         )
 
@@ -159,8 +165,10 @@ class SwarmEnv(ParallelEnv):
 
         # World state: obstacles, targets, agents.
         self._spawn_obstacles()
+        self._spawn_nest()
         self._spawn_targets()
         self._spawn_agents()
+        self.food_delivered = 0
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -172,7 +180,7 @@ class SwarmEnv(ParallelEnv):
 
         obs = self._get_obs()
         obs_dict = {agent: obs[i] for i, agent in enumerate(self.possible_agents)}
-        info = {"n_targets": len(self.targets)}
+        info = {"n_targets": len(self.targets), "food_delivered": self.food_delivered}
         info_dict = {agent: info for agent in self.possible_agents}
         return obs_dict, info_dict
 
@@ -207,14 +215,14 @@ class SwarmEnv(ParallelEnv):
                 self.agent_states[i] = proposed
 
         # Handle target collection and pheromone updates.
-        collected = self._handle_targets(rewards)
+        picked_up, delivered = self._handle_targets(rewards)
 
         if self.cfg.pheromone_enabled:
             self._update_pheromone()
 
         # Episode end conditions.
         self.step_count += 1
-        if len(self.targets) == 0:
+        if len(self.targets) == 0 and not any(agent.carrying_food for agent in self.agent_states):
             self.terminated = True
         if self.step_count >= self.cfg.max_steps:
             self.truncated = True
@@ -224,7 +232,11 @@ class SwarmEnv(ParallelEnv):
         rewards_dict = {agent: float(rewards[i]) for i, agent in enumerate(self.possible_agents)}
         terminations = {agent: self.terminated for agent in self.possible_agents}
         truncations = {agent: self.truncated for agent in self.possible_agents}
-        info = {"targets_collected": collected, "collisions": collisions}
+        info = {
+            "targets_collected": picked_up,
+            "food_delivered": delivered,
+            "collisions": collisions,
+        }
         infos = {agent: info for agent in self.possible_agents}
         if self.terminated or self.truncated:
             self.agents = []
@@ -251,10 +263,17 @@ class SwarmEnv(ParallelEnv):
         for tx, ty in self.targets:
             pygame.draw.circle(self._screen, (80, 200, 80), (int(tx), int(ty)), int(self.cfg.target_radius))
 
+        # Nest.
+        if self.cfg.nest_enabled:
+            nx, ny = self.nest_position
+            pygame.draw.circle(self._screen, (80, 140, 220), (int(nx), int(ny)), int(self.cfg.nest_radius), 3)
+            pygame.draw.circle(self._screen, (50, 80, 140), (int(nx), int(ny)), int(self.cfg.nest_radius // 2))
+
         # Agents (body + heading line).
         for agent in self.agent_states:
             x, y = int(agent.x), int(agent.y)
-            pygame.draw.circle(self._screen, (200, 160, 50), (x, y), int(self.cfg.agent_radius))
+            body_color = (220, 120, 60) if agent.carrying_food else (200, 160, 50)
+            pygame.draw.circle(self._screen, body_color, (x, y), int(self.cfg.agent_radius))
             hx = x + int(math.cos(agent.theta) * self.cfg.agent_radius)
             hy = y + int(math.sin(agent.theta) * self.cfg.agent_radius)
             pygame.draw.line(self._screen, (255, 240, 180), (x, y), (hx, hy), 2)
@@ -319,6 +338,13 @@ class SwarmEnv(ParallelEnv):
             pos = self._sample_free_position(self.cfg.target_radius)
             self.targets.append(pos)
 
+    def _spawn_nest(self):
+        """Place a single nest location away from obstacles and borders."""
+        if not self.cfg.nest_enabled:
+            self.nest_position = (self.width * 0.5, self.height * 0.5)
+            return
+        self.nest_position = self._sample_free_position(self.cfg.nest_radius)
+
     def _spawn_obstacles(self):
         """Create random obstacle rectangles with simple overlap avoidance."""
         # Randomly generate rectangular obstacles without overlaps.
@@ -343,6 +369,11 @@ class SwarmEnv(ParallelEnv):
             circle = pygame.Rect(int(x - radius), int(y - radius), int(radius * 2), int(radius * 2))
             if any(circle.colliderect(o) for o in self.obstacles):
                 continue
+            if self.cfg.nest_enabled:
+                nx, ny = self.nest_position
+                nest_clearance = radius + self.cfg.nest_radius
+                if (nx - x) ** 2 + (ny - y) ** 2 < nest_clearance ** 2:
+                    continue
             if any((ax - x) ** 2 + (ay - y) ** 2 < (radius * 2) ** 2 for ax, ay in self.targets):
                 continue
             if any((agent.x - x) ** 2 + (agent.y - y) ** 2 < (radius * 2) ** 2 for agent in self.agent_states):
@@ -365,10 +396,9 @@ class SwarmEnv(ParallelEnv):
         )
         return any(agent_rect.colliderect(o) for o in self.obstacles)
 
-    def _handle_targets(self, rewards: np.ndarray) -> int:
-        """Assign rewards for collected targets and remove them from the world."""
-        # Assign reward when an agent reaches a target, then remove it.
-        collected = 0
+    def _handle_targets(self, rewards: np.ndarray) -> tuple[int, int]:
+        """Handle food pickup and optional nest delivery."""
+        picked_up = 0
         remaining = []
         for tx, ty in self.targets:
             collected_by = None
@@ -377,12 +407,34 @@ class SwarmEnv(ParallelEnv):
                     collected_by = i
                     break
             if collected_by is not None:
-                rewards[collected_by] += self.cfg.reward_target
-                collected += 1
+                if self.cfg.require_nest_delivery and self.cfg.nest_enabled:
+                    self.agent_states[collected_by].carrying_food = True
+                    rewards[collected_by] += self.cfg.reward_pickup
+                else:
+                    rewards[collected_by] += self.cfg.reward_target
+                picked_up += 1
             else:
                 remaining.append((tx, ty))
         self.targets = remaining
-        return collected
+        delivered = self._handle_nest_delivery(rewards)
+        return picked_up, delivered
+
+    def _handle_nest_delivery(self, rewards: np.ndarray) -> int:
+        """Reward agents that return carried food to the nest."""
+        if not (self.cfg.nest_enabled and self.cfg.require_nest_delivery):
+            return 0
+        delivered = 0
+        nx, ny = self.nest_position
+        nest_reach = (self.cfg.nest_radius + self.cfg.agent_radius) ** 2
+        for i, agent in enumerate(self.agent_states):
+            if not agent.carrying_food:
+                continue
+            if (agent.x - nx) ** 2 + (agent.y - ny) ** 2 <= nest_reach:
+                agent.carrying_food = False
+                rewards[i] += self.cfg.reward_nest_delivery
+                self.food_delivered += 1
+                delivered += 1
+        return delivered
 
     def _update_pheromone(self):
         """Deposit, decay, and diffuse pheromone values."""
@@ -393,9 +445,12 @@ class SwarmEnv(ParallelEnv):
             gx = int(agent.x // cell)
             gy = int(agent.y // cell)
             if 0 <= gy < grid.shape[0] and 0 <= gx < grid.shape[1]:
-                grid[gy, gx] += self.cfg.pheromone_deposit
+                deposit = self.cfg.pheromone_deposit
+                if agent.carrying_food:
+                    deposit *= self.cfg.pheromone_deposit_carrying_scale
+                grid[gy, gx] += deposit
 
-        grid *= self.cfg.pheromone_decay
+        grid *= (1.0 - (1.0 - self.cfg.pheromone_decay))
         diff = self.cfg.pheromone_diffuse_rate
         if diff > 0:
             up = np.roll(grid, 1, axis=0)
@@ -412,12 +467,24 @@ class SwarmEnv(ParallelEnv):
         for idx, agent in enumerate(self.agent_states):
             lidar = self._lidar_scan(agent)
             target_vec = self._nearest_target_vector(agent)
+            nest_vec = self._nest_direction(agent)
             neighbor_vec = self._nearest_agent_vector(agent, idx)
             heading = np.array([math.sin(agent.theta), math.cos(agent.theta)], dtype=np.float32)
             speed = np.array([np.clip(agent.v / self.cfg.max_speed, -1.0, 1.0)], dtype=np.float32)
+            food_presence = self._food_presence(agent)
+            carrying = self._carrying_food(agent)
             pheromone = self._pheromone_samples(agent)
 
-            obs = np.concatenate([lidar, target_vec, neighbor_vec, heading, speed, pheromone]).astype(np.float32)
+            parts = [lidar, target_vec]
+            if self.cfg.obs_include_nest_direction:
+                parts.append(nest_vec)
+            parts.extend([neighbor_vec, heading, speed])
+            if self.cfg.obs_include_food_presence:
+                parts.append(food_presence)
+            if self.cfg.obs_include_carrying:
+                parts.append(carrying)
+            parts.append(pheromone)
+            obs = np.concatenate(parts).astype(np.float32)
             obs_list.append(obs)
         return np.stack(obs_list, axis=0)
 
@@ -465,6 +532,17 @@ class SwarmEnv(ParallelEnv):
         rel = self._to_agent_frame(rel, agent.theta)
         return np.clip(rel / self.cfg.lidar_max_range, -1.0, 1.0)
 
+    def _nest_direction(self, agent: AgentState) -> np.ndarray:
+        """Return nest direction in agent-local coordinates."""
+        if not self.cfg.nest_enabled:
+            return np.zeros(2, dtype=np.float32)
+        rel = np.array(
+            [self.nest_position[0] - agent.x, self.nest_position[1] - agent.y],
+            dtype=np.float32,
+        )
+        rel = self._to_agent_frame(rel, agent.theta)
+        return np.clip(rel / self.cfg.lidar_max_range, -1.0, 1.0)
+
     def _nearest_agent_vector(self, agent: AgentState, idx: int) -> np.ndarray:
         """Return nearest neighbor vector in agent-local coordinates."""
         # Vector from agent to nearest neighbor, in agent-local coordinates.
@@ -505,6 +583,20 @@ class SwarmEnv(ParallelEnv):
         if samples.max() > 0:
             samples = samples / (samples.max() + 1e-6)
         return samples
+
+    def _food_presence(self, agent: AgentState) -> np.ndarray:
+        """Return a binary local food-presence cue."""
+        if not self.cfg.obs_include_food_presence or not self.targets:
+            return np.zeros(1, dtype=np.float32)
+        nearest = min(math.hypot(tx - agent.x, ty - agent.y) for tx, ty in self.targets)
+        value = 1.0 if nearest <= self.cfg.food_presence_radius else 0.0
+        return np.array([value], dtype=np.float32)
+
+    def _carrying_food(self, agent: AgentState) -> np.ndarray:
+        """Return whether the agent is currently carrying food."""
+        if not self.cfg.obs_include_carrying:
+            return np.zeros(1, dtype=np.float32)
+        return np.array([1.0 if agent.carrying_food else 0.0], dtype=np.float32)
 
     def _to_agent_frame(self, vec: np.ndarray, theta: float) -> np.ndarray:
         """Rotate a world-space vector into the agent's local frame."""
