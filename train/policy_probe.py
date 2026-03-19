@@ -44,7 +44,7 @@ DEFAULT_CASE = "target_ahead"
 #   food presence
 #   carrying food
 #   pheromone samples
-OBS_NAMES = [
+OBS_NAMES_23 = [
     "lidar_0",
     "lidar_1",
     "lidar_2",
@@ -65,6 +65,29 @@ OBS_NAMES = [
     "speed_norm",
     "food_presence",
     "carrying_food",
+    "pheromone_sample_0",
+    "pheromone_sample_1",
+    "pheromone_sample_2",
+]
+
+# Legacy observation order used by older checkpoints from this repo.
+OBS_NAMES_19 = [
+    "lidar_0",
+    "lidar_1",
+    "lidar_2",
+    "lidar_3",
+    "lidar_4",
+    "lidar_5",
+    "lidar_6",
+    "lidar_7",
+    "lidar_8",
+    "target_dx_body_norm",
+    "target_dy_body_norm",
+    "neighbor_dx_body_norm",
+    "neighbor_dy_body_norm",
+    "heading_sin",
+    "heading_cos",
+    "speed_norm",
     "pheromone_sample_0",
     "pheromone_sample_1",
     "pheromone_sample_2",
@@ -221,9 +244,9 @@ def print_available_cases() -> None:
         print(f"- {case_name}: {case['description']}")
 
 
-def print_observation(obs_values):
+def print_observation(obs_names, obs_values):
     print("Observation values:")
-    for name, value in zip(OBS_NAMES, obs_values):
+    for name, value in zip(obs_names, obs_values):
         print(f"  {name:24s} {value: .4f}")
 
 
@@ -233,15 +256,21 @@ def print_action_values(q_values):
         print(f"  {index:2d}  {name:18s}  {q_value: .6f}   ({explanation})")
 
 
-def explain_choice(obs_values, chosen_index: int) -> str:
-    front_lidar = obs_values[4]
-    target_dx = obs_values[9]
-    target_dy = obs_values[10]
-    nest_dx = obs_values[11]
-    nest_dy = obs_values[12]
-    food_presence = obs_values[18]
-    carrying_food = obs_values[19]
-    pheromone_values = obs_values[20:23]
+def explain_choice(obs_names, obs_values, chosen_index: int) -> str:
+    obs_map = dict(zip(obs_names, obs_values))
+
+    front_lidar = obs_map.get("lidar_4", 0.0)
+    target_dx = obs_map.get("target_dx_body_norm", 0.0)
+    target_dy = obs_map.get("target_dy_body_norm", 0.0)
+    nest_dx = obs_map.get("nest_dx_body_norm", 0.0)
+    nest_dy = obs_map.get("nest_dy_body_norm", 0.0)
+    food_presence = obs_map.get("food_presence", 0.0)
+    carrying_food = obs_map.get("carrying_food", 0.0)
+    pheromone_values = [
+        obs_map.get("pheromone_sample_0", 0.0),
+        obs_map.get("pheromone_sample_1", 0.0),
+        obs_map.get("pheromone_sample_2", 0.0),
+    ]
 
     action_name = ACTION_NAMES[chosen_index]
     action_text = ACTION_EXPLANATIONS[chosen_index]
@@ -258,8 +287,8 @@ def explain_choice(obs_values, chosen_index: int) -> str:
         )
     if max(pheromone_values) > 0.05:
         return (
-            f"The pheromone samples are {pheromone_values}, so the model sees a trail in front of it. "
-            f"It chooses {action_name}, which means it wants to {action_text}."
+                f"The pheromone samples are {tuple(round(v, 2) for v in pheromone_values)}, so the model sees a trail in front of it. "
+                f"It chooses {action_name}, which means it wants to {action_text}."
         )
     if front_lidar < 0.2:
         return (
@@ -286,27 +315,56 @@ def main():
     case = TEST_CASES[case_name]
     obs_values = case["values"]
 
-    if len(obs_values) != len(OBS_NAMES):
+    if len(obs_values) != len(OBS_NAMES_23):
         raise ValueError(
-            f"Test case '{case_name}' has length {len(obs_values)}, but the current observation spec expects {len(OBS_NAMES)} values."
+            f"Test case '{case_name}' has length {len(obs_values)}, but the current observation spec expects {len(OBS_NAMES_23)} values."
         )
 
     metadata = load_checkpoint_metadata(args.checkpoint_dir)
+
+    checkpoint_path = os.path.join(args.checkpoint_dir, "shared.pt" if args.shared_policy else f"agent_{args.agent_index}.pt")
+    if not os.path.exists(checkpoint_path):
+        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
+
+    state_dict = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint_obs_dim = int(state_dict["net.0.weight"].shape[1])
+    checkpoint_action_dim = int(state_dict["net.4.weight"].shape[0])
+
+    if checkpoint_action_dim != len(ACTION_NAMES):
+        raise ValueError(
+            f"Checkpoint outputs {checkpoint_action_dim} actions, but this script only knows how to explain {len(ACTION_NAMES)} actions."
+        )
+
+    if checkpoint_obs_dim == 23:
+        obs_names = OBS_NAMES_23
+        obs_values_to_use = obs_values
+        obs_note = "using the current 23-dimensional observation layout"
+    elif checkpoint_obs_dim == 19:
+        obs_names = OBS_NAMES_19
+        # Older checkpoints do not contain nest direction, food_presence, or carrying_food.
+        obs_values_to_use = [
+            *obs_values[0:11],   # lidar + target
+            *obs_values[13:18],  # neighbor + heading + speed
+            *obs_values[20:23],  # pheromone
+        ]
+        obs_note = "using the legacy 19-dimensional observation layout (nest/food/carrying features are dropped)"
+    else:
+        raise ValueError(
+            f"Unsupported checkpoint obs_dim={checkpoint_obs_dim}. This probing script currently supports only 19-D and 23-D checkpoints."
+        )
+
     if metadata:
         saved_obs_dim = metadata.get("obs_dim")
-        if saved_obs_dim is not None and int(saved_obs_dim) != len(OBS_NAMES):
-            raise ValueError(
-                f"Checkpoint metadata says obs_dim={saved_obs_dim}, but this script is built for obs_dim={len(OBS_NAMES)}."
+        if saved_obs_dim is not None and int(saved_obs_dim) != checkpoint_obs_dim:
+            print(
+                f"Warning: metadata.json says obs_dim={saved_obs_dim}, but the checkpoint tensor shape says obs_dim={checkpoint_obs_dim}."
             )
 
-    obs_tensor = torch.tensor(obs_values, dtype=torch.float32).unsqueeze(0)
-    model = load_model(
-        checkpoint_dir=args.checkpoint_dir,
-        shared_policy=args.shared_policy,
-        agent_index=args.agent_index,
-        obs_dim=len(OBS_NAMES),
-        action_dim=len(ACTION_NAMES),
-    )
+    model = QNetwork(checkpoint_obs_dim, checkpoint_action_dim)
+    model.load_state_dict(state_dict)
+    model.eval()
+
+    obs_tensor = torch.tensor(obs_values_to_use, dtype=torch.float32).unsqueeze(0)
 
     with torch.no_grad():
         q_values = model(obs_tensor).squeeze(0).cpu().tolist()
@@ -315,13 +373,14 @@ def main():
 
     print(f"Selected case: {case_name}")
     print(f"Case description: {case['description']}")
-    print(f"Checkpoint directory: {args.checkpoint_dir}")
+    print(f"Checkpoint path: {checkpoint_path}")
     print(f"Checkpoint mode: {'shared policy' if args.shared_policy else f'agent_{args.agent_index} checkpoint'}")
-    print(f"Observation length: {len(obs_values)}")
-    print(f"Action space: Discrete({len(ACTION_NAMES)})")
+    print(f"Observation length used: {len(obs_values_to_use)}")
+    print(f"Observation note: {obs_note}")
+    print(f"Action space: Discrete({checkpoint_action_dim})")
     print()
 
-    print_observation(obs_values)
+    print_observation(obs_names, obs_values_to_use)
     print_action_values(q_values)
 
     print("\nChosen action:")
@@ -330,7 +389,7 @@ def main():
     print(f"  meaning: {ACTION_EXPLANATIONS[chosen_index]}")
 
     print("\nWhat this means:")
-    print(f"- {explain_choice(obs_values, chosen_index)}")
+    print(f"- {explain_choice(obs_names, obs_values_to_use, chosen_index)}")
 
 
 if __name__ == "__main__":
