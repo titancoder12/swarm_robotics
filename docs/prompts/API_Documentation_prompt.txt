@@ -249,3 +249,54 @@ After generating the documentation, also provide a short summary in your respons
 - where the observation vector is defined,
 - where the action mapping is defined,
 - and any mismatches between implementation and earlier design intent.
+
+Output:
+Created docs/API_REFERENCE.md.
+
+  What I inspected:
+
+  - env/config.py
+  - env/swarm_env.py
+  - train/independent_dqn_pytorch.py
+  - train/evaluate.py
+  - train/experiment_utils.py
+  - train/run_experiments.py
+  - train/train.py
+  - train/random_rollout.py
+  - train/demo.py
+  - experiments/benchmark_configs.py
+  - analysis/plot_metrics.py
+  - models/rule_based_policy.py
+  - models/q_network.py
+
+  Where the observation vector is defined:
+
+  - shape and ordering: _compute_obs_dim() and _get_obs() in env/swarm_env.py
+  - per-component helpers:
+      - _lidar_scan()
+      - _nearest_target_vector()
+      - _nest_direction()
+      - _nearest_agent_vector()
+      - _food_presence()
+      - _carrying_food()
+      - _pheromone_samples()
+
+  Where the action mapping is defined:
+
+  - _build_action_table() in env/swarm_env.py
+
+  Main implementation-vs-earlier-doc mismatches I noted:
+
+  - current default observation is 23-D, not the older 19-D docs
+  - current env includes nest-aware foraging and carrying-food state
+  - render_scale exists in config but is unused in render
+  - action_dim exists in config but actual action space uses num_actions
+  - render(mode=...) accepts mode but ignores it
+  - pheromone diffusion uses np.roll, so edges wrap around
+  - pheromone_decay is implemented as multiplicative retention, not an explicit evaporation-rate subtraction model
+
+  If you want, I can do a second pass and split the observation and action sections out into:
+
+  - docs/OBSERVATION_SPEC.md
+  - docs/ACTION_SPEC.md
+    for easier reference.
