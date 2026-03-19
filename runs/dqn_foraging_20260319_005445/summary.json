@@ -1,0 +1,7 @@
+{
+  "action_dim": 9,
+  "checkpoint_dir": "checkpoints",
+  "episodes_completed": 16,
+  "obs_dim": 23,
+  "total_steps": 10000
+}

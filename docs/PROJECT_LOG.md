@@ -94,3 +94,4 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Refreshed the top-level architecture and onboarding docs to match the current 23-dim environment, experiment framework, and baseline set.
 - Added a focused `docs/manual/` set covering quick start, project structure, experiments, and results interpretation for new users and judges.
 - Logged the backward-compatibility assessment for commit `8ac33636556db0af11cd7c09b9b57e03d94a40d1`, noting that action semantics remain stable but the 19-dim observation/checkpoint contract no longer matches the current 23-dim environment.
+- Logged the exact changed-file list relative to revision `8ac33636556db0af11cd7c09b9b57e03d94a40d1`.
