@@ -1,155 +1,181 @@
-# Developer Ramp-Up: RL + Code Walkthrough
+# Onboarding and Run Guide
 
-This guide maps RL concepts directly to the code in this repo. It is meant to help new contributors understand how the environment, training, and demos fit together.
+This guide is the main entry point for running the current project. It covers setup, simulation, training, evaluation, and experiments using the code as it exists now.
 
-## 1) Environment = The MDP (`env/swarm_env.py`)
+## What This Project Does
 
-`SwarmEnv` defines the RL world:
-- **`reset()`** returns initial observations.
-- **`step(action_dict)`** advances the world and returns `(obs_dict, rewards_dict, terminations, truncations, infos)`.
-- **`render()`** draws the environment (not part of RL math, but useful for inspection).
+This repository studies stigmergic swarm intelligence in a 2D robotics simulation. Agents search for food, avoid obstacles, interact through a pheromone field, and optionally return food to a nest. The main research focus is whether indirect communication through pheromones improves collective performance.
 
-### Actions
-`_build_action_table()` maps 9 discrete actions to `(throttle, turn)`:
-- Action space: `Discrete(9)`
-- Joystick-style control
+## Quick Start
 
-### Observations
-`_get_obs()` builds a per-agent vector of length 19:
-- Lidar rays
-- Nearest target vector
-- Nearest neighbor vector
-- Heading (sin, cos)
-- Speed
-- Pheromone samples
+If you only want one command to see the current system working:
 
-### Rewards
-Defined in `step()` and `_handle_targets()`:
-- `reward_step`: small negative step cost
-- `reward_collision`: penalty for collisions
-- `reward_target`: reward for collecting targets
-
-### Episode End
-`terminated`: all targets collected  
-`truncated`: max steps reached
-
-### API
-This env is PettingZoo Parallel API:
-- Dict-based obs/actions for each agent.
-
-
-## 2) Custom DQN Trainer (`train/independent_dqn_pytorch.py`)
-
-This is a minimal DQN implementation for multi-agent training.
-
-### Replay Buffer
-`ReplayBuffer` stores transitions `(s, a, r, s', done)` and returns random minibatches.
-
-### Q-Network
-`QNetwork` maps observations to Q-values for each discrete action.
-
-### Training Loop
-Key steps:
-1. `reset()` environment
-2. Epsilon-greedy action selection
-3. `step()` environment
-4. Store transitions in replay buffer
-5. Sample minibatch and apply Bellman update
-6. Periodically sync target network
-
-### Multi-Agent Modes
-- **Independent**: one Q-network per agent
-- **Shared**: one Q-network shared by all agents
-
-### How It Maps to RL Theory
-- **Policy (behavior):** epsilon-greedy over Q-values
-- **Value function:** Q-network approximates `Q(s, a)`
-- **Bellman update:** target is `r + gamma * max_a' Q_target(s', a')`
-- **Experience replay:** random sampling from the replay buffer
-
-### Key Code Blocks to Know
-- `DQNConfig`: hyperparameters (gamma, batch size, target update cadence, etc.)
-- `linear_schedule`: epsilon annealing
-- `ReplayBuffer`: FIFO storage for transitions
-- `QNetwork`: MLP from obs to Q-values
-- `train(...)`: main loop (collect → learn → target sync → save)
-
-### Plain-English Walkthrough
-At each step:
-- The agent observes its state (obs vector).
-- It chooses an action (random with prob epsilon, otherwise the highest-Q action).
-- The env returns the next obs and reward.
-- The transition is stored in replay.
-- Once warmup is done, a random minibatch is sampled.
-- The network is updated to match the **Bellman target**:
-  `target = r + gamma * max_a' Q_target(s', a')`
-- A separate target network is synced periodically for stability.
-
-### File Notes
-The file is now annotated line-by-line with inline comments to clarify each step in the DQN pipeline.
-
-
-## 3) Demos (`train/demo.py`)
-
-`demo.py` runs trained policies and renders the environment.
-
-Backends:
-- **custom**: loads `.pt` checkpoints (your own DQN)
-- **sb3**: loads Stable-Baselines3 DQN `.zip`
-- **rllib**: loads RLlib checkpoint directory
-
-Supports `--max-steps` to auto-exit after N steps (useful for smoke tests).
-
-
-## 4) Training Dispatcher (`train/train.py`)
-
-`train/train.py` selects a backend with `--backend`:
-- `custom`: uses your own DQN
-- `sb3`: Stable-Baselines3 DQN
-- `rllib`: RLlib DQN
-
-
-## 5) RL Backends (SB3 / RLlib)
-
-### SB3
-`train/sb3_dqn.py` wraps the PettingZoo env with SuperSuit and trains DQN.
-
-### RLlib
-`train/rllib_dqn.py` uses RLlib’s DQN with compatibility shims for current Ray versions.  
-If Ray warns about `/tmp` or socket length, use:
-```
---ray-tmpdir /Users/christopherlin/.ray_tmp
+```bash
+python train/run_experiments.py --experiment collective_intelligence_scaling
 ```
 
+That command trains and evaluates the flagship experiment, then writes:
 
-## 6) Common Commands
+- raw logs under `runs/`
+- aggregated CSVs under `results/`
+- plots under `analysis/`
 
-Custom training (headless):
-```
-python train/train.py --backend custom --headless --total-steps 10000
-```
+For a short version, see [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md).
 
-SB3 training:
-```
-python train/train.py --backend sb3 --headless --total-steps 10000 --save-path checkpoints/sb3_dqn.zip
-```
+## 1. Setup
 
-RLlib training:
-```
-python train/train.py --backend rllib --headless --total-steps 10000 --save-dir checkpoints/rllib_dqn --ray-tmpdir /Users/christopherlin/.ray_tmp
-```
+Create and activate a virtual environment:
 
-Custom demo:
-```
-python train/demo.py --backend custom --checkpoint-dir checkpoints
+```bash
+python -m venv .venv
+source .venv/bin/activate
 ```
 
-SB3 demo:
-```
-python train/demo.py --backend sb3 --sb3-model checkpoints/sb3_dqn.zip
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
 ```
 
-RLlib demo:
+## 2. Run a Simulation
+
+Random rendered rollout:
+
+```bash
+python train/random_rollout.py
 ```
-python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn --ray-tmpdir /Users/christopherlin/.ray_tmp
+
+Capture example screenshots:
+
+```bash
+python train/capture_screenshots.py
 ```
+
+## 3. Train a Custom DQN Policy
+
+Headless training:
+
+```bash
+python train/independent_dqn_pytorch.py --headless --total-steps 10000
+```
+
+Training with checkpoints and run outputs:
+
+```bash
+python train/independent_dqn_pytorch.py \
+  --headless \
+  --total-steps 20000 \
+  --save-dir checkpoints \
+  --save-every 5000 \
+  --output-dir runs \
+  --experiment-name dqn_foraging \
+  --eval-every 5000 \
+  --eval-episodes 5
+```
+
+Important notes:
+
+- the current observation dimension is `23`
+- old 19-dimensional checkpoints are not compatible
+- the current action space is still `Discrete(9)`
+
+## 4. Render a Trained Policy
+
+Custom DQN demo:
+
+```bash
+python train/demo.py --checkpoint-dir checkpoints
+```
+
+The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents.
+
+## 5. Evaluate a Policy
+
+Evaluate saved DQN checkpoints:
+
+```bash
+python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
+```
+
+Evaluate the rule-based baseline directly:
+
+```bash
+python train/evaluate.py --policy-kind rule_based --n-agents 5 --episodes 10 --output-dir runs/rule_eval
+```
+
+Outputs include:
+
+- `eval_metrics.csv`
+- `eval_summary.json`
+
+## 6. Run Experiments
+
+The central experiment entry point is [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py).
+
+### Collective Intelligence Scaling
+
+```bash
+python train/run_experiments.py --experiment collective_intelligence_scaling
+```
+
+This experiment compares swarm sizes with pheromone on vs pheromone off.
+
+### RL Algorithm Comparison
+
+```bash
+python train/run_experiments.py --experiment rl_algorithm_comparison
+```
+
+This experiment compares:
+
+- DQN
+- shared-policy DQN
+- rule-based baseline
+
+across multiple swarm sizes and pheromone conditions.
+
+### Run All Registered Experiments
+
+```bash
+python train/run_experiments.py --experiment all
+```
+
+## 7. Output Locations
+
+The project uses three main output directories:
+
+- `runs/`
+  - per-run logs
+  - checkpoints
+  - training CSVs
+  - run configs
+- `results/`
+  - trial-level experiment CSVs
+  - aggregate experiment CSVs
+- `analysis/`
+  - plots generated from training or experiments
+
+## 8. Key Files to Know
+
+- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+  - environment logic
+- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+  - simulation configuration
+- [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
+  - custom DQN trainer
+- [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+  - shared evaluation path
+- [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+  - experiment runner
+- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+  - experiment definitions
+- [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
+  - rule-based baseline
+
+## 9. Suggested Reading Order
+
+1. [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md)
+2. [docs/ARCHITECTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/ARCHITECTURE.md)
+3. [docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)
+4. [docs/manual/EXPERIMENT_GUIDE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/EXPERIMENT_GUIDE.md)
+5. [docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)

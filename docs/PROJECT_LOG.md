@@ -91,3 +91,5 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added a rule-based swarm baseline policy that consumes the standard 23-dim observation and outputs the same 9 discrete actions used by the learned controllers.
 - Extended the shared evaluation pipeline and experiment runner to support `rl_algorithm_comparison`, including DQN, shared-policy DQN, and rule-based cases under the same eval/output schema.
 - Added analysis-layer derived metrics for `convergence_speed` and `time_to_first_food` plus algorithm-comparison plots for food retrieval, efficiency, convergence speed, and overall efficiency bars.
+- Refreshed the top-level architecture and onboarding docs to match the current 23-dim environment, experiment framework, and baseline set.
+- Added a focused `docs/manual/` set covering quick start, project structure, experiments, and results interpretation for new users and judges.

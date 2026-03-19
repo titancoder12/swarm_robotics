@@ -1,277 +1,188 @@
-# Swarm RL Environment — Architecture and Functionality
-
-This document explains the system design, module responsibilities, data flow, and how each major component works. It is written for engineers who want to extend or audit the environment.
-
-## 1) High-Level Overview
-
-The project implements a multi-agent swarm simulation with:
-- A PyGame-based 2D world
-- A PettingZoo Parallel API (`reset/step/render/close`)
-- Local, partial observations (lidar + local cues)
-- A pheromone (stigmergy) field updated by simple rules
-- Pluggable locomotion dynamics (tank or hovercraft)
-- Independent or shared DQN training
-
-Core idea: agents **do not communicate directly**. They interact only by sensing their local environment, including the pheromone field and nearby agents.
-
-## 2) File Layout
-
-- `env/config.py`
-  - Central dataclass (`SwarmConfig`) for all tunable parameters
-- `env/swarm_env.py`
-  - Environment implementation and simulation logic
-- `train/random_rollout.py`
-  - Random policy runner for API validation
-- `train/independent_dqn_pytorch.py`
-  - Minimal DQN training loop with optional shared policy
-- `train/sb3_dqn.py`
-  - DQN training using Stable-Baselines3 (shared policy)
-- `train/rllib_dqn.py`
-  - DQN training using RLlib (shared policy)
-- `train/train.py`
-  - Backend dispatcher for training (custom, SB3, RLlib)
-- `train/demo.py`
-  - Loads saved checkpoints and renders policy behavior
-- `docs/ARCHITECTURE.md`
-  - This document
+# Swarm RL System Architecture
 
-## 3) Environment API (PettingZoo Parallel)
+This project is a stigmergic swarm robotics simulation and experiment platform. Agents learn or follow policies in a shared 2D world with food, a nest, obstacles, and a pheromone field. The core scientific question is whether indirect communication through the environment improves collective behavior.
 
-Class: `SwarmEnv`
+## System Overview
 
-Methods:
-- `reset(seed=None, options=None) -> (obs_dict, info_dict)`
-- `step(action_dict) -> (obs_dict, rewards_dict, terminations, truncations, infos)`
-- `render(mode="human", fps=60)`
-- `close()`
+The system has five main layers:
 
-Shapes and types:
-- `action_dict`: `dict[str, int]` keyed by agent id (e.g., `agent_0`)
-- `obs_dict`: `dict[str, np.ndarray]` each of shape `(obs_dim,)`
-- `rewards_dict`: `dict[str, float]`
-- `terminations`: `dict[str, bool]` (all targets collected)
-- `truncations`: `dict[str, bool]` (time limit)
-
-## 4) World Model
+1. Environment
+   - [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py) defines the simulation parameters.
+   - [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py) implements the PettingZoo Parallel environment, rewards, observations, pheromones, and rendering.
 
-### 4.1 Arena
-- 2D bounded rectangle: `width × height`
-- Walls are the boundary of the map
+2. Policies and models
+   - [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py) defines the shared DQN network used by custom checkpoints.
+   - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py) defines the non-learning rule-based baseline used in comparative experiments.
 
-### 4.2 Obstacles
-- Axis-aligned rectangles, placed randomly
-- Agents collide against these (movement rejected)
+3. Training and evaluation
+   - [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py) is the main custom DQN trainer.
+   - [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py) runs shared evaluation for learned and rule-based policies.
+   - [train/train.py](/Users/christopherlin/dev/cwsf2026/sim/train/train.py) dispatches between custom, SB3, and RLlib training backends.
 
-### 4.3 Targets
-- Small circles (food dots)
-- Removed when collected by any agent
+4. Experiment framework
+   - [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py) defines experiment sweeps.
+   - [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py) runs trials, aggregates outputs, and generates plots.
+   - [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py) provides run-directory, CSV, JSON, config, and aggregation helpers.
 
-### 4.4 Agents
-Each agent has continuous state:
-- Position `(x, y)`
-- Heading `theta` (radians)
-- Forward velocity `v`
-- Yaw rate `omega`
-- Lateral velocity `v_lat` (used for hovercraft)
+5. Analysis and deployment
+   - [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py) generates training and experiment plots.
+   - [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) and [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) contain sim-to-real and Raspberry Pi integration code.
 
-## 5) Action Interface (Joystick Model)
+## Environment Design
 
-Discrete actions (9 total):
-- Throttle: `{-1, 0, +1}`
-- Turn: `{-1, 0, +1}`
+The environment is a 2D world containing:
 
-Actions are mapped into a 3×3 grid of `(throttle, turn)` pairs. These are passed to the active dynamics driver.
+- a nest
+- food targets
+- rectangular obstacles
+- a pheromone field with evaporation and diffusion
+- a configurable number of agents
 
-This preserves a *sim→real* interface: policy outputs high-level velocity commands, not motor PWM.
+Agents do not communicate directly. Coordination emerges from local sensing and environmental traces.
 
-## 6) Dynamics Drivers
+### Observation Space
 
-All drivers implement:
-
-```
-apply(agent_state, action, dt, cfg, rng) -> proposed_next_state
-```
-
-### 6.1 TankKinematicsDriver
-- Differential-drive style kinematics
-- Controlled by forward speed and yaw-rate
-- Acceleration and angular acceleration are rate-limited
-
-### 6.2 HovercraftDriver
-- Same interface as tank
-- Adds inertia and lateral drift
-- Includes noise and occasional slip for domain randomization
+Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py):
 
-### 6.3 Mode Selection
-`SwarmConfig.dynamics_mode`:
-- `"tank"`: always tank
-- `"hover"`: always hovercraft
-- `"mixed"`: randomly choose per episode
+- lidar obstacle rays
+- nearest food vector in agent-local coordinates
+- nest direction in agent-local coordinates
+- nearest-agent vector
+- heading as `sin(theta), cos(theta)`
+- normalized speed
+- local food-presence flag
+- carrying-food flag
+- pheromone samples
 
-## 7) Collision Handling
+This 23-dimensional contract is the current source of truth for training, evaluation, and sim-to-real integration.
 
-Collision rules are enforced *after* dynamics propose a new state:
-- If the agent would cross walls: move rejected
-- If the agent would intersect an obstacle: move rejected
-- Collision adds `reward_collision`
+### Action Space
 
-## 8) Stigmergy System (Pheromone Field)
+The action space remains `Discrete(9)`. Actions map to a 3x3 grid of `(throttle, turn)` values:
 
-Implemented as a 2D grid updated every step.
+- throttle in `{-1, 0, 1}`
+- turn in `{-1, 0, 1}`
 
-### 8.1 Deposit Rule
-- Each agent deposits `pheromone_deposit` into its current grid cell
+This mapping is defined in `_build_action_table()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
 
-### 8.2 Decay Rule
-- Field decays every step: `grid *= pheromone_decay`
+### Task Mechanics
 
-### 8.3 Diffusion Rule
-- Simple neighbor averaging with `pheromone_diffuse_rate`
-- Implemented via `np.roll` to avoid costly convolution
+The current environment supports:
 
-### 8.4 Rendering
-- Optional heatmap rendering if `render_pheromone` is enabled
+- food pickup
+- optional return-to-nest delivery
+- obstacle avoidance
+- pheromone deposition
+- pheromone sensing
+- exploration tracking
+- failed-agent and observation-noise experiment hooks
 
-## 9) Observations (Local, Partial)
+### Pheromone Dynamics
 
-Observation vector per agent is the concatenation of:
-1. Lidar rays (normalized distances)
-2. Vector to nearest target (agent frame, normalized)
-3. Vector to nearest agent (agent frame, normalized)
-4. Heading `sin(theta), cos(theta)`
-5. Speed (normalized)
-6. Pheromone samples (if enabled)
+The pheromone field is stored as a grid and updated every step using deposit, evaporation, and optional diffusion. Conceptually:
 
-Default `obs_dim` = `9 + 2 + 2 + 2 + 1 + 3 = 19`.
+`P(x, y, t + 1) = (1 - evaporation_rate) * P(x, y, t) + deposition + diffusion`
 
-### 9.1 Lidar
-- `lidar_rays`: number of rays
-- Each ray steps through the environment until it hits a wall or obstacle
-- Distances normalized by `lidar_max_range`
+Rendering can show the field as a heatmap overlay.
 
-### 9.2 Target Cue
-- Nearest target selected by Euclidean distance
-- Relative vector converted to agent frame
+## Training Architecture
 
-### 9.3 Neighbor Cue
-- Nearest agent selected by Euclidean distance
-- Relative vector converted to agent frame
+The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py).
 
-### 9.4 Pheromone Cue
-- Samples taken along the agent’s forward direction
-- Values normalized by local maximum
+It supports:
 
-## 10) Reward Function
+- independent Q-networks per agent
+- shared-policy DQN with `--shared-policy`
+- replay buffers
+- epsilon-greedy exploration
+- target-network updates
+- checkpoint saving
+- structured CSV and JSON logging
+- periodic evaluation
 
-Per agent, per step:
-- `reward_step`: small negative step cost
-- `reward_target`: positive reward on target collection
-- `reward_collision`: negative reward on collision
+The trainer reads `obs_dim` dynamically from the environment, so it is aligned with the current 23-dimensional observation space.
 
-Episode ends when:
-- All targets collected (`terminated = True`) OR
-- `max_steps` reached (`truncated = True`)
+Optional comparison backends still exist:
 
-## 11) Training Architecture (DQN)
+- [train/sb3_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/sb3_dqn.py)
+- [train/rllib_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/rllib_dqn.py)
 
-`train/independent_dqn_pytorch.py` implements:
-- Separate replay buffer per agent
-- Independent Q-networks by default
-- Optional shared-policy mode (`--shared-policy`)
+## Evaluation and Metrics
 
-Optional library backends:
-- SB3 DQN: `train/sb3_dqn.py` (shared policy with SuperSuit vectorization)
-- RLlib DQN: `train/rllib_dqn.py` (shared policy via RLlib multi-agent config, with compatibility shims for current Ray APIs)
+Shared evaluation is handled by [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py). It evaluates:
 
-### 11.1 Replay Buffer
-Stores tuples:
-```
-(obs_i, action_i, reward_i, next_obs_i, done)
-```
+- DQN checkpoints
+- shared-policy DQN checkpoints
+- the rule-based baseline
 
-### 11.2 Network
-Simple MLP:
-- `obs_dim → 128 → 128 → action_dim`
+Logged metrics include:
 
-### 11.3 Exploration
-- Epsilon-greedy with linear decay
-- Per-step epsilon is global; each agent samples independently
+- `mean_episode_reward`
+- `food_retrieved`
+- `exploration_coverage`
+- `pheromone_usage`
+- `episode_length`
+- `swarm_efficiency`
 
-### 11.4 Target Network
-- Updated every `target_update` steps
+The experiment runner also derives:
 
-### 11.5 Checkpointing
-- Independent: `checkpoints/agent_{i}.pt`
-- Shared: `checkpoints/shared.pt`
+- `efficiency_per_robot`
+- `convergence_speed`
+- `time_to_first_food`
 
-## 12) Demo Runtime
+These derived metrics are computed in the analysis/aggregation layer, not in the trainer.
 
-`train/demo.py` loads saved checkpoints and runs inference in the live simulation.
+## Experiment Framework
 
-## 13) Extensibility Points
+The shared experiment system uses:
 
-Common extension points:
-- Swap dynamics by editing or adding a driver
-- Add new observation channels (e.g., nest direction)
-- Add new rewards (e.g., return-to-nest)
-- Multi-pheromone fields (food vs nest)
-- Curriculum by adjusting `n_targets`, `n_obstacles`, `max_steps`
+- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+- [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
 
-## 14) Known Limitations (MVP)
+Key implemented experiments:
 
-- No carrying state (food transport) yet
-- No explicit nest behavior
-- Pheromone is a single type
-- Simple collision model (axis-aligned rectangles)
+- `collective_intelligence_scaling`
+- `rl_algorithm_comparison`
 
-## 15) Suggested Next Steps
+The experiment framework reuses the same trainer and evaluator for consistent metrics across trials.
 
-If you want to evolve this toward a full research environment:
-- Add carry state + nest reward
-- Add two pheromone channels
-- Add boundary conditions for pheromone diffusion
-- Add observation noise or domain randomization
-- Add environment wrappers for vectorized training
+Outputs are written to:
 
-## 16) How to Modify the Code
+- `runs/` for per-run logs and checkpoints
+- `results/` for aggregated CSV outputs
+- `analysis/` for plots
 
-This section gives practical guidance for common changes. Most tweaks are done in `env/config.py`.
+## Rendering and Demo Paths
 
-### Change world size, counts, or episode length
-- Edit `SwarmConfig` in `env/config.py`:
-  - `width`, `height`
-  - `n_agents`, `n_targets`, `n_obstacles`
-  - `max_steps`
+For interactive visualization:
 
-### Change rewards
-- Edit `reward_target`, `reward_step`, `reward_collision` in `env/config.py`.
-- If you need new reward terms, modify `SwarmEnv.step()` in `env/swarm_env.py`.
+- [train/random_rollout.py](/Users/christopherlin/dev/cwsf2026/sim/train/random_rollout.py) runs a random policy sanity check.
+- [train/demo.py](/Users/christopherlin/dev/cwsf2026/sim/train/demo.py) renders trained policies.
+- [train/capture_screenshots.py](/Users/christopherlin/dev/cwsf2026/sim/train/capture_screenshots.py) generates documentation images.
 
-### Change observations
-- Lidar: adjust `lidar_rays`, `lidar_max_range`, `lidar_step` in `env/config.py`.
-- Pheromone cue: toggle `obs_include_pheromone` or change `pheromone_samples`.
-- To add new channels, edit `_get_obs()` and update the concatenation order.
+The renderer can show:
 
-### Change actions or dynamics
-- Actions are currently discrete (9 actions). The mapping lives in `_build_action_table()` in `env/swarm_env.py`.
-- Dynamics live in `TankKinematicsDriver` and `HovercraftDriver`.
-- To add a new driver, create a new class that implements `apply(...)` and update `_select_driver()`.
+- agents
+- obstacles
+- food
+- nest
+- pheromone heatmap
 
-### Change pheromone behavior
-- Deposit/decay/diffuse parameters live in `env/config.py`:
-  - `pheromone_deposit`, `pheromone_decay`, `pheromone_diffuse_rate`
-- The update logic lives in `_update_pheromone()` in `env/swarm_env.py`.
+## Sim-to-Real Path
 
-### Add new targets or tasks
-- Targets are spawned in `_spawn_targets()` and collected in `_handle_targets()` in `env/swarm_env.py`.
-- For nest-return tasks, add a nest region and update rewards/termination logic in `step()`.
+The project also contains deployment-oriented code:
 
-### Training changes
-- DQN architecture: edit `QNetwork` in `train/independent_dqn_pytorch.py`.
-- Exploration schedule: edit `linear_schedule()` and DQN config values.
-- To train shared policy, pass `--shared-policy` to the training script.
+- [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) provides generic sensor, observation, policy, and action bridges.
+- [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) provides Raspberry Pi-side runtime examples, including a preserved rule-based runtime and a model-driven runtime.
 
-### Keep configs and code in sync
-- If you add new observation channels or actions, update:
-  - `obs_dim` assumptions in training scripts
-  - README documentation for actions/observations
+These modules reuse the same observation and action contracts where possible.
+
+## Recommended Reading Order
+
+For a new reader:
+
+1. [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md)
+2. [docs/ONBOARDING.md](/Users/christopherlin/dev/cwsf2026/sim/docs/ONBOARDING.md)
+3. [docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)
+4. [docs/manual/EXPERIMENT_GUIDE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/EXPERIMENT_GUIDE.md)
+5. [docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)
