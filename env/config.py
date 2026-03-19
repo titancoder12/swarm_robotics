@@ -59,10 +59,13 @@ class SwarmConfig:
     reward_collision: float = -0.2
     reward_pickup: float = 1.5
     reward_nest_delivery: float = 10.0
+    reward_exploration: float = 0.02
+    reward_pheromone_following: float = 0.0
 
     # Task
     nest_enabled: bool = True
     require_nest_delivery: bool = True
+    coverage_cell_size: int = 24
 
     # Rendering
     render_pheromone: bool = True

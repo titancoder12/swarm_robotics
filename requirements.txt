@@ -7,3 +7,4 @@ stable-baselines3
 supersuit
 ray[rllib]
 pydantic
+matplotlib

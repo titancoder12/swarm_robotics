@@ -104,6 +104,9 @@ class SwarmEnv(ParallelEnv):
         self.obstacles: List[pygame.Rect] = []
         self.nest_position: Tuple[float, float] = (self.width * 0.5, self.height * 0.5)
         self.food_delivered = 0
+        self.coverage_grid = None
+        self.covered_cells = 0
+        self.total_cover_cells = 1
 
         self.step_count = 0
         self.terminated = False
@@ -169,6 +172,8 @@ class SwarmEnv(ParallelEnv):
         self._spawn_targets()
         self._spawn_agents()
         self.food_delivered = 0
+        self._init_coverage_grid()
+        self._update_coverage()
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -180,7 +185,11 @@ class SwarmEnv(ParallelEnv):
 
         obs = self._get_obs()
         obs_dict = {agent: obs[i] for i, agent in enumerate(self.possible_agents)}
-        info = {"n_targets": len(self.targets), "food_delivered": self.food_delivered}
+        info = {
+            "n_targets": len(self.targets),
+            "food_delivered": self.food_delivered,
+            "exploration_coverage": self._coverage_ratio(),
+        }
         info_dict = {agent: info for agent in self.possible_agents}
         return obs_dict, info_dict
 
@@ -200,6 +209,14 @@ class SwarmEnv(ParallelEnv):
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
         collisions = 0
+        reward_breakdown = {
+            "step": float(self.cfg.reward_step * self.cfg.n_agents),
+            "pickup": 0.0,
+            "delivery": 0.0,
+            "collision": 0.0,
+            "exploration": 0.0,
+            "pheromone": 0.0,
+        }
 
         for i, agent in enumerate(self.agent_states):
             action_id = int(actions[i])
@@ -211,11 +228,20 @@ class SwarmEnv(ParallelEnv):
             if collided:
                 rewards[i] += self.cfg.reward_collision
                 collisions += 1
+                reward_breakdown["collision"] += float(self.cfg.reward_collision)
             else:
                 self.agent_states[i] = proposed
 
         # Handle target collection and pheromone updates.
-        picked_up, delivered = self._handle_targets(rewards)
+        picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
+        reward_breakdown["pickup"] += float(pickup_reward)
+        reward_breakdown["delivery"] += float(delivery_reward)
+
+        exploration_reward, new_cells = self._apply_exploration_reward(rewards)
+        reward_breakdown["exploration"] += float(exploration_reward)
+
+        pheromone_reward, pheromone_usage = self._apply_pheromone_reward(rewards)
+        reward_breakdown["pheromone"] += float(pheromone_reward)
 
         if self.cfg.pheromone_enabled:
             self._update_pheromone()
@@ -236,6 +262,11 @@ class SwarmEnv(ParallelEnv):
             "targets_collected": picked_up,
             "food_delivered": delivered,
             "collisions": collisions,
+            "new_cells_visited": new_cells,
+            "exploration_coverage": self._coverage_ratio(),
+            "pheromone_usage": pheromone_usage,
+            "episode_length": self.step_count,
+            "reward_breakdown": reward_breakdown,
         }
         infos = {agent: info for agent in self.possible_agents}
         if self.terminated or self.truncated:
@@ -396,9 +427,10 @@ class SwarmEnv(ParallelEnv):
         )
         return any(agent_rect.colliderect(o) for o in self.obstacles)
 
-    def _handle_targets(self, rewards: np.ndarray) -> tuple[int, int]:
+    def _handle_targets(self, rewards: np.ndarray) -> tuple[int, int, float, float]:
         """Handle food pickup and optional nest delivery."""
         picked_up = 0
+        pickup_reward = 0.0
         remaining = []
         for tx, ty in self.targets:
             collected_by = None
@@ -410,20 +442,23 @@ class SwarmEnv(ParallelEnv):
                 if self.cfg.require_nest_delivery and self.cfg.nest_enabled:
                     self.agent_states[collected_by].carrying_food = True
                     rewards[collected_by] += self.cfg.reward_pickup
+                    pickup_reward += float(self.cfg.reward_pickup)
                 else:
                     rewards[collected_by] += self.cfg.reward_target
+                    pickup_reward += float(self.cfg.reward_target)
                 picked_up += 1
             else:
                 remaining.append((tx, ty))
         self.targets = remaining
-        delivered = self._handle_nest_delivery(rewards)
-        return picked_up, delivered
+        delivered, delivery_reward = self._handle_nest_delivery(rewards)
+        return picked_up, delivered, pickup_reward, delivery_reward
 
-    def _handle_nest_delivery(self, rewards: np.ndarray) -> int:
+    def _handle_nest_delivery(self, rewards: np.ndarray) -> tuple[int, float]:
         """Reward agents that return carried food to the nest."""
         if not (self.cfg.nest_enabled and self.cfg.require_nest_delivery):
-            return 0
+            return 0, 0.0
         delivered = 0
+        reward_total = 0.0
         nx, ny = self.nest_position
         nest_reach = (self.cfg.nest_radius + self.cfg.agent_radius) ** 2
         for i, agent in enumerate(self.agent_states):
@@ -434,7 +469,54 @@ class SwarmEnv(ParallelEnv):
                 rewards[i] += self.cfg.reward_nest_delivery
                 self.food_delivered += 1
                 delivered += 1
-        return delivered
+                reward_total += float(self.cfg.reward_nest_delivery)
+        return delivered, reward_total
+
+    def _init_coverage_grid(self):
+        """Initialize per-episode exploration coverage tracking."""
+        cell = max(self.cfg.coverage_cell_size, 1)
+        grid_w = self.width // cell + 1
+        grid_h = self.height // cell + 1
+        self.coverage_grid = np.zeros((grid_h, grid_w), dtype=np.bool_)
+        self.covered_cells = 0
+        self.total_cover_cells = int(self.coverage_grid.size)
+
+    def _update_coverage(self) -> int:
+        """Mark currently occupied coverage cells and return newly visited count."""
+        if self.coverage_grid is None:
+            return 0
+        cell = max(self.cfg.coverage_cell_size, 1)
+        new_cells = 0
+        for agent in self.agent_states:
+            gx = int(np.clip(agent.x // cell, 0, self.coverage_grid.shape[1] - 1))
+            gy = int(np.clip(agent.y // cell, 0, self.coverage_grid.shape[0] - 1))
+            if not self.coverage_grid[gy, gx]:
+                self.coverage_grid[gy, gx] = True
+                self.covered_cells += 1
+                new_cells += 1
+        return new_cells
+
+    def _coverage_ratio(self) -> float:
+        """Return the fraction of visited coverage cells this episode."""
+        if self.total_cover_cells <= 0:
+            return 0.0
+        return float(self.covered_cells / self.total_cover_cells)
+
+    def _apply_exploration_reward(self, rewards: np.ndarray) -> tuple[float, int]:
+        """Reward visiting previously unseen coverage cells."""
+        new_cells = self._update_coverage()
+        reward_total = float(new_cells * self.cfg.reward_exploration)
+        if reward_total != 0.0 and self.cfg.n_agents > 0:
+            rewards += reward_total / self.cfg.n_agents
+        return reward_total, new_cells
+
+    def _apply_pheromone_reward(self, rewards: np.ndarray) -> tuple[float, float]:
+        """Optionally shape behavior using local pheromone intensity."""
+        usage = self._mean_pheromone_usage()
+        reward_total = float(self.cfg.reward_pheromone_following * usage * self.cfg.n_agents)
+        if reward_total != 0.0 and self.cfg.n_agents > 0:
+            rewards += reward_total / self.cfg.n_agents
+        return reward_total, usage
 
     def _update_pheromone(self):
         """Deposit, decay, and diffuse pheromone values."""
@@ -624,6 +706,21 @@ class SwarmEnv(ParallelEnv):
                 color = (int(40 + 160 * val), int(40 + 40 * val), int(80 + 120 * val))
                 rect = pygame.Rect(gx * cell, gy * cell, cell, cell)
                 self._screen.fill(color, rect)
+
+    def _mean_pheromone_usage(self) -> float:
+        """Return the mean local pheromone intensity under the agents."""
+        if self.pheromone_grid is None or self.pheromone_grid.size == 0:
+            return 0.0
+        max_val = float(self.pheromone_grid.max())
+        if max_val <= 1e-6:
+            return 0.0
+        cell = self.cfg.pheromone_cell_size
+        values = []
+        for agent in self.agent_states:
+            gx = int(np.clip(agent.x // cell, 0, self.pheromone_grid.shape[1] - 1))
+            gy = int(np.clip(agent.y // cell, 0, self.pheromone_grid.shape[0] - 1))
+            values.append(float(self.pheromone_grid[gy, gx] / max_val))
+        return float(np.mean(values)) if values else 0.0
 
 
 if __name__ == "__main__":

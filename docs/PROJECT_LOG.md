@@ -61,6 +61,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Expanded `docs/PI_MIGRATION.md` to state explicitly that `pi/run_policy.py` is the intended migrated end state, while `pi/ants.py` remains the baseline, and logged the matching Q&A.
 - Extracted `QNetwork` into `models/q_network.py` and updated training, demo, and robot inference code to share it, removing the robot runtime's dependency on the training script.
 - Upgraded the environment for science-fair-grade stigmergic foraging support by adding configurable nest mechanics, food pickup and nest delivery, richer local observations (nest direction, food presence, carrying state), nest rendering, and aligned the robot observation builder to the new observation contract.
+- Upgraded the custom training pipeline for research-grade experiments by adding structured episode/evaluation logging, checkpoint metadata, optional deterministic evaluation during training, training plot generation, and standalone evaluation/plot scripts while preserving the existing DQN CLI flow.
 
 ## Key Commands
 - Random rollout: `python train/random_rollout.py`
