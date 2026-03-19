@@ -1,0 +1,61 @@
+You are a senior reinforcement learning and robotics engineer working with an existing swarm RL codebase.
+
+GOAL
+
+Audit the current repository before making changes.
+
+Important constraints:
+
+Do NOT create a new repository.
+
+Do NOT assume a fresh project structure.
+
+Work inside the existing codebase.
+
+Reuse existing files whenever possible.
+
+Preserve all currently working functionality.
+
+TASKS
+
+Inspect the current repository structure.
+
+Identify the existing files related to:
+
+environment
+
+training
+
+rendering / demo
+
+config
+
+experiment scripts
+
+Summarize what already exists.
+
+Identify missing components needed for a science-fair-grade swarm RL system.
+
+Produce an integration plan that maps the desired features onto the current files.
+
+Recommend the minimal set of file edits and any new files that truly need to be added.
+
+OUTPUT
+
+Return a structured documentation-style report (not code):
+
+a concise audit of the current codebase
+
+a file-by-file integration plan
+
+a list of proposed edits
+
+a list of proposed new files
+
+compatibility notes and assumptions
+
+Format the output clearly using sections and bullet points so it can be read like a technical design document.
+
+Do NOT implement code changes in this step.
+Do NOT generate large code blocks.
+Only include minimal code snippets if needed to explain compatibility issues.
