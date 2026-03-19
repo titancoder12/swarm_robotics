@@ -188,6 +188,16 @@ python train/independent_dqn_pytorch.py --headless --total-steps 10000
 python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
 ```
 
+### Probe a trained policy with hand-written observations
+
+```bash
+python train/policy_probe.py --list-cases
+python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case target_ahead
+python train/policy_probe.py --checkpoint-dir checkpoints --case wall_ahead --agent-index 0
+```
+
+This loads a custom DQN checkpoint, prints the observation values by name, shows all 9 Q-values, and explains the chosen action in plain language.
+
 ## 3. Core Environment API
 
 ### Public attributes commonly used by scripts
@@ -1039,6 +1049,30 @@ from train.evaluate import parse_args, run
 args = parse_args(["--policy-kind", "rule_based", "--episodes", "5"])
 out_dir = run(args)
 ```
+
+### Policy probing utility
+
+#### `train/policy_probe.py`
+
+- file: [train/policy_probe.py](/Users/christopherlin/dev/cwsf2026/sim/train/policy_probe.py)
+- purpose: manually feed named 23-dimensional observation vectors into a trained custom DQN checkpoint and inspect outputs
+
+Typical commands:
+
+```bash
+python train/policy_probe.py --list-cases
+python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case target_ahead
+python train/policy_probe.py --checkpoint-dir checkpoints --case carrying_to_nest --agent-index 0
+```
+
+Behavior:
+
+- loads `shared.pt` when `--shared-policy` is set
+- otherwise loads `agent_<index>.pt`
+- uses the current 23-element observation layout
+- prints observation names and values
+- prints all Q-values
+- prints chosen action index, name, and explanation
 
 ### Experiment utilities
 

@@ -108,6 +108,16 @@ Outputs include:
 - `eval_metrics.csv`
 - `eval_summary.json`
 
+Probe a checkpoint with hand-written observation vectors:
+
+```bash
+python train/policy_probe.py --list-cases
+python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case target_ahead
+python train/policy_probe.py --checkpoint-dir checkpoints --case wall_ahead --agent-index 0
+```
+
+This is a small teaching script for manually feeding 23-dimensional observations into the custom DQN model and inspecting Q-values plus the chosen discrete action.
+
 ## 6. Run Experiments
 
 The central experiment entry point is [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py).

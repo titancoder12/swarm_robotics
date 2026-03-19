@@ -47,6 +47,15 @@ python train/random_rollout.py
 python train/independent_dqn_pytorch.py --headless --total-steps 10000
 ```
 
+## If You Want to Manually Probe a Trained Policy
+
+```bash
+python train/policy_probe.py --list-cases
+python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case target_ahead
+```
+
+This is useful for understanding how the trained custom DQN responds to specific hand-written observation vectors.
+
 ## Important Current Facts
 
 - observation space: `23`
