@@ -4,7 +4,7 @@
 
   ### Current State
 
-  This repository is already a functioning swarm RL codebase, not a blank project. It includes:
+  This repository is already a functioning swarm RL codebase. It includes:
 
   - a custom multi-agent swarm environment with PettingZoo Parallel API
   - PyGame rendering
