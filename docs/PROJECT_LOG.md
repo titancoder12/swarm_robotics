@@ -98,3 +98,4 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added `docs/API_REFERENCE.md`, a code-grounded developer API/specification reference covering the environment contract, 23-dim observation layout, 9-action mapping, dynamics, rewards, config fields, and training/evaluation/experiment entry points.
 - Added focused companion specs `docs/OBSERVATION_SPEC.md` and `docs/ACTION_SPEC.md` so developers can reference the current observation and action contracts without reading the full API reference.
 - Added `docs/CONFIG_REFERENCE.md` and `docs/EXPERIMENT_API.md` to split the config surface and experiment framework into focused developer references.
+- Added `docs/CAMERA_PROPOSAL.md` describing how to use an onboard camera as a feature-producing perception sensor, how to simulate camera-derived features in the environment, and a phased observation-contract and training plan for integrating vision without jumping straight to raw-image RL.
