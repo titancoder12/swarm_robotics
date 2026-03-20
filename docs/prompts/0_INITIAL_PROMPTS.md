@@ -1,4 +1,4 @@
-# Prompt 1 - Initialize The Project For A Swarm Reinforcement Learning Project
+# Prompt 1 - Initialize Code For A Swarm Reinforcement Learning Project
 
 You are a senior Python engineer building a new reinforcement learning repository for a 2D swarm robotics simulation.
 
