@@ -101,4 +101,8 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added `train/policy_probe.py`, a beginner-friendly single-file script for manually feeding hand-written 23-dim observation vectors into a trained custom DQN checkpoint and inspecting Q-values, chosen action, and a plain-language interpretation.
 - Updated onboarding, API reference, and quick-start docs to include how to run `train/policy_probe.py`.
 - Fixed `train/policy_probe.py` so it prints observations using the active checkpoint layout and can explain both current 23-D and legacy 19-D checkpoint inputs by inspecting the checkpoint tensor shapes instead of assuming a single observation format.
+- Logged a Q&A clarifying that `--headless` disables PyGame rendering and screenshot capture but does not change environment stepping, observations, rewards, or training logic.
+- Logged a Q&A explaining why saving checkpoints during training is useful for resuming runs, comparing intermediate policies, running demos/evaluations later, and avoiding loss of progress.
+- Logged a Q&A clarifying that `--save-dir` defaults to `checkpoints/` and that the trainer still writes a final checkpoint there even when `--save-every` is left at `0`.
+- Logged a Q&A walking through the execution flow of `train/independent_dqn_pytorch.py`, including env setup, epsilon-greedy action selection, replay storage, Bellman updates, target-network sync, evaluation, logging, and checkpoint saving.
 - Added `docs/CAMERA_PROPOSAL.md` describing how to use an onboard camera as a feature-producing perception sensor, how to simulate camera-derived features in the environment, and a phased observation-contract and training plan for integrating vision without jumping straight to raw-image RL.

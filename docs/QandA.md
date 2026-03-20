@@ -118,3 +118,15 @@ A: Relative to that revision, the current branch differs in these files: `.gitig
 
 ## Q: How do I run the policy probing script?
 A: From the repo root: `python train/policy_probe.py --list-cases` shows the available hand-written observation cases. To probe a shared-policy checkpoint, run `python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case target_ahead`. To probe an independent checkpoint, run `python train/policy_probe.py --checkpoint-dir checkpoints --case wall_ahead --agent-index 0`.
+
+## Q: What does `--headless` do in training?
+A: It runs the environment without opening a PyGame window. In `SwarmEnv.__init__`, `headless=True` sets `render_mode=None`, `render()` becomes a no-op, and screenshot saving is disabled. The environment logic, observations, rewards, and stepping still run normally; only on-screen rendering is skipped. This is the normal mode for faster training and evaluation.
+
+## Q: Why save checkpoints during training?
+A: Checkpoints let you keep intermediate versions of the learned policy instead of only the final one. In this repo that is useful for at least four reasons: you can resume or inspect a run if training stops early, you can demo or evaluate earlier models without retraining, you can compare model quality across training stages, and you avoid losing all progress from a long run if something crashes. They are especially useful now that training/evaluation and experiment scripts can load saved models later.
+
+## Q: In `train/independent_dqn_pytorch.py`, what does `--save-dir checkpoints` do, and what happens if I do not pass it?
+A: `--save-dir` tells the trainer where to write checkpoint files. In the current code its default is already `checkpoints`, so if you do not pass `--save-dir`, it still saves to the `checkpoints/` folder. The separate `--save-every` flag controls whether intermediate checkpoints are also written during training. Even if `--save-every` is left at its default `0`, the trainer still saves one final checkpoint at the end into `args.save_dir`.
+
+## Q: Can you walk me through training in `train/independent_dqn_pytorch.py`?
+A: Yes. The file follows a standard DQN structure. `parse_args()` defines the CLI, `train(args)` builds the environment and run directory, infers `obs_dim` from `env.reset()`, creates either independent or shared `QNetwork` instances plus matching target networks, optimizers, and replay buffers, then enters the main loop. Each loop iteration computes epsilon, selects one action per agent with epsilon-greedy, steps the environment, stores `(obs, action, reward, next_obs, done)` into replay, and after warmup samples minibatches to apply the Bellman update with Huber loss. Every `target_update` steps it syncs target networks, optionally runs `_evaluate_policy()`, logs episode metrics when an episode ends, optionally saves checkpoints during training, and always saves final checkpoints plus `summary.json` at the end.
