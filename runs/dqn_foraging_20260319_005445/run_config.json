@@ -1,9 +1,0 @@
-{
-  "action_dim": 9,
-  "experiment_name": "dqn_foraging",
-  "n_agents": 6,
-  "obs_dim": 23,
-  "seed": 0,
-  "shared_policy": false,
-  "total_steps": 10000
-}

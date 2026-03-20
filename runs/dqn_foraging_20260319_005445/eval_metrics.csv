@@ -1,1 +1,0 @@
-global_step,mean_episode_reward,food_retrieved,exploration_coverage,pheromone_usage,episode_length,swarm_efficiency
