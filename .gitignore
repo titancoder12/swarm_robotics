@@ -24,7 +24,7 @@ dist/
 .ray_tmp/
 
 # Checkpoints / outputs
-checkpoints/
+#checkpoints/
 *.pt
 *.pth
 *.npz

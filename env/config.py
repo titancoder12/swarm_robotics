@@ -11,8 +11,8 @@ class SwarmConfig:
     n_agents: int = 6
     n_targets: int = 4
     n_obstacles: int = 6
-    agent_radius: float = 10.0
-    target_radius: float = 10.0
+    agent_radius: float = 7.0
+    target_radius: float = 5.0
     nest_radius: float = 22.0
     max_steps: int = 600
 

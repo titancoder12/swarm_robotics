@@ -113,3 +113,15 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A explaining what each observation value in `train/policy_probe.py` represents, including lidar, target/nest/neighbor body-frame vectors, heading encoding, normalized speed, food/carry state, pheromone samples, and the legacy 19-D checkpoint difference.
 - Logged a Q&A clarifying how to convert normalized observation values back into sim units and then into millimeters by applying `lidar_max_range`, `max_speed`, and an external mm-per-sim-unit calibration.
 - Logged a Q&A recommending `1 sim unit = 10 mm` as a practical starting calibration, with rationale based on robot size, lidar range, world size, and the current Pi-side millimeter command conventions.
+- Added `AntSwarmFirmware/run_policy.py`, a firmware-side trained-policy runner that reuses the existing sensor/action adapters and commands the robot through `AntSwarmFirmware/ant.py`.
+- Updated `AntSwarmFirmware/run_policy.py` to bypass `ESP32ActionBridge` and send actions directly through `ESP32Robot.turn()`, `move()`, and `stop()`.
+- Updated `pi/run_policy.py` to remove the `pi.esp32_*` bridge modules and interact directly with `AntSwarmFirmware/ant.py` for both scan reads and motion commands.
+- Logged a Q&A noting that `AntSwarmFirmware/run_policy.py` compiles, but a CLI smoke test is currently blocked by a missing `pyserial` dependency in `AntSwarmFirmware/ant.py`.
+- Inlined the policy config, scan bucketization, observation building, checkpoint loading, and action prediction logic inside `AntSwarmFirmware/run_policy.py` so it no longer imports `env.config`, `pi.esp32_sensor_adapter`, `robot.observation_builder`, or `robot.policy_runner`.
+- Logged a Q&A documenting the current scale mapping in `AntSwarmFirmware/run_policy.py`, including lidar normalization and direct motion-command distances/turn angles.
+- Logged a Q&A clarifying that `AntSwarmFirmware/run_policy.py` treats TOF `-1` readings as out-of-range/far by leaving the corresponding lidar bucket at its default max-range value.
+- Logged a Q&A explaining that `AntSwarmFirmware/run_policy.py` uses explicit CLI mm/degree parameters rather than a hidden sim-unit conversion, and noted which arguments control those scales.
+- Logged a Q&A computing the simulator calibration for a 70 mm radius robot: `1 sim unit = 7 mm` if `agent_radius` remains `10`.
+- Logged a Q&A pointing to where the sim-unit calibration is defined and documented (`env/config.py` and `docs/QandA.md`).
+- Logged a Q&A confirming that `agent_radius = 7` and `target_radius = 3` are consistent under a `1 sim unit = 10 mm` calibration, with the note that target radius should be chosen to match the physical target and pickup tolerance.
+- Logged a Q&A with the deployment steps for copying checkpoints to the Pi, installing dependencies including `pyserial`, running `AntSwarmFirmware/run_policy.py`, and updating the systemd service if needed.
