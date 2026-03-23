@@ -4,6 +4,7 @@ Description=Runs ant policy
 After=multi-user.target
 
 [Service]
+# Ensure ant.py is at /home/pi/Ant for this to work.
 ExecStart=/usr/bin/python /home/pi/Ant/ant.py
 User=pi
 
