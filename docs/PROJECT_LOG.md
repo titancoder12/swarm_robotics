@@ -133,3 +133,4 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A clarifying that `AntSwarmFirmware/run_policy.py` still requires PyTorch for runtime inference because checkpoint loading and the forward pass both use `torch` and `models/q_network.py`.
 - Added `AntSwarmFirmware/requirements.txt`, a Raspberry Pi deployment-focused dependency list containing only the current robot runtime requirements instead of the full training stack.
 - Added a `--debug` mode to `firmware/run_policy.py` that prints startup settings, checkpoint path, per-step scan/action summaries, Q-values, lidar previews, and shutdown messages for easier hardware-side debugging.
+- Added `firmware/serialmonitor.py`, a minimal timestamped serial console for `/dev/ttyUSB0` at `115200` baud with CLI overrides for port, baudrate, timeout, and startup delay.
