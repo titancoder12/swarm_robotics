@@ -25,7 +25,7 @@ dist/
 
 # Checkpoints / outputs
 #checkpoints/
-*.pt
+#*.pt
 *.pth
 *.npz
 *.npy
