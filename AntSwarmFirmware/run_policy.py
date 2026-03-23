@@ -13,7 +13,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from AntSwarmFirmware.ant import ESP32Robot
+# ant.py should be in the same dir.
+from ant import ESP32Robot
 from models.q_network import QNetwork
 
 @dataclass

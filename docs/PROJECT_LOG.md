@@ -130,3 +130,5 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A recommending `AntSwarmFirmware/` as the better current robot runtime path when simplicity and direct deployment matter more than preserving the older `pi/` and `robot/` abstraction layers.
 - Removed the `pi/` and `robot/` packages, added `pyserial` to `requirements.txt`, and updated the live docs to make `AntSwarmFirmware/` the single documented robot deployment path.
 - Logged a Q&A clarifying that `AntSwarmFirmware/run_policy.py` expects `--checkpoint-dir` to be a directory containing `shared.pt` or `agent_0.pt`, not a direct file path.
+- Logged a Q&A clarifying that `AntSwarmFirmware/run_policy.py` still requires PyTorch for runtime inference because checkpoint loading and the forward pass both use `torch` and `models/q_network.py`.
+- Added `AntSwarmFirmware/requirements.txt`, a Raspberry Pi deployment-focused dependency list containing only the current robot runtime requirements instead of the full training stack.
