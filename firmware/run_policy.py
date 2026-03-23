@@ -10,12 +10,15 @@ import numpy as np
 import torch
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_CHECKPOINT_DIR = REPO_ROOT / "checkpoints"
+
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 # ant.py should be in the same dir.
 from ant import ESP32Robot
 from models.q_network import QNetwork
+
 
 @dataclass
 class PolicyConfig:
@@ -33,7 +36,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description="Run a trained policy through the AntSwarmFirmware serial robot interface."
     )
-    parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
+    parser.add_argument("--checkpoint-dir", type=Path, default=DEFAULT_CHECKPOINT_DIR)
     parser.add_argument("--shared-policy", action="store_true")
     parser.add_argument("--port", type=str, default="/dev/ttyUSB0")
     parser.add_argument("--baudrate", type=int, default=115200)
@@ -45,6 +48,7 @@ def parse_args(argv=None):
     parser.add_argument("--turn-step-deg", type=int, default=25)
     parser.add_argument("--move-distance-mm", type=int, default=100)
     parser.add_argument("--reverse-distance-mm", type=int, default=60)
+    parser.add_argument("--debug", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -141,21 +145,48 @@ def build_observation(cfg: PolicyConfig, scan_points: list[dict]) -> np.ndarray:
     return observation
 
 
-def load_policy(checkpoint_dir: str, shared_policy: bool, observation_dim: int, num_actions: int) -> QNetwork:
+def load_policy(
+    checkpoint_dir: Path,
+    shared_policy: bool,
+    observation_dim: int,
+    num_actions: int,
+    debug: bool = False,
+) -> QNetwork:
     model = QNetwork(observation_dim, num_actions)
     checkpoint_name = "shared.pt" if shared_policy else "agent_0.pt"
-    checkpoint_path = Path(checkpoint_dir) / checkpoint_name
+
+    checkpoint_dir = Path(checkpoint_dir)
+    if not checkpoint_dir.is_absolute():
+        checkpoint_dir = REPO_ROOT / checkpoint_dir
+
+    checkpoint_path = checkpoint_dir / checkpoint_name
+
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(
+            f"Checkpoint not found: {checkpoint_path}\n"
+            f"Repo root: {REPO_ROOT}\n"
+            f"Checkpoint dir arg: {checkpoint_dir}"
+        )
+
+    if debug:
+        print(
+            f"[debug] loading checkpoint={checkpoint_path} "
+            f"obs_dim={observation_dim} num_actions={num_actions}",
+            flush=True,
+        )
+
     state_dict = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(state_dict)
     model.eval()
     return model
 
 
-def predict_action(model: QNetwork, observation: np.ndarray) -> int:
+def predict_action(model: QNetwork, observation: np.ndarray) -> tuple[int, np.ndarray]:
     with torch.no_grad():
         obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
         q_values = model(obs_tensor)
-        return int(torch.argmax(q_values, dim=1).item())
+        action_id = int(torch.argmax(q_values, dim=1).item())
+        return action_id, q_values.squeeze(0).cpu().numpy()
 
 
 def execute_action(
@@ -164,7 +195,7 @@ def execute_action(
     turn_step_deg: int,
     move_distance_mm: int,
     reverse_distance_mm: int,
-) -> None:
+) -> tuple[float, float]:
     throttle_vals = (-1.0, 0.0, 1.0)
     turn_vals = (-1.0, 0.0, 1.0)
     action_table = [(throttle, turn) for throttle in throttle_vals for turn in turn_vals]
@@ -176,20 +207,21 @@ def execute_action(
 
     if throttle == 0.0 and turn == 0.0:
         robot.stop()
-        return
+        return throttle, turn
 
     if turn != 0.0:
         robot.turn(int(round(turn * turn_step_deg)))
 
     if throttle > 0.0:
         robot.move(0, move_distance_mm)
-        return
+        return throttle, turn
 
     if throttle < 0.0:
         robot.move(180, reverse_distance_mm)
-        return
+        return throttle, turn
 
     robot.stop()
+    return throttle, turn
 
 
 def main(argv=None):
@@ -205,19 +237,32 @@ def main(argv=None):
         shared_policy=args.shared_policy,
         observation_dim=obs_dim(cfg),
         num_actions=cfg.num_actions,
+        debug=args.debug,
     )
 
     period_s = 1.0 / max(args.hz, 1e-6)
     step = 0
+
+    if args.debug:
+        print(
+            f"[debug] startup port={args.port} baudrate={args.baudrate} "
+            f"hz={args.hz} scan_duration={args.scan_duration} "
+            f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm}",
+            flush=True,
+        )
+
     robot.connect()
+
+    if args.debug:
+        print("[debug] robot connected", flush=True)
 
     try:
         while args.max_steps <= 0 or step < args.max_steps:
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
             observation = build_observation(cfg, scan_points)
-            action_id = predict_action(policy, observation)
-            execute_action(
+            action_id, q_values = predict_action(policy, observation)
+            throttle, turn = execute_action(
                 robot,
                 action_id=action_id,
                 turn_step_deg=args.turn_step_deg,
@@ -228,9 +273,31 @@ def main(argv=None):
 
             elapsed = time.perf_counter() - start
             sleep_time = period_s - elapsed
+
+            if args.debug:
+                valid_scan_count = sum(
+                    1
+                    for item in scan_points
+                    if item.get("type") == "scan" and item.get("tof_mm", -1) >= 0
+                )
+                lidar_preview = np.round(observation[: cfg.lidar_rays], 3).tolist()
+                q_values_preview = np.round(q_values, 3).tolist()
+                print(
+                    f"[debug] step={step} scans={len(scan_points)} valid_scans={valid_scan_count} "
+                    f"action={action_id} throttle={throttle:+.1f} turn={turn:+.1f} "
+                    f"elapsed={elapsed:.3f}s sleep={max(sleep_time, 0.0):.3f}s",
+                    flush=True,
+                )
+                print(
+                    f"[debug] lidar={lidar_preview} q_values={q_values_preview}",
+                    flush=True,
+                )
+
             if sleep_time > 0:
                 time.sleep(sleep_time)
     finally:
+        if args.debug:
+            print("[debug] closing robot connection", flush=True)
         robot.close()
 
 

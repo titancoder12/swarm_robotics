@@ -1,11 +1,10 @@
-# link this file at /lib/systemd/system
-[Unit]
+# link this file to /lib/systemd/system
 Description=Runs ant policy
 After=multi-user.target
 
 [Service]
 # Ensure ant.py is at /home/pi/Ant for this to work.
-ExecStart=/home/pi/venvs/ant/bin/python /home/pi/Ant/ant.py
+ExecStart=/home/pi/venvs/ant/bin/python /home/pi/Ant/swarm_robotics/firmware/ant.py
 User=pi
 
 [Install]
