@@ -1,6 +1,7 @@
 numpy
 pygame
 torch
+pyserial
 gymnasium
 pettingzoo
 stable-baselines3

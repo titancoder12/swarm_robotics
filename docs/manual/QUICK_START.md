@@ -56,6 +56,14 @@ python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case
 
 This is useful for understanding how the trained custom DQN responds to specific hand-written observation vectors.
 
+## If You Want to Run the Physical Robot
+
+```bash
+python AntSwarmFirmware/run_policy.py --checkpoint-dir checkpoints --shared-policy
+```
+
+That path is now the canonical robot runtime. It talks directly to [ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py) and does not use the older `pi/` or `robot/` packages.
+
 ## Important Current Facts
 
 - observation space: `23`

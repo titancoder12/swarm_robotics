@@ -1244,7 +1244,7 @@ Files to modify:
 - [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
 - [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
 - optionally [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
-- optionally [robot/observation_builder.py](/Users/christopherlin/dev/cwsf2026/sim/robot/observation_builder.py)
+- optionally [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py) if the physical robot observation path must stay aligned with the simulator
 
 Steps:
 

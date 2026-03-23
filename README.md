@@ -50,6 +50,8 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+For robot deployment with [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py), `pyserial` is now included in `requirements.txt` because [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py) depends on it.
+
 ## Random rollout (rendered)
 
 ```bash
@@ -142,6 +144,27 @@ To auto-exit after N steps (useful for smoke tests):
 python train/demo.py --backend custom --max-steps 200
 ```
 
+## Robot Deployment
+
+The current robot runtime lives in [AntSwarmFirmware/](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware).
+
+Main files:
+
+- [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py)
+  - serial client and low-level ESP32 command helpers
+- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py)
+  - direct checkpoint inference loop for the physical robot
+- [AntSwarmFirmware/ant.service](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.service)
+  - example systemd unit
+
+Typical deployment flow:
+
+```bash
+python AntSwarmFirmware/run_policy.py --checkpoint-dir checkpoints --shared-policy
+```
+
+This runtime loads [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py), reads scan lines from `ant.py`, normalizes the observation locally, predicts a discrete action, and sends `turn`, `move`, or `stop` commands directly to the robot.
+
 ## Environment API (PettingZoo Parallel API)
 
 `SwarmEnv` implements the PettingZoo Parallel API.
@@ -181,6 +204,8 @@ Toggle pheromone cues in observation with `SwarmConfig.obs_include_pheromone`.
 - `train/random_rollout.py` : random policy sanity check
 - `train/independent_dqn_pytorch.py` : independent or shared DQN training
 - `train/demo.py` : load and render trained checkpoints
+- `AntSwarmFirmware/run_policy.py` : physical robot policy runtime
+- `AntSwarmFirmware/ant.py` : direct serial robot interface
 - `docs/ARCHITECTURE.md` : detailed functionality and architecture
 - `docs/PROJECT_LOG.md` : decisions, notes, and next steps to resume later
 

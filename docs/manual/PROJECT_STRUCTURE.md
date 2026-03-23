@@ -71,26 +71,16 @@ Shared policy definitions.
 - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
   - hand-coded baseline policy
 
-### `robot/`
+### `AntSwarmFirmware/`
 
-Generic sim-to-real runtime components.
+Current physical robot runtime.
 
-- sensor bridge
-- observation builder
-- policy runner
-- action bridge
-- deployment runtime
-
-### `pi/`
-
-Raspberry Pi-side integration examples.
-
-- [pi/ants.py](/Users/christopherlin/dev/cwsf2026/sim/pi/ants.py)
-  - compatibility-first runtime based on the existing Pi controller style
-- [pi/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/pi/run_policy.py)
-  - model-driven Pi runtime
-- [pi/ants.service](/Users/christopherlin/dev/cwsf2026/sim/pi/ants.service)
-  - service file example
+- [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py)
+  - direct serial interface to the ESP32 robot controller
+- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py)
+  - direct learned-policy runtime used on the robot
+- [AntSwarmFirmware/ant.service](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.service)
+  - example systemd service for the robot runtime
 
 ### `docs/`
 

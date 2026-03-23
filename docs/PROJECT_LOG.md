@@ -125,3 +125,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Logged a Q&A pointing to where the sim-unit calibration is defined and documented (`env/config.py` and `docs/QandA.md`).
 - Logged a Q&A confirming that `agent_radius = 7` and `target_radius = 3` are consistent under a `1 sim unit = 10 mm` calibration, with the note that target radius should be chosen to match the physical target and pickup tolerance.
 - Logged a Q&A with the deployment steps for copying checkpoints to the Pi, installing dependencies including `pyserial`, running `AntSwarmFirmware/run_policy.py`, and updating the systemd service if needed.
+- Logged a Q&A auditing current `pi/` and `robot/` usage, noting that only part of `robot/` is still used by `pi/run_policy.py` while several `pi/esp32_*` and `robot/` integration modules are currently orphaned.
+- Logged a Q&A confirming that removing `pi/` and `robot/` is safe if `AntSwarmFirmware/run_policy.py` is the only deployment path, with the caveat that docs and any `pi/run_policy.py` usage must be updated too.
+- Logged a Q&A recommending `AntSwarmFirmware/` as the better current robot runtime path when simplicity and direct deployment matter more than preserving the older `pi/` and `robot/` abstraction layers.
+- Removed the `pi/` and `robot/` packages, added `pyserial` to `requirements.txt`, and updated the live docs to make `AntSwarmFirmware/` the single documented robot deployment path.
