@@ -1,21 +1,12 @@
+# Create this file at /lib/systemd/system
 [Unit]
-Description=Ant Robot Controller
-After=network.target
+Description=Runs ant policy
+After=multi-user.target
 
 [Service]
-Type=simple
+ExecStart=/usr/bin/python /home/pi/Ant/ant.py
 User=pi
-WorkingDirectory=/home/pi/ant
-ExecStart=/usr/bin/python3 /home/pi/ant/ant.py
-Restart=always
-RestartSec=3
-
-# Serial access
-StandardOutput=journal
-StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
-User=pi
-WorkingDirectory=/home/pi/ant
-ExecStart=/usr/bin/python3 /home/pi/ant/ant.py
+
