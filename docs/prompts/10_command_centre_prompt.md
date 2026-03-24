@@ -401,19 +401,40 @@ Where:
 
 * `p0, p1, p2` are the **three forward-direction pheromone samples along the robot’s heading**
 
-### Sampling rules (STRICT)
+### Sampling rules (STRICT — EXACT MATCH REQUIRED)
 
-* The sampling geometry MUST **exactly match** the implementation in `env/swarm_env.py`
-* Do NOT approximate distances or angles
+The sampling geometry MUST exactly match the simulator implementation in `env/swarm_env.py`.
+
+Specifically:
+
+```text
+For i = 0,1,2:
+  d_i = (i + 1) * agent_radius * 1.5
+```
+
+* Samples are taken along the robot's heading direction at distances `d_0`, `d_1`, `d_2`
+* Use the same forward vector computation as the simulator
+* Do NOT approximate distances, angles, or offsets
+* Any deviation will break compatibility with the trained model
+
+---
+
 * Use the same forward offsets and sampling pattern as the simulator
 
-### Normalization (IMPORTANT)
+### Normalization (STRICT — EXACT MATCH REQUIRED)
 
-Match simulator semantics exactly:
+Normalization MUST match simulator behavior exactly:
 
-* Normalize samples relative to local values (NOT global max)
-* Do not introduce new scaling
-* Document exact normalization behavior
+```python
+if max(samples) > 0:
+    samples = samples / max(samples)
+```
+
+* Normalize using the **local max of the 3 samples**, NOT a global map max
+* Do NOT introduce smoothing, scaling, or alternate normalization
+* This behavior is part of the learned observation distribution
+
+---
 
 ---
 
@@ -485,6 +506,15 @@ grid_y = int(y_cm / cell_size_cm)
 * All protocol messages (`POS`, `PHER`, `SENSE`) must use **centimeters (cm)**
 
 ---
+
+---
+
+## Multi-robot communication handling (IMPLEMENTATION REQUIREMENT)
+
+* Each robot connection must be handled independently (e.g., thread or asyncio task)
+* Ensure request/response pairing per robot (no cross-talk between connections)
+* Avoid blocking the render loop
+* Maintain low-latency responses for `SENSE → PHER_RESP`
 
 ---
 
