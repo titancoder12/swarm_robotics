@@ -208,3 +208,15 @@ A: Yes. The active robot runtime in [firmware/run_policy.py](/Users/christopherl
 
 ## Q: Is it hard to make the deployed robot policy stochastic, and can that be done without changing the interface?
 A: No, it is not hard. You can keep the same observation vector, the same checkpoint format, and the same robot-side output contract of “one discrete action ID,” and only change the internal action-selection rule. The standard options are: (1) **epsilon-greedy inference**, where the policy picks a random action with probability `epsilon` and otherwise uses the current greedy action; (2) **softmax/temperature sampling** over the Q-values, where you convert Q-values into action probabilities and sample one action; or (3) **adding small noise to the Q-values before `argmax`**, which preserves the same output interface but is less standard. In all three cases the robot can keep using essentially the same code path because the interface remains observation-in, discrete-action-out. The main tradeoff is behavioral quality: DQN is normally deployed greedily, so adding runtime stochasticity is mechanically easy but can reduce stability or efficiency unless the randomness level is tuned carefully.
+
+## Q: What does `firmware/run_policy.py` do?
+A: It is the live robot-side inference loop. It parses runtime flags, loads a trained `QNetwork` checkpoint (`shared.pt` or `agent_0.pt`), connects to the robot over serial via `ESP32Robot`, reads scan data for each control step, converts the scan into the policy’s observation vector, runs one forward pass, chooses the greedy discrete action with `argmax`, maps that action into turn/move/stop commands, and sends those commands to the robot at the requested loop rate. In debug mode it also prints startup settings, per-step scan counts, normalized lidar values, chosen action, and Q-values.
+
+## Q: When was `firmware/run_policy.py` added?
+A: Git history shows that it was first added on **2026-03-21** in commit `e96d76ae8981201e10d5fe2a339548c8d900e425` with the commit subject **“Added saved models”**.
+
+## Q: When was the `models` package created?
+A: Git history shows that the `models` package itself was created on **2026-03-18** in commit `7613e601e4e4d16896b8f91cd17b09d18cc2b2e0` with subject **“refactor”**; that is when `models/__init__.py` and `models/q_network.py` were first added. The later file `models/rule_based_policy.py` was added on **2026-03-19** in commit `b63748068e36516ba18f133606bae5dd1edc55aa` with subject **“RL Algorithm Comparison Experiment”**.
+
+## Q: Before the `models` package was created, where did that logic live?
+A: Before commit `7613e601e4e4d16896b8f91cd17b09d18cc2b2e0`, the shared model logic was not in a standalone package. The `QNetwork` class lived directly inside [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py), and the refactor commit then extracted it into `models/q_network.py` and updated callers such as `train/demo.py` and `robot/policy_runner.py` to import the shared definition from `models` instead.
