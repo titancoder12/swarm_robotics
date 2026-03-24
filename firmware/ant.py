@@ -182,80 +182,80 @@ class ESP32Robot:
 
         return points
 
-def main() -> None:
-    robot = ESP32Robot(port="/dev/ttyUSB0", baudrate=115200)
+# def main() -> None:
+#     robot = ESP32Robot(port="/dev/ttyUSB0", baudrate=115200)
 
-    try:
-        robot.connect()
-        print("Connected to ESP32 on /dev/serial0")
+#     try:
+#         robot.connect()
+#         print("Connected to ESP32 on /dev/serial0")
 
-        while True:
-            scan_points = robot.read_full_sweep(timeout=2.0)
+#         while True:
+#             scan_points = robot.read_full_sweep(timeout=2.0)
 
-            valid_points = []
-            for item in scan_points:
-                if item.get("type") != "scan":
-                    continue
+#             valid_points = []
+#             for item in scan_points:
+#                 if item.get("type") != "scan":
+#                     continue
 
-                angle = item.get("angle")
-                dist = item.get("tof_mm")
+#                 angle = item.get("angle")
+#                 dist = item.get("tof_mm")
 
-                if angle is None or dist is None:
-                    continue
+#                 if angle is None or dist is None:
+#                     continue
 
-                valid_points.append((angle, dist))
+#                 valid_points.append((angle, dist))
 
-            chosen_angle = 0
-            min_clearance_mm = 100
-            best_angle = None
+#             chosen_angle = 0
+#             min_clearance_mm = 100
+#             best_angle = None
 
-            for angle, distance in valid_points:
-                print(f"Angle: {angle}, Distance: {distance} mm")
+#             for angle, distance in valid_points:
+#                 print(f"Angle: {angle}, Distance: {distance} mm")
 
-                if distance > min_clearance_mm or distance == -1:
-                    print(f"Free angle: {angle} degrees, Distance: {distance} mm")
+#                 if distance > min_clearance_mm or distance == -1:
+#                     print(f"Free angle: {angle} degrees, Distance: {distance} mm")
 
-                    if best_angle is None or abs(angle - 90) < abs(best_angle - 90):
-                        best_angle = angle
+#                     if best_angle is None or abs(angle - 90) < abs(best_angle - 90):
+#                         best_angle = angle
 
-            if best_angle is not None:
-                chosen_angle = best_angle - 90
-
-
-            """if valid_points:
-                front_points = [
-                    (angle, dist)
-                    for angle, dist in valid_points
-                    if abs(angle - 90) <= front_window
-                ]
-
-                front_blocked = any(
-                    dist != -1 and dist <= min_clearance_mm
-                    for _, dist in front_points
-                )
-
-                if front_blocked:
-                    free_angles = [
-                        angle
-                        for angle, dist in valid_points
-                        if dist == -1 or dist > min_clearance_mm
-                    ]
-
-                    if free_angles:
-                        chosen_angle = min(free_angles, key=lambda a: abs(a - 90))
-
-            print("Chosen lidar angle:", chosen_angle)"""
-
-            move_angle = chosen_angle
-            print("Move angle:", move_angle)
-            resp = robot.move(move_angle, 100)
-            print(resp)
-
-            time.sleep(0.5)
-
-    finally:
-        robot.close()
+#             if best_angle is not None:
+#                 chosen_angle = best_angle - 90
 
 
-if __name__ == "__main__":
-    main()
+#             """if valid_points:
+#                 front_points = [
+#                     (angle, dist)
+#                     for angle, dist in valid_points
+#                     if abs(angle - 90) <= front_window
+#                 ]
+
+#                 front_blocked = any(
+#                     dist != -1 and dist <= min_clearance_mm
+#                     for _, dist in front_points
+#                 )
+
+#                 if front_blocked:
+#                     free_angles = [
+#                         angle
+#                         for angle, dist in valid_points
+#                         if dist == -1 or dist > min_clearance_mm
+#                     ]
+
+#                     if free_angles:
+#                         chosen_angle = min(free_angles, key=lambda a: abs(a - 90))
+
+#             print("Chosen lidar angle:", chosen_angle)"""
+
+#             move_angle = chosen_angle
+#             print("Move angle:", move_angle)
+#             resp = robot.move(move_angle, 100)
+#             print(resp)
+
+#             time.sleep(0.5)
+
+#     finally:
+# #         robot.close()
+
+
+# if __name__ == "__main__":
+#     main()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import time
 from dataclasses import dataclass
@@ -17,6 +18,11 @@ if str(REPO_ROOT) not in sys.path:
 
 # ant.py should be in the same dir.
 from ant import ESP32Robot
+from firmware.bluetooth import (
+    DEFAULT_BLE_NOTIFY_CHAR_UUID,
+    DEFAULT_BLE_WRITE_CHAR_UUID,
+    CommandCenterBLEClient,
+)
 from models.q_network import QNetwork
 
 
@@ -26,13 +32,23 @@ class PolicyConfig:
     lidar_rays: int = 9
     lidar_max_range_m: float = 2.0
     max_speed_mps: float = 0.5
+    agent_radius_cm: float = 7.0
     pheromone_samples: int = 3
     obs_include_nest_direction: bool = True
     obs_include_food_presence: bool = True
     obs_include_carrying: bool = True
 
 
+@dataclass
+class PoseEstimate:
+    x_mm: float = 0.0
+    y_mm: float = 0.0
+    heading_deg: float = 0.0
+
+
 def parse_args(argv=None):
+    # Keep runtime, robot-link, and command-center transport flags together so
+    # the deployment surface is visible from one place.
     parser = argparse.ArgumentParser(
         description="Run a trained policy through the AntSwarmFirmware serial robot interface."
     )
@@ -48,6 +64,17 @@ def parse_args(argv=None):
     parser.add_argument("--turn-step-deg", type=int, default=25)
     parser.add_argument("--move-distance-mm", type=int, default=100)
     parser.add_argument("--reverse-distance-mm", type=int, default=60)
+    parser.add_argument("--initial-heading-deg", type=float, default=0.0)
+    parser.add_argument("--robot-id", type=str, default="robot_0")
+    parser.add_argument("--agent-radius-cm", type=float, default=7.0)
+    parser.add_argument("--cc-ble-enable", action="store_true")
+    parser.add_argument("--cc-ble-address", type=str, default="")
+    parser.add_argument("--cc-ble-device-name", type=str, default="")
+    parser.add_argument("--cc-ble-write-char-uuid", type=str, default=DEFAULT_BLE_WRITE_CHAR_UUID)
+    parser.add_argument("--cc-ble-notify-char-uuid", type=str, default=DEFAULT_BLE_NOTIFY_CHAR_UUID)
+    parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
+    parser.add_argument("--cc-deposit-on-forward", action="store_true")
+    parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
     parser.add_argument("--debug", action="store_true")
     return parser.parse_args(argv)
 
@@ -117,17 +144,31 @@ def normalize_pheromone(cfg: PolicyConfig, values: list[float]) -> np.ndarray:
     return np.clip(arr, -1.0, 1.0)
 
 
-def build_observation(cfg: PolicyConfig, scan_points: list[dict]) -> np.ndarray:
+def pheromone_awareness_radius_cm(cfg: PolicyConfig) -> float:
+    return float(cfg.pheromone_samples) * float(cfg.agent_radius_cm) * 1.5
+
+
+def build_observation(
+    cfg: PolicyConfig,
+    scan_points: list[dict],
+    pose: PoseEstimate,
+    pheromone_values: list[float] | tuple[float, ...] | None = None,
+    speed_mps: float = 0.0,
+) -> np.ndarray:
+    # The observation layout mirrors the simulator contract, but on hardware we
+    # currently synthesize only the channels we can estimate locally or fetch
+    # from the command center.
     ranges_m = [value / 1000.0 for value in bucketize_scan(cfg, scan_points)]
     lidar = normalize_ranges(cfg, ranges_m)
     target = normalize_xy(cfg, [0.0, 0.0])
-    nest = normalize_xy(cfg, [0.0, 0.0])
+    nest = normalize_xy(cfg, [-(pose.x_mm / 1000.0), -(pose.y_mm / 1000.0)])
     neighbor = normalize_xy(cfg, [0.0, 0.0])
-    heading = np.array([0.0, 1.0], dtype=np.float32)
-    speed = np.array([0.0], dtype=np.float32)
+    heading_rad = math.radians(pose.heading_deg)
+    heading = np.array([math.sin(heading_rad), math.cos(heading_rad)], dtype=np.float32)
+    speed = np.array([np.clip(speed_mps / max(cfg.max_speed_mps, 1e-6), -1.0, 1.0)], dtype=np.float32)
     food_presence = np.array([0.0], dtype=np.float32)
     carrying = np.array([0.0], dtype=np.float32)
-    pheromone = normalize_pheromone(cfg, [0.0] * cfg.pheromone_samples)
+    pheromone = normalize_pheromone(cfg, list(pheromone_values or ([0.0] * cfg.pheromone_samples)))
 
     parts = [lidar, target]
     if cfg.obs_include_nest_direction:
@@ -224,12 +265,51 @@ def execute_action(
     return throttle, turn
 
 
+def update_pose_estimate(
+    pose: PoseEstimate,
+    throttle: float,
+    turn: float,
+    turn_step_deg: int,
+    move_distance_mm: int,
+    reverse_distance_mm: int,
+) -> tuple[PoseEstimate, float]:
+    # Match execute_action(...): discrete turn happens before translation, so
+    # the local pose estimate uses the post-turn heading for displacement.
+    next_heading_deg = pose.heading_deg + float(turn) * float(turn_step_deg)
+
+    if throttle > 0.0:
+        distance_mm = float(move_distance_mm)
+    elif throttle < 0.0:
+        distance_mm = -float(reverse_distance_mm)
+    else:
+        distance_mm = 0.0
+
+    heading_rad = math.radians(next_heading_deg)
+    next_x_mm = pose.x_mm + distance_mm * math.cos(heading_rad)
+    next_y_mm = pose.y_mm + distance_mm * math.sin(heading_rad)
+    return PoseEstimate(x_mm=next_x_mm, y_mm=next_y_mm, heading_deg=next_heading_deg), distance_mm
+
+
 def main(argv=None):
     args = parse_args(argv)
     cfg = PolicyConfig(
         lidar_max_range_m=args.lidar_max_range_mm / 1000.0,
         max_speed_mps=args.max_speed_mps,
+        agent_radius_cm=args.agent_radius_cm,
     )
+    awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
+    command_center = None
+    if args.cc_ble_enable:
+        # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
+        # with the desktop command center.
+        command_center = CommandCenterBLEClient(
+            address=args.cc_ble_address,
+            device_name=args.cc_ble_device_name,
+            write_char_uuid=args.cc_ble_write_char_uuid,
+            notify_char_uuid=args.cc_ble_notify_char_uuid,
+            timeout_s=args.cc_ble_timeout,
+            debug=args.debug,
+        )
 
     robot = ESP32Robot(port=args.port, baudrate=args.baudrate)
     policy = load_policy(
@@ -242,12 +322,16 @@ def main(argv=None):
 
     period_s = 1.0 / max(args.hz, 1e-6)
     step = 0
+    pose = PoseEstimate(heading_deg=args.initial_heading_deg)
+    speed_mps = 0.0
 
     if args.debug:
         print(
             f"[debug] startup port={args.port} baudrate={args.baudrate} "
             f"hz={args.hz} scan_duration={args.scan_duration} "
-            f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm}",
+            f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm} "
+            f"initial_heading_deg={args.initial_heading_deg} robot_id={args.robot_id} "
+            f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f}",
             flush=True,
         )
 
@@ -260,7 +344,22 @@ def main(argv=None):
         while args.max_steps <= 0 or step < args.max_steps:
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
-            observation = build_observation(cfg, scan_points)
+            pheromone_values = (0.0, 0.0, 0.0)
+            if command_center is not None:
+                # Pose is maintained locally in mm, while the command-center
+                # protocol uses nest-relative centimeters.
+                x_cm = pose.x_mm / 10.0
+                y_cm = pose.y_mm / 10.0
+                command_center.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                pheromone_values = command_center.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
+
+            observation = build_observation(
+                cfg,
+                scan_points,
+                pose=pose,
+                pheromone_values=pheromone_values,
+                speed_mps=speed_mps,
+            )
             action_id, q_values = predict_action(policy, observation)
             throttle, turn = execute_action(
                 robot,
@@ -269,6 +368,25 @@ def main(argv=None):
                 move_distance_mm=args.move_distance_mm,
                 reverse_distance_mm=args.reverse_distance_mm,
             )
+            pose, commanded_distance_mm = update_pose_estimate(
+                pose,
+                throttle=throttle,
+                turn=turn,
+                turn_step_deg=args.turn_step_deg,
+                move_distance_mm=args.move_distance_mm,
+                reverse_distance_mm=args.reverse_distance_mm,
+            )
+            speed_mps = commanded_distance_mm / 1000.0 / period_s
+            if command_center is not None and args.cc_deposit_on_forward and throttle > 0.0:
+                # This is a simple placeholder trigger for digital deposits; it
+                # is intentionally explicit so real deployment logic can replace
+                # it with a better behavioral condition later.
+                command_center.deposit_pheromone(
+                    args.robot_id,
+                    pose.x_mm / 10.0,
+                    pose.y_mm / 10.0,
+                    args.cc_pheromone_deposit_amount,
+                )
             step += 1
 
             elapsed = time.perf_counter() - start
@@ -285,11 +403,13 @@ def main(argv=None):
                 print(
                     f"[debug] step={step} scans={len(scan_points)} valid_scans={valid_scan_count} "
                     f"action={action_id} throttle={throttle:+.1f} turn={turn:+.1f} "
+                    f"heading_deg={pose.heading_deg:.1f} commanded_distance_mm={commanded_distance_mm:.1f} "
+                    f"x_mm={pose.x_mm:.1f} y_mm={pose.y_mm:.1f} "
                     f"elapsed={elapsed:.3f}s sleep={max(sleep_time, 0.0):.3f}s",
                     flush=True,
                 )
                 print(
-                    f"[debug] lidar={lidar_preview} q_values={q_values_preview}",
+                    f"[debug] lidar={lidar_preview} pheromone={list(np.round(pheromone_values, 3))} q_values={q_values_preview}",
                     flush=True,
                 )
 
@@ -298,6 +418,8 @@ def main(argv=None):
     finally:
         if args.debug:
             print("[debug] closing robot connection", flush=True)
+        if command_center is not None:
+            command_center.close()
         robot.close()
 
 

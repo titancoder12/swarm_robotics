@@ -152,12 +152,20 @@ Optional flags:
 - `--serial-port /dev/tty.usbserial-...`
   - add one or more direct serial robot connections
 - `--serial-baudrate 115200`
+- `--ble-enable`
+  - expose the same line-oriented protocol over a BLE peripheral
+- `--ble-device-name CommandCenter`
+  - BLE advertised device name for the command center
+- `--ble-service-uuid`, `--ble-write-char-uuid`, `--ble-notify-char-uuid`
+  - override the Nordic-UART-style GATT UUIDs if your robot client expects different values
 - `--render-scale 1.0`
 - `--fps 30`
 - `--headless`
   - still uses PyGame, but useful with a dummy display in smoke tests
 - `--max-seconds 10`
   - auto-exit after N seconds
+
+BLE mode uses the same newline-delimited `POS`, `PHER`, `SENSE`, and `PHER_RESP` messages as the TCP and serial backends; only the transport changes.
 
 ## Keyboard Controls
 
