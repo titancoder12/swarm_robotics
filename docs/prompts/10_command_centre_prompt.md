@@ -377,8 +377,6 @@ Provide example pseudocode showing:
 
 ---
 
-* Provide example usage or pseudocode for robot-side behavior
-
 ---
 
 ## RL observation compatibility (STRICT REQUIREMENT)
