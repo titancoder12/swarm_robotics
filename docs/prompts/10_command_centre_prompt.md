@@ -299,88 +299,190 @@ When done, explain any assumptions you made.
 
 ---
 
-## Bidirectional pheromone query (NEW REQUIREMENT)
+## Bidirectional pheromone query (UPDATED REQUIREMENT — AUTHORITATIVE SERVER)
 
-Extend the command center to support **robot queries for local pheromone observations** and send compact responses back to robots.
+The command center is the **authoritative digital pheromone server** for all robots.
 
-### Goals
+### System role clarification
 
-* Robots should **not** receive the full global map.
-* Robots should receive **local pheromone samples** suitable for inclusion in the RL observation vector.
-* Keep responses **compact, low-latency, and robust** for serial/BLE links.
+* The MacBook command center maintains the **single source of truth** pheromone field.
+* Robots do **not** maintain their own pheromone maps.
+* Robots must **query the command center** to obtain pheromone observations.
+* The command center must return values that are **fully compatible with the existing RL observation vector**.
 
-### New protocol messages
+---
 
-#### Query from robot
+## Communication topology (REQUIRED)
+
+The system must use:
+
+> **MacBook command center ↔ direct connection to each robot (no relay node)**
+
+Implications:
+
+* Each robot has an independent connection (Bluetooth/serial/Wi-Fi).
+* The command center must track connections per robot.
+* Responses must be routed back to the correct robot ID.
+* The implementation must support multiple concurrent robot connections.
+
+---
+
+## Protocol responsibilities (CRITICAL)
+
+The protocol is **bidirectional** and must be implemented on BOTH sides:
+
+### Command center (this prompt implements)
+
+* Receive: `POS`, `PHER`, `SENSE`
+* Send: `PHER_RESP`
+
+### Robot-side client (MUST BE SPECIFIED, NOT IMPLEMENTED HERE)
+
+The prompt must:
+
+* Define a **minimal robot-side protocol client contract**
+* Describe how robots should:
+
+  * send `POS`
+  * send `PHER`
+  * send `SENSE`
+  * receive and parse `PHER_RESP`
+
+Do NOT implement robot-side code inside `command_center/`, but:
+
+* Document clearly how `firmware/` should integrate this protocol
+* Provide example usage or pseudocode for robot-side behavior
+
+---
+
+## RL observation compatibility (STRICT REQUIREMENT)
+
+The pheromone response MUST match the simulator’s current observation contract.
+
+From the existing system:
+
+* Observation vector includes **3 pheromone samples**
+* These are **forward-direction samples along the robot’s heading**
+* They are **not left/forward/right**
+* They are **not a 2D patch**
+
+### REQUIRED response format
 
 ```text
-SENSE,<robot_id>,<x>,<y>,<heading_deg>
+PHER_RESP,<robot_id>,<p0>,<p1>,<p2>
 ```
 
-* `<x>,<y>` are in the same coordinate system as `POS`
-* `<heading_deg>` is the robot’s current heading (degrees, 0–360)
+Where:
 
-#### Response from command center
-
-Provide one of the following response formats (implement at least one; document which is used):
-
-**Option A: directional samples (preferred for RL)**
-
-```text
-PHER_RESP,<robot_id>,<left>,<forward>,<right>
-```
-
-* Samples are taken at small offsets relative to heading
-* Values are normalized (e.g., 0.0–1.0) or documented units
-
-**Option B: local patch (e.g., 3x3 neighborhood)**
-
-```text
-PHER_RESP,<robot_id>,v00,v01,v02,v10,v11,v12,v20,v21,v22
-```
-
-* Center cell corresponds to the robot’s current cell
-* Row-major order; document clearly
+* `p0, p1, p2` = pheromone samples taken **in front of the robot along its heading direction**
+* The spatial offsets should match (or closely approximate) those used in `env/swarm_env.py`
 
 ### Sampling rules
 
-* Convert `(x, y)` to grid cell using the same quantization as deposits.
-* For directional samples, compute offsets based on heading (e.g., forward = +d along heading; left/right = ±90°).
-* Clamp or pad at boundaries.
-* Optionally apply a small spatial smoothing kernel.
+* Use robot heading to compute forward direction
+* Sample at fixed distances along heading (e.g., near/mid/far)
+* Convert world coordinates → grid → pheromone values
 
-### Performance
+### Normalization (IMPORTANT)
 
-* Handle multiple robots querying at ~5–20 Hz each.
-* Ensure non-blocking I/O (use threads or `asyncio`).
-* Keep per-query computation O(1) or O(k) for small k (e.g., 3–9 cells).
+Match simulator semantics:
 
-### Error handling
+* Normalize samples relative to local values (NOT global max)
+* Avoid introducing a different scaling scheme
+* Document exact normalization behavior
 
-* Ignore or log malformed `SENSE` messages.
-* If a robot is unknown, still respond using provided coordinates.
-* Include timeouts or drop policies for slow links.
+---
 
-### Integration with existing system
+## Pheromone model alignment (REQUIRED)
 
-* This must be implemented **without introducing dependencies into `firmware/`**.
-* Keep protocol definitions in `command_center/comms/protocol.py` and, if needed, mirror minimal constants in `shared/`.
+The command center pheromone system must be **consistent with the simulator**.
 
-### Documentation updates
+At minimum:
+
+* Support deposit
+* Support decay
+
+If the simulator includes diffusion or smoothing:
+
+* Either implement a simplified equivalent
+* Or explicitly document differences
+
+The goal is:
+
+> The robot should perceive pheromone in the real system in a way that is consistent with training.
+
+---
+
+## Coordinate system (STRICT DEFINITION REQUIRED)
+
+You MUST define and document a precise coordinate model:
+
+* Origin: nest = (0, 0)
+* Units: MUST be specified (e.g., centimeters)
+* Axes: define direction of +x and +y
+* Heading: degrees or radians, and orientation convention
+* Bounds: arena width/height
+
+### Grid mapping
+
+Define explicitly:
+
+```python
+grid_x = int(x / cell_size)
+grid_y = int(y / cell_size)
+```
+
+Include:
+
+* cell size
+* clamping behavior at edges
+
+All subsystems must use the same mapping.
+
+---
+
+## Performance requirements
+
+* Support multiple robots querying at ~5–20 Hz
+* Non-blocking I/O (threads or asyncio)
+* Ensure responses are low latency
+* Avoid blocking render loop
+
+---
+
+## Error handling
+
+* Ignore malformed messages safely
+* Log protocol errors
+* If robot unknown, still respond using provided coordinates
+* Handle connection drops per robot
+
+---
+
+## Documentation updates
 
 Update the command center README to include:
 
-* the `SENSE` and `PHER_RESP` message formats
-* units and normalization
-* sampling geometry (diagram or description)
-* example request/response pairs
+* full protocol specification
+* robot-side integration guide
+* observation compatibility explanation
+* coordinate system definition
+* example request/response flows
 
 ---
 
 ## Updated definition of done
 
-In addition to prior criteria, this task is complete when:
+This task is complete when:
 
-* a robot (or simulator) can send `SENSE` messages,
-* the command center returns local pheromone observations,
-* and those values can be used as part of the robot’s observation vector.
+* command center receives `POS` and `PHER`
+* command center maintains pheromone field
+* robots send `SENSE` queries
+* command center returns `PHER_RESP` with **3 forward samples matching simulator expectations**
+* values can be directly inserted into the robot’s 23-D observation vector
+* system works with multiple robots over direct connections
+
+When done, explain:
+
+* assumptions made about simulator alignment
+* any approximations in sampling or normalization
