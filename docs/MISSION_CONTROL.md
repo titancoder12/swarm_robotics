@@ -1,6 +1,6 @@
-# Command Center
+# Mission Control
 
-This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) and does not introduce any `firmware -> server` dependency.
+This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) and does not introduce any `firmware -> mission_control` dependency.
 
 ## Purpose
 
@@ -16,32 +16,32 @@ It is not a planner and it does not make robot motion decisions.
 
 ## Architecture
 
-The subsystem lives under [server/](/Users/christopherlin/dev/cwsf2026/sim/server/):
+The subsystem lives under [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/):
 
-- [server/main.py](/Users/christopherlin/dev/cwsf2026/sim/server/main.py)
+- [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
   - app entrypoint, event loop, keyboard controls, receiver wiring
-- [server/config.py](/Users/christopherlin/dev/cwsf2026/sim/server/config.py)
+- [mission_control/config.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/config.py)
   - shared configuration derived from current simulator defaults
-- [server/core/robot_registry.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/robot_registry.py)
+- [mission_control/core/robot_registry.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/robot_registry.py)
   - latest robot state per ID
-- [server/core/trail_store.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/trail_store.py)
+- [mission_control/core/trail_store.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/trail_store.py)
   - bounded trail history per robot
-- [server/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/pheromone_field.py)
+- [mission_control/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/pheromone_field.py)
   - pheromone grid, decay, diffusion, and exact forward-sample query logic
-- [server/core/world_state.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/world_state.py)
+- [mission_control/core/world_state.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/world_state.py)
   - thread-safe aggregation of robot registry, trails, and pheromone field
-- [server/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/protocol.py)
+- [mission_control/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/protocol.py)
   - line protocol parser and `PHER_RESP` formatter
-- [server/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/receiver.py)
+- [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
   - threaded TCP and serial receivers for direct robot connections
-- [server/ui/renderer.py](/Users/christopherlin/dev/cwsf2026/sim/server/ui/renderer.py)
+- [mission_control/ui/renderer.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/ui/renderer.py)
   - PyGame rendering
-- [server/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/server/fake_robot.py)
+- [mission_control/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/fake_robot.py)
   - local harness for test messages without real hardware
 
 ## Protocol
 
-The command center uses newline-delimited ASCII messages.
+Mission Control uses newline-delimited ASCII messages.
 
 Robot -> command center:
 
@@ -92,7 +92,7 @@ Pheromone grid mapping:
 
 ## Observation Compatibility
 
-The command center only provides the pheromone part of the 23-D observation vector.
+Mission Control only provides the pheromone part of the 23-D observation vector.
 
 All other observation channels remain robot-local and are outside this subsystem:
 
@@ -139,12 +139,82 @@ Recommended runtime behavior:
 
 The transport should remain line-oriented and compatible with `serial.readline()`.
 
+## BLE Transport
+
+Mission Control can also expose the same protocol over BLE.
+
+The BLE transport is intended to look like a line-oriented UART link to the
+robot runtime even though it is implemented as a GATT service underneath.
+
+Current BLE design:
+
+- the desktop side advertises one BLE peripheral from [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
+- the Mission Control-side transport implementation lives in [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
+- the Raspberry Pi-side BLE client lives in [firmware/bluetooth.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/bluetooth.py)
+- the policy/runtime integration lives in [firmware/run.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run.py)
+
+Default BLE UUIDs:
+
+- service UUID
+  - `6E400001-B5A3-F393-E0A9-E50E24DCCA9E`
+- write characteristic UUID
+  - `6E400002-B5A3-F393-E0A9-E50E24DCCA9E`
+- notify characteristic UUID
+  - `6E400003-B5A3-F393-E0A9-E50E24DCCA9E`
+
+Those values follow the common Nordic-UART-style layout so the rest of the
+runtime can keep using newline-delimited text messages.
+
+BLE message flow:
+
+1. the robot connects as a BLE client
+2. it writes `POS,...` lines to the write characteristic
+3. it writes `SENSE,...` when it wants pheromone samples
+4. Mission Control computes the response
+5. Mission Control emits `PHER_RESP,...` on the notify characteristic
+6. the robot filters responses by `robot_id`
+
+Digital deposits use the same pattern:
+
+- the robot writes `PHER,<id>,<x_cm>,<y_cm>,<amount>`
+- Mission Control applies that deposit to the authoritative pheromone field
+
+### Multi-Robot BLE Behavior
+
+BLE support is now multiplexed by `robot_id` rather than by one dedicated BLE
+worker per robot.
+
+That means:
+
+- one shared BLE peripheral can service multiple robots
+- each robot must use a distinct `robot_id`
+- Mission Control derives a logical per-robot label from the protocol line
+- replies still include `robot_id`
+- each robot-side BLE client must ignore replies for other robots
+
+This is different from the TCP path, where each robot gets its own socket and
+worker thread. BLE multi-robot isolation is protocol-level rather than
+connection-level.
+
+### BLE Runtime Expectations
+
+For the current firmware path in [firmware/run.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run.py):
+
+- `--cc-ble-enable` turns on the BLE Mission Control link
+- the robot sends `POS` once per control iteration
+- the robot sends `SENSE` before inference
+- the robot can send `PHER` deposits during forward motion
+- returned `PHER_RESP` values are inserted into the pheromone observation slots
+
+If BLE is unavailable or times out, the firmware falls back to zero pheromone
+samples instead of crashing the motion loop.
+
 ## Running
 
 Start the command center:
 
 ```bash
-python -m server.main --tcp-host 127.0.0.1 --tcp-port 8765
+python -m mission_control.main --tcp-host 127.0.0.1 --tcp-port 8765
 ```
 
 Optional flags:
@@ -182,17 +252,17 @@ BLE mode uses the same newline-delimited `POS`, `PHER`, `SENSE`, and `PHER_RESP`
 
 ## Local Test Harness
 
-Run the command center:
+Run Mission Control:
 
 ```bash
-python -m server.main --tcp-port 8765
+python -m mission_control.main --tcp-port 8765
 ```
 
 Then run one or more fake robots in other terminals:
 
 ```bash
-python -m server.fake_robot --robot-id robot_0 --port 8765
-python -m server.fake_robot --robot-id robot_1 --port 8765
+python -m mission_control.fake_robot --robot-id robot_0 --port 8765
+python -m mission_control.fake_robot --robot-id robot_1 --port 8765
 ```
 
 The fake harness sends `POS`, periodic `PHER`, and `SENSE` messages and prints the returned `PHER_RESP` values.

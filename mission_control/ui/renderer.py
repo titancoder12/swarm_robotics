@@ -5,10 +5,10 @@ import math
 import numpy as np
 import pygame
 
-from server.config import CommandCenterConfig
-from server.core.world_state import WorldSnapshot
-from server.ui import colors
-from server.ui.panels import draw_status_panel
+from mission_control.config import CommandCenterConfig
+from mission_control.core.world_state import WorldSnapshot
+from mission_control.ui import colors
+from mission_control.ui.panels import draw_status_panel
 
 
 class Renderer:

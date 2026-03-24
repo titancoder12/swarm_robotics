@@ -167,7 +167,7 @@ This runtime loads [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/
 
 ## Command Center
 
-The repo now includes a separate live operator subsystem in [server/](/Users/christopherlin/dev/cwsf2026/sim/server/). It is a PyGame command center for:
+The repo now includes a separate live operator subsystem in [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/). It is a PyGame command center for:
 
 - receiving live robot `POS`, `PHER`, and `SENSE` messages
 - visualizing robot positions and trails
@@ -177,19 +177,19 @@ The repo now includes a separate live operator subsystem in [server/](/Users/chr
 Run it locally:
 
 ```bash
-python -m server.main --tcp-host 127.0.0.1 --tcp-port 8765
+python -m mission_control.main --tcp-host 127.0.0.1 --tcp-port 8765
 ```
 
 Run a local fake robot against it:
 
 ```bash
-python -m server.fake_robot --robot-id robot_0 --port 8765
+python -m mission_control.fake_robot --robot-id robot_0 --port 8765
 ```
 
 Documentation:
 
-- [docs/COMMAND_CENTER.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER.md)
-- [docs/COMMAND_CENTER_FIRMWARE_PSEUDOCODE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER_FIRMWARE_PSEUDOCODE.md)
+- [docs/MISSION_CONTROL.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER.md)
+- [docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md)
 
 ## Environment API (PettingZoo Parallel API)
 

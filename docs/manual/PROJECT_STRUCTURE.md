@@ -71,27 +71,27 @@ Shared policy definitions.
 - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
   - hand-coded baseline policy
 
-### `server/`
+### `mission_control/`
 
 Live command-center subsystem for physical robot experiments.
 
-- [server/main.py](/Users/christopherlin/dev/cwsf2026/sim/server/main.py)
+- [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
   - PyGame application entrypoint
   - receiver wiring
   - operator controls
-- [server/core/](/Users/christopherlin/dev/cwsf2026/sim/server/core/)
+- [mission_control/core/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/)
   - robot registry
   - pheromone field
   - trails
   - thread-safe world state
-- [server/comms/](/Users/christopherlin/dev/cwsf2026/sim/server/comms/)
+- [mission_control/comms/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/)
   - line protocol parsing
   - direct TCP / serial receivers
-- [server/ui/](/Users/christopherlin/dev/cwsf2026/sim/server/ui/)
+- [mission_control/ui/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/ui/)
   - renderer
   - status panel
   - colors
-- [server/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/server/fake_robot.py)
+- [mission_control/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/fake_robot.py)
   - local fake-message harness for smoke testing without hardware
 
 ### `AntSwarmFirmware/`

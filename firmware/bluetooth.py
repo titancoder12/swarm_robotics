@@ -84,7 +84,7 @@ class CommandCenterBLEClient:
             print(f"[debug] BLE connected to command center at {address}", flush=True)
 
     async def _write_line(self, line: str) -> None:
-        # The server protocol is line-oriented ASCII even over BLE. Appending a
+        # The Mission Control protocol is line-oriented ASCII even over BLE. Appending a
         # newline keeps behavior aligned with the TCP/serial transports.
         await self._ensure_connected()
         payload = (line.strip() + "\n").encode("utf-8")
@@ -125,7 +125,7 @@ class CommandCenterBLEClient:
 
     def send_position(self, robot_id: str, x_cm: float, y_cm: float, heading_deg: float) -> None:
         # Position updates are best-effort telemetry. Failures are swallowed so
-        # the robot can keep moving even if the server link is flaky.
+        # the robot can keep moving even if the Mission Control link is flaky.
         try:
             self._loop.run_until_complete(self._send_position_async(robot_id, x_cm, y_cm, heading_deg))
         except Exception as exc:  # pragma: no cover - hardware-dependent path

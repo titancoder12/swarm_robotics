@@ -1,6 +1,6 @@
 # Codex Prompt — Build a Pygame Command Center for Physical Swarm Robots
 
-You are working in the existing repository and must **add a new `server/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
+You are working in the existing repository and must **add a new `mission_control/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
 
 ## High-level goal
 
@@ -27,7 +27,7 @@ The robots themselves remain responsible for their own movement and local decisi
 
    * The Raspberry Pi robot workflow must remain isolated.
    * Do not make `firmware/` depend on the command center.
-   * Do not introduce imports from `server/` into Pi runtime code.
+   * Do not introduce imports from `mission_control/` into Pi runtime code.
 
 2. **Keep the command center in the same repo, but as a cleanly separated subsystem.**
 
@@ -148,7 +148,7 @@ Please define and document:
 Create something along these lines:
 
 ```text
-server/
+mission_control/
   __init__.py
   main.py
   config.py
@@ -301,7 +301,7 @@ When done, explain any assumptions you made.
 
 ## Bidirectional pheromone query (UPDATED REQUIREMENT — AUTHORITATIVE SERVER)
 
-The command center is the **authoritative digital pheromone server** for all robots.
+The command center is the **authoritative digital pheromone Mission Control service** for all robots.
 
 ### System role clarification
 
@@ -372,7 +372,7 @@ Provide example pseudocode showing:
 
 ### Integration constraint
 
-* Do NOT add dependencies from `firmware/` → `server/`
+* Do NOT add dependencies from `firmware/` → `mission_control/`
 * Protocol must be compatible with existing serial workflow
 
 ---

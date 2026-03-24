@@ -90,7 +90,7 @@ class TCPClientWorker(_Worker):
 
 class TCPServerWorker(_Worker):
     def __init__(self, host: str, port: int, on_line: ResponseCallback):
-        super().__init__(name=f"tcp-server-{host}:{port}")
+        super().__init__(name=f"tcp-mission-control-{host}:{port}")
         self.host = host
         self.port = port
         self.on_line = on_line
@@ -239,7 +239,8 @@ class BLEPeripheralWorker(_Worker):
             line = line.strip()
             if not line:
                 continue
-            # All BLE robots share the same characteristic pair, so the server
+            # All BLE robots share the same characteristic pair, so Mission
+            # Control
             # relies on robot_id in the protocol line to derive a logical
             # per-robot connection label. Responses still include robot_id and
             # may be observed by all centrals, with clients ignoring replies

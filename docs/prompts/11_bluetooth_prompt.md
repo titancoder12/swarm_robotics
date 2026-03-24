@@ -1,6 +1,6 @@
 # Codex Prompt — Add Bluetooth Transport to the Command Center
 
-You are working in the existing repository and must extend the current [server/](/Users/christopherlin/dev/cwsf2026/sim/server/) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
+You are working in the existing repository and must extend the current [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
 
 ## High-level goal
 
@@ -23,10 +23,10 @@ For this repo, interpret "robot-side" to mean the Raspberry Pi runtime in [firmw
 
 The current command center already has:
 
-* line-based ASCII protocol parsing in [server/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/protocol.py)
-* TCP and serial transport workers in [server/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/receiver.py)
-* transport-agnostic dispatch logic in [server/main.py](/Users/christopherlin/dev/cwsf2026/sim/server/main.py)
-* simulator-aligned pheromone sampling in [server/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/pheromone_field.py)
+* line-based ASCII protocol parsing in [mission_control/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/protocol.py)
+* TCP and serial transport workers in [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
+* transport-agnostic dispatch logic in [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
+* simulator-aligned pheromone sampling in [mission_control/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/pheromone_field.py)
 
 The current codebase does **not** implement a Bluetooth-specific backend yet.
 
@@ -44,7 +44,7 @@ Your job is to add one cleanly.
 
    `PHER_RESP,<id>,<p0>,<p1>,<p2>` must remain fully compatible with the existing RL observation vector and simulator-aligned sampling logic.
 
-3. **Do not make `firmware/` depend on `server/`.**
+3. **Do not make `firmware/` depend on `mission_control/`.**
 
    Any robot-side notes should be documentation or pseudocode only unless explicitly requested otherwise.
 
@@ -181,7 +181,7 @@ If a dependency is needed for BLE, keep it isolated to the command-center transp
 You may adjust naming, but keep the design in this spirit:
 
 ```text
-server/
+mission_control/
   comms/
     protocol.py
     receiver.py
@@ -191,8 +191,8 @@ server/
 Possible additions:
 
 * a `BluetoothWorker`
-* a Bluetooth connection config block in [server/config.py](/Users/christopherlin/dev/cwsf2026/sim/server/config.py)
-* CLI flags in [server/main.py](/Users/christopherlin/dev/cwsf2026/sim/server/main.py) to configure Bluetooth devices or enable Bluetooth mode
+* a Bluetooth connection config block in [mission_control/config.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/config.py)
+* CLI flags in [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py) to configure Bluetooth devices or enable Bluetooth mode
 
 But the protocol parser and world-state logic should remain transport-agnostic.
 
@@ -267,7 +267,7 @@ Include a short rationale for why the chosen approach was used instead of redesi
 
 Do **not**:
 
-* redesign the pheromone server
+* redesign the Mission Control pheromone service
 * change the RL observation format
 * add centralized planning
 * push command-center logic into `firmware/`

@@ -45,7 +45,7 @@ class PolicyConfig:
 @dataclass
 class PoseEstimate:
     # This is only a dead-reckoned local estimate derived from the commands we
-    # send. It is useful for nest direction and server-side pheromone queries,
+    # send. It is useful for nest direction and Mission Control pheromone queries,
     # but it is not a fused localization solution.
     x_mm: float = 0.0
     y_mm: float = 0.0
@@ -148,7 +148,7 @@ def normalize_xy(cfg: PolicyConfig, vec: list[float]) -> np.ndarray:
 
 
 def normalize_pheromone(cfg: PolicyConfig, values: list[float]) -> np.ndarray:
-    # The server already returns three local pheromone samples, but we still
+    # Mission Control already returns three local pheromone samples, but we still
     # normalize defensively so malformed or out-of-range values do not blow up
     # the observation.
     samples = list(values[: cfg.pheromone_samples])
@@ -325,7 +325,7 @@ def update_pose_estimate(
 
 def distance_cm(a: PoseEstimate, b: PoseEstimate) -> float:
     # Helper for pheromone deposit spacing. We compare dead-reckoned positions
-    # in centimeters because the server protocol and pheromone field use cm.
+    # in centimeters because the Mission Control protocol and pheromone field use cm.
     return math.hypot(a.x_mm - b.x_mm, a.y_mm - b.y_mm) / 10.0
 
 
@@ -345,11 +345,11 @@ def main(argv=None):
         if args.cc_pheromone_deposit_spacing_cm > 0.0
         else awareness_radius_cm
     )
-    server_link = None
+    mission_control_link = None
     if args.cc_ble_enable:
         # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
-        # with the desktop server.
-        server_link = CommandCenterBLEClient(
+        # with desktop Mission Control.
+        mission_control_link = CommandCenterBLEClient(
             address=args.cc_ble_address,
             device_name=args.cc_ble_device_name,
             write_char_uuid=args.cc_ble_write_char_uuid,
@@ -395,7 +395,7 @@ def main(argv=None):
         while args.max_steps <= 0 or step < args.max_steps:
             # One control iteration:
             # 1. read local scan data
-            # 2. optionally query remote pheromone state from the server
+            # 2. optionally query remote pheromone state from Mission Control
             # 3. assemble the observation vector
             # 4. run greedy Q inference
             # 5. execute the selected movement
@@ -403,18 +403,18 @@ def main(argv=None):
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
             pheromone_values = (0.0, 0.0, 0.0)
-            if server_link is not None:
-                # Pose is maintained locally in mm, while the server
+            if mission_control_link is not None:
+                # Pose is maintained locally in mm, while the Mission Control
                 # protocol uses nest-relative centimeters.
                 x_cm = pose.x_mm / 10.0
                 y_cm = pose.y_mm / 10.0
                 # Position is best-effort telemetry; if this succeeds, the
-                # server can render us and answer a consistent pheromone query.
-                server_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
-                # The server is the source of truth for the digital pheromone
+                # Mission Control can render us and answer a consistent pheromone query.
+                mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                # Mission Control is the source of truth for the digital pheromone
                 # field, so the runtime pulls the latest 3-sample slice right
                 # before inference.
-                pheromone_values = server_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                pheromone_values = mission_control_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
             observation = build_observation(
                 cfg,
@@ -441,7 +441,7 @@ def main(argv=None):
             )
             speed_mps = commanded_distance_mm / 1000.0 / period_s
             if (
-                server_link is not None
+                mission_control_link is not None
                 and args.cc_deposit_enable
                 and throttle > 0.0
                 and (
@@ -452,7 +452,7 @@ def main(argv=None):
                 # Forward motion drops a new digital pheromone mark once the
                 # robot has advanced roughly one awareness radius since the
                 # previous deposit, avoiding a solid line every control tick.
-                server_link.deposit_pheromone(
+                mission_control_link.deposit_pheromone(
                     args.robot_id,
                     pose.x_mm / 10.0,
                     pose.y_mm / 10.0,
@@ -497,8 +497,8 @@ def main(argv=None):
     finally:
         if args.debug:
             print("[debug] closing robot connection", flush=True)
-        if server_link is not None:
-            server_link.close()
+        if mission_control_link is not None:
+            mission_control_link.close()
         robot.close()
 
 

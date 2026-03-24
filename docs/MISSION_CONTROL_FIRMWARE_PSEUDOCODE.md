@@ -1,6 +1,6 @@
-# Command Center Firmware-Side Pseudocode
+# Mission Control Firmware-Side Pseudocode
 
-This note describes the intended robot-side protocol flow for the command center without creating a dependency from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) to [server/](/Users/christopherlin/dev/cwsf2026/sim/server/).
+This note describes the intended robot-side protocol flow for Mission Control without creating a dependency from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) to [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/).
 
 ## Minimal robot-side flow
 
