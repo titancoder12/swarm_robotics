@@ -329,7 +329,13 @@ Implications:
 
 ## Protocol responsibilities (CRITICAL)
 
-The protocol is **bidirectional** and must be implemented on BOTH sides:
+The protocol is **bidirectional** and must be implemented on BOTH sides.
+
+### Transport style (MUST match existing firmware)
+
+* Use **line-oriented ASCII messages** (newline-delimited)
+* Match the style used in `firmware/ant.py` (simple serial text protocol)
+* Do NOT introduce binary framing or complex encodings
 
 ### Command center (this prompt implements)
 
@@ -338,33 +344,52 @@ The protocol is **bidirectional** and must be implemented on BOTH sides:
 
 ### Robot-side client (MUST BE SPECIFIED, NOT IMPLEMENTED HERE)
 
-The prompt must:
+The prompt must define a minimal robot-side protocol client contract that:
 
-* Define a **minimal robot-side protocol client contract**
-* Describe how robots should:
+* Sends messages like:
 
-  * send `POS`
-  * send `PHER`
-  * send `SENSE`
-  * receive and parse `PHER_RESP`
+  ```text
+  POS,<id>,<x_cm>,<y_cm>,<heading_deg>
+  PHER,<id>,<x_cm>,<y_cm>,<amount>
+  SENSE,<id>,<x_cm>,<y_cm>,<heading_deg>
+  ```
 
-Do NOT implement robot-side code inside `command_center/`, but:
+* Receives messages like:
 
-* Document clearly how `firmware/` should integrate this protocol
+  ```text
+  PHER_RESP,<id>,<p0>,<p1>,<p2>
+  ```
+
+* Uses a simple read loop compatible with `serial.readline()`
+
+### Robot-side pseudocode requirement
+
+Provide example pseudocode showing:
+
+* how to send `POS` periodically
+* how to send `SENSE` before action selection
+* how to parse `PHER_RESP` and inject values into the observation vector
+
+### Integration constraint
+
+* Do NOT add dependencies from `firmware/` → `command_center/`
+* Protocol must be compatible with existing serial workflow
+
+---
+
 * Provide example usage or pseudocode for robot-side behavior
 
 ---
 
 ## RL observation compatibility (STRICT REQUIREMENT)
 
-The pheromone response MUST match the simulator’s current observation contract.
+The pheromone response MUST match the simulator’s current observation contract exactly.
 
-From the existing system:
+### Scope clarification
 
-* Observation vector includes **3 pheromone samples**
-* These are **forward-direction samples along the robot’s heading**
-* They are **not left/forward/right**
-* They are **not a 2D patch**
+The command center provides **only the pheromone-related components** of the observation vector.
+
+All other observation features (e.g., lidar, neighbor vectors, speed, food signals, carrying state) remain **locally computed on the robot** and are **out of scope** for this subsystem.
 
 ### REQUIRED response format
 
@@ -374,22 +399,23 @@ PHER_RESP,<robot_id>,<p0>,<p1>,<p2>
 
 Where:
 
-* `p0, p1, p2` = pheromone samples taken **in front of the robot along its heading direction**
-* The spatial offsets should match (or closely approximate) those used in `env/swarm_env.py`
+* `p0, p1, p2` are the **three forward-direction pheromone samples along the robot’s heading**
 
-### Sampling rules
+### Sampling rules (STRICT)
 
-* Use robot heading to compute forward direction
-* Sample at fixed distances along heading (e.g., near/mid/far)
-* Convert world coordinates → grid → pheromone values
+* The sampling geometry MUST **exactly match** the implementation in `env/swarm_env.py`
+* Do NOT approximate distances or angles
+* Use the same forward offsets and sampling pattern as the simulator
 
 ### Normalization (IMPORTANT)
 
-Match simulator semantics:
+Match simulator semantics exactly:
 
 * Normalize samples relative to local values (NOT global max)
-* Avoid introducing a different scaling scheme
+* Do not introduce new scaling
 * Document exact normalization behavior
+
+---
 
 ---
 
@@ -415,29 +441,50 @@ The goal is:
 
 ## Coordinate system (STRICT DEFINITION REQUIRED)
 
-You MUST define and document a precise coordinate model:
+You MUST define and document a precise coordinate model consistent with the simulator and the physical arena.
+
+### World / arena frame
 
 * Origin: nest = (0, 0)
-* Units: MUST be specified (e.g., centimeters)
-* Axes: define direction of +x and +y
-* Heading: degrees or radians, and orientation convention
-* Bounds: arena width/height
+* Units: **centimeters (cm)** for all x/y values exchanged with the command center
+* Axes:
 
-### Grid mapping
+  * +x points to the **right** of the arena
+  * +y points **forward/up** in the arena (define explicitly and keep consistent)
+* Bounds: define arena width/height in cm
+
+### Heading convention (MUST match simulator)
+
+* Simulator uses angle `theta` in **radians**
+* 0 radians points along **+x axis**
+* Positive rotation is **counterclockwise (CCW)**
+* Transport may use degrees (`heading_deg`), but it must follow the **same zero direction and sign convention**, and be converted to radians internally
+
+### Physical vs display coordinates
+
+* Robot coordinates are **physical-world coordinates** estimated by the robot (e.g., via dead reckoning)
+* The command center must treat these as the **authoritative spatial frame**
+* Rendering must be a **visualization of the same coordinates**, not a separate pixel-based system
+
+### Grid mapping (pheromone)
 
 Define explicitly:
 
 ```python
-grid_x = int(x / cell_size)
-grid_y = int(y / cell_size)
+grid_x = int(x_cm / cell_size_cm)
+grid_y = int(y_cm / cell_size_cm)
 ```
 
-Include:
+* `cell_size_cm` MUST be defined (recommended: 5 cm)
+* Clamp indices at boundaries
+* All subsystems must use the **same mapping**
 
-* cell size
-* clamping behavior at edges
+### Unit consistency
 
-All subsystems must use the same mapping.
+* Robots may use **millimeters (mm)** internally for motion/sensing
+* All protocol messages (`POS`, `PHER`, `SENSE`) must use **centimeters (cm)**
+
+---
 
 ---
 
