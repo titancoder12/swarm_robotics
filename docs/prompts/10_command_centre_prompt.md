@@ -426,15 +426,14 @@ For i = 0,1,2:
 Normalization MUST match simulator behavior exactly:
 
 ```python
-if max(samples) > 0:
-    samples = samples / max(samples)
+if samples.max() > 0:
+    samples = samples / (samples.max() + 1e-6)
 ```
 
 * Normalize using the **local max of the 3 samples**, NOT a global map max
+* Include the `+ 1e-6` epsilon exactly as used by the simulator
 * Do NOT introduce smoothing, scaling, or alternate normalization
 * This behavior is part of the learned observation distribution
-
----
 
 ---
 
@@ -500,12 +499,26 @@ grid_y = int(y_cm / cell_size_cm)
 * Clamp indices at boundaries
 * All subsystems must use the **same mapping**
 
+### Sim-to-physical conversion contract
+
+The simulator defines pheromone sampling in simulator world units. For live deployment, you MUST define one explicit shared conversion rule.
+
+Use this default contract unless there is a strong reason not to:
+
+> **1 simulator world unit = 1 centimeter in the physical arena**
+
+Implications:
+
+* Robot-reported protocol coordinates in cm map directly to the command-center world frame
+* Pheromone sampling distances derived from `agent_radius` must use the same shared unit convention
+* Visualization, pheromone deposit placement, and `PHER_RESP` sampling must all use this same mapping
+
+If any other scale is used, it must be documented explicitly and applied consistently everywhere.
+
 ### Unit consistency
 
 * Robots may use **millimeters (mm)** internally for motion/sensing
 * All protocol messages (`POS`, `PHER`, `SENSE`) must use **centimeters (cm)**
-
----
 
 ---
 
