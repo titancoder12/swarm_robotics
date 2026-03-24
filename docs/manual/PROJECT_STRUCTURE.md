@@ -71,6 +71,29 @@ Shared policy definitions.
 - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
   - hand-coded baseline policy
 
+### `command_center/`
+
+Live command-center subsystem for physical robot experiments.
+
+- [command_center/main.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/main.py)
+  - PyGame application entrypoint
+  - receiver wiring
+  - operator controls
+- [command_center/core/](/Users/christopherlin/dev/cwsf2026/sim/command_center/core/)
+  - robot registry
+  - pheromone field
+  - trails
+  - thread-safe world state
+- [command_center/comms/](/Users/christopherlin/dev/cwsf2026/sim/command_center/comms/)
+  - line protocol parsing
+  - direct TCP / serial receivers
+- [command_center/ui/](/Users/christopherlin/dev/cwsf2026/sim/command_center/ui/)
+  - renderer
+  - status panel
+  - colors
+- [command_center/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/fake_robot.py)
+  - local fake-message harness for smoke testing without hardware
+
 ### `AntSwarmFirmware/`
 
 Current physical robot runtime.

@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+
+class ProtocolError(ValueError):
+    """Raised when a line does not match the command-center protocol."""
+
+
+@dataclass(frozen=True)
+class Message:
+    kind: str
+
+
+@dataclass(frozen=True)
+class PositionMessage(Message):
+    robot_id: str
+    x_cm: float
+    y_cm: float
+    heading_deg: float | None = None
+
+
+@dataclass(frozen=True)
+class PheromoneMessage(Message):
+    robot_id: str
+    x_cm: float
+    y_cm: float
+    amount: float
+
+
+@dataclass(frozen=True)
+class SenseMessage(Message):
+    robot_id: str
+    x_cm: float
+    y_cm: float
+    heading_deg: float
+
+
+def parse_line(line: str) -> Message:
+    parts = [part.strip() for part in line.strip().split(",")]
+    if not parts or not parts[0]:
+        raise ProtocolError("empty line")
+
+    kind = parts[0].upper()
+    if kind == "POS":
+        if len(parts) not in (4, 5):
+            raise ProtocolError(f"POS expects 4 or 5 fields, got {len(parts)}")
+        heading_deg = None if len(parts) == 4 else float(parts[4])
+        return PositionMessage(kind="POS", robot_id=parts[1], x_cm=float(parts[2]), y_cm=float(parts[3]), heading_deg=heading_deg)
+
+    if kind == "PHER":
+        if len(parts) != 5:
+            raise ProtocolError(f"PHER expects 5 fields, got {len(parts)}")
+        return PheromoneMessage(kind="PHER", robot_id=parts[1], x_cm=float(parts[2]), y_cm=float(parts[3]), amount=float(parts[4]))
+
+    if kind == "SENSE":
+        if len(parts) != 5:
+            raise ProtocolError(f"SENSE expects 5 fields, got {len(parts)}")
+        return SenseMessage(kind="SENSE", robot_id=parts[1], x_cm=float(parts[2]), y_cm=float(parts[3]), heading_deg=float(parts[4]))
+
+    raise ProtocolError(f"unknown message type {kind}")
+
+
+def format_pheromone_response(robot_id: str, samples: np.ndarray) -> str:
+    values = [f"{float(value):.6f}" for value in samples[:3]]
+    while len(values) < 3:
+        values.append("0.000000")
+    return ",".join(["PHER_RESP", str(robot_id), *values])
+

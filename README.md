@@ -165,6 +165,32 @@ python AntSwarmFirmware/run_policy.py --checkpoint-dir checkpoints --shared-poli
 
 This runtime loads [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py), reads scan lines from `ant.py`, normalizes the observation locally, predicts a discrete action, and sends `turn`, `move`, or `stop` commands directly to the robot.
 
+## Command Center
+
+The repo now includes a separate live operator subsystem in [command_center/](/Users/christopherlin/dev/cwsf2026/sim/command_center/). It is a PyGame command center for:
+
+- receiving live robot `POS`, `PHER`, and `SENSE` messages
+- visualizing robot positions and trails
+- maintaining the authoritative digital pheromone field
+- returning simulator-compatible `PHER_RESP` samples back to robots
+
+Run it locally:
+
+```bash
+python -m command_center.main --tcp-host 127.0.0.1 --tcp-port 8765
+```
+
+Run a local fake robot against it:
+
+```bash
+python -m command_center.fake_robot --robot-id robot_0 --port 8765
+```
+
+Documentation:
+
+- [docs/COMMAND_CENTER.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER.md)
+- [docs/COMMAND_CENTER_FIRMWARE_PSEUDOCODE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER_FIRMWARE_PSEUDOCODE.md)
+
 ## Environment API (PettingZoo Parallel API)
 
 `SwarmEnv` implements the PettingZoo Parallel API.
