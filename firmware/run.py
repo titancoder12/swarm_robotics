@@ -28,6 +28,9 @@ from models.q_network import QNetwork
 
 @dataclass
 class PolicyConfig:
+    # Keep these aligned with the observation contract the policy was trained
+    # on. If the simulator-side observation layout changes, the robot runtime
+    # needs the same shape and ordering or checkpoint inference will drift.
     num_actions: int = 9
     lidar_rays: int = 9
     lidar_max_range_m: float = 2.0
@@ -41,6 +44,9 @@ class PolicyConfig:
 
 @dataclass
 class PoseEstimate:
+    # This is only a dead-reckoned local estimate derived from the commands we
+    # send. It is useful for nest direction and server-side pheromone queries,
+    # but it is not a fused localization solution.
     x_mm: float = 0.0
     y_mm: float = 0.0
     heading_deg: float = 0.0
@@ -73,13 +79,16 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-write-char-uuid", type=str, default=DEFAULT_BLE_WRITE_CHAR_UUID)
     parser.add_argument("--cc-ble-notify-char-uuid", type=str, default=DEFAULT_BLE_NOTIFY_CHAR_UUID)
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
-    parser.add_argument("--cc-deposit-on-forward", action="store_true")
+    parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
+    parser.add_argument("--cc-pheromone-deposit-spacing-cm", type=float, default=0.0)
     parser.add_argument("--debug", action="store_true")
     return parser.parse_args(argv)
 
 
 def obs_dim(cfg: PolicyConfig) -> int:
+    # Mirror the simulator's feature count exactly. The trained MLP expects a
+    # fixed-length vector; a mismatch here means the checkpoint is unusable.
     return (
         cfg.lidar_rays
         + 2
@@ -94,6 +103,9 @@ def obs_dim(cfg: PolicyConfig) -> int:
 
 
 def bucketize_scan(cfg: PolicyConfig, scan_points: list[dict]) -> list[float]:
+    # The ESP32 scan stream is an unordered list of angle/distance samples.
+    # Collapse it into the fixed 9-ray front-arc representation the policy was
+    # trained on by taking the minimum reading that lands in each bucket.
     max_range_mm = float(cfg.lidar_max_range_m * 1000.0)
     buckets = [max_range_mm for _ in range(cfg.lidar_rays)]
     if cfg.lidar_rays <= 0:
@@ -115,6 +127,8 @@ def bucketize_scan(cfg: PolicyConfig, scan_points: list[dict]) -> list[float]:
 
 
 def normalize_ranges(cfg: PolicyConfig, ranges_m: list[float]) -> np.ndarray:
+    # Training used lidar normalized to [-1, 1], not [0, 1]. Far readings land
+    # near +1 while close obstacles land near -1.
     values = list(ranges_m[: cfg.lidar_rays])
     while len(values) < cfg.lidar_rays:
         values.append(cfg.lidar_max_range_m)
@@ -124,6 +138,8 @@ def normalize_ranges(cfg: PolicyConfig, ranges_m: list[float]) -> np.ndarray:
 
 
 def normalize_xy(cfg: PolicyConfig, vec: list[float]) -> np.ndarray:
+    # Relative vectors are expressed as fractions of the configured sensing
+    # scale so simulator and robot inference stay on a comparable numeric range.
     if len(vec) < 2:
         vec = [0.0, 0.0]
     scale = max(cfg.lidar_max_range_m, 1.0)
@@ -132,6 +148,9 @@ def normalize_xy(cfg: PolicyConfig, vec: list[float]) -> np.ndarray:
 
 
 def normalize_pheromone(cfg: PolicyConfig, values: list[float]) -> np.ndarray:
+    # The server already returns three local pheromone samples, but we still
+    # normalize defensively so malformed or out-of-range values do not blow up
+    # the observation.
     samples = list(values[: cfg.pheromone_samples])
     while len(samples) < cfg.pheromone_samples:
         samples.append(0.0)
@@ -145,6 +164,8 @@ def normalize_pheromone(cfg: PolicyConfig, values: list[float]) -> np.ndarray:
 
 
 def pheromone_awareness_radius_cm(cfg: PolicyConfig) -> float:
+    # This matches the simulator's forward sampling geometry:
+    # sample_i distance = (i + 1) * agent_radius * 1.5.
     return float(cfg.pheromone_samples) * float(cfg.agent_radius_cm) * 1.5
 
 
@@ -160,9 +181,15 @@ def build_observation(
     # from the command center.
     ranges_m = [value / 1000.0 for value in bucketize_scan(cfg, scan_points)]
     lidar = normalize_ranges(cfg, ranges_m)
+    # These channels are still placeholders in the current robot runtime
+    # because the Pi does not yet estimate target and neighbor state.
     target = normalize_xy(cfg, [0.0, 0.0])
+    # Starting at the nest means the nest-relative vector is just the negative
+    # of our current dead-reckoned pose.
     nest = normalize_xy(cfg, [-(pose.x_mm / 1000.0), -(pose.y_mm / 1000.0)])
     neighbor = normalize_xy(cfg, [0.0, 0.0])
+    # The simulator observation encodes heading as sin/cos rather than a raw
+    # angle to avoid discontinuities around 360 -> 0 wrap-around.
     heading_rad = math.radians(pose.heading_deg)
     heading = np.array([math.sin(heading_rad), math.cos(heading_rad)], dtype=np.float32)
     speed = np.array([np.clip(speed_mps / max(cfg.max_speed_mps, 1e-6), -1.0, 1.0)], dtype=np.float32)
@@ -193,6 +220,8 @@ def load_policy(
     num_actions: int,
     debug: bool = False,
 ) -> QNetwork:
+    # The hardware runtime only supports the custom PyTorch checkpoint format
+    # used by the repo's QNetwork definition.
     model = QNetwork(observation_dim, num_actions)
     checkpoint_name = "shared.pt" if shared_policy else "agent_0.pt"
 
@@ -223,6 +252,8 @@ def load_policy(
 
 
 def predict_action(model: QNetwork, observation: np.ndarray) -> tuple[int, np.ndarray]:
+    # Inference is greedy argmax over Q-values; there is no exploration term in
+    # this runtime path.
     with torch.no_grad():
         obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
         q_values = model(obs_tensor)
@@ -237,6 +268,8 @@ def execute_action(
     move_distance_mm: int,
     reverse_distance_mm: int,
 ) -> tuple[float, float]:
+    # Rebuild the same discrete action table used in the simulator so action id
+    # -> (throttle, turn) semantics stay stable between training and deployment.
     throttle_vals = (-1.0, 0.0, 1.0)
     turn_vals = (-1.0, 0.0, 1.0)
     action_table = [(throttle, turn) for throttle in throttle_vals for turn in turn_vals]
@@ -290,14 +323,28 @@ def update_pose_estimate(
     return PoseEstimate(x_mm=next_x_mm, y_mm=next_y_mm, heading_deg=next_heading_deg), distance_mm
 
 
+def distance_cm(a: PoseEstimate, b: PoseEstimate) -> float:
+    # Helper for pheromone deposit spacing. We compare dead-reckoned positions
+    # in centimeters because the server protocol and pheromone field use cm.
+    return math.hypot(a.x_mm - b.x_mm, a.y_mm - b.y_mm) / 10.0
+
+
 def main(argv=None):
     args = parse_args(argv)
+    # Runtime config is deliberately small and local: enough to build the
+    # observation vector and interpret movement commands, without importing the
+    # whole simulator environment stack.
     cfg = PolicyConfig(
         lidar_max_range_m=args.lidar_max_range_mm / 1000.0,
         max_speed_mps=args.max_speed_mps,
         agent_radius_cm=args.agent_radius_cm,
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
+    deposit_spacing_cm = (
+        float(args.cc_pheromone_deposit_spacing_cm)
+        if args.cc_pheromone_deposit_spacing_cm > 0.0
+        else awareness_radius_cm
+    )
     server_link = None
     if args.cc_ble_enable:
         # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
@@ -323,6 +370,9 @@ def main(argv=None):
     period_s = 1.0 / max(args.hz, 1e-6)
     step = 0
     pose = PoseEstimate(heading_deg=args.initial_heading_deg)
+    last_deposit_pose: PoseEstimate | None = None
+    # Speed is reconstructed from the commanded step size and loop frequency,
+    # not measured from wheel odometry.
     speed_mps = 0.0
 
     if args.debug:
@@ -331,7 +381,8 @@ def main(argv=None):
             f"hz={args.hz} scan_duration={args.scan_duration} "
             f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm} "
             f"initial_heading_deg={args.initial_heading_deg} robot_id={args.robot_id} "
-            f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f}",
+            f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f} "
+            f"cc_deposit_enable={args.cc_deposit_enable} deposit_spacing_cm={deposit_spacing_cm:.1f}",
             flush=True,
         )
 
@@ -342,6 +393,13 @@ def main(argv=None):
 
     try:
         while args.max_steps <= 0 or step < args.max_steps:
+            # One control iteration:
+            # 1. read local scan data
+            # 2. optionally query remote pheromone state from the server
+            # 3. assemble the observation vector
+            # 4. run greedy Q inference
+            # 5. execute the selected movement
+            # 6. update local dead-reckoned state and optional pheromone deposit
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
             pheromone_values = (0.0, 0.0, 0.0)
@@ -350,7 +408,12 @@ def main(argv=None):
                 # protocol uses nest-relative centimeters.
                 x_cm = pose.x_mm / 10.0
                 y_cm = pose.y_mm / 10.0
+                # Position is best-effort telemetry; if this succeeds, the
+                # server can render us and answer a consistent pheromone query.
                 server_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                # The server is the source of truth for the digital pheromone
+                # field, so the runtime pulls the latest 3-sample slice right
+                # before inference.
                 pheromone_values = server_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
             observation = build_observation(
@@ -377,15 +440,28 @@ def main(argv=None):
                 reverse_distance_mm=args.reverse_distance_mm,
             )
             speed_mps = commanded_distance_mm / 1000.0 / period_s
-            if server_link is not None and args.cc_deposit_on_forward and throttle > 0.0:
-                # This is a simple placeholder trigger for digital deposits; it
-                # is intentionally explicit so real deployment logic can replace
-                # it with a better behavioral condition later.
+            if (
+                server_link is not None
+                and args.cc_deposit_enable
+                and throttle > 0.0
+                and (
+                    last_deposit_pose is None
+                    or distance_cm(pose, last_deposit_pose) >= deposit_spacing_cm
+                )
+            ):
+                # Forward motion drops a new digital pheromone mark once the
+                # robot has advanced roughly one awareness radius since the
+                # previous deposit, avoiding a solid line every control tick.
                 server_link.deposit_pheromone(
                     args.robot_id,
                     pose.x_mm / 10.0,
                     pose.y_mm / 10.0,
                     args.cc_pheromone_deposit_amount,
+                )
+                last_deposit_pose = PoseEstimate(
+                    x_mm=pose.x_mm,
+                    y_mm=pose.y_mm,
+                    heading_deg=pose.heading_deg,
                 )
             step += 1
 
@@ -393,6 +469,9 @@ def main(argv=None):
             sleep_time = period_s - elapsed
 
             if args.debug:
+                # The debug stream is intentionally high-signal: enough to see
+                # pose, timing, scan health, pheromone input, and network output
+                # without dumping the full scan payload every loop.
                 valid_scan_count = sum(
                     1
                     for item in scan_points

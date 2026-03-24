@@ -34,7 +34,25 @@ class PheromoneField:
 
     def deposit(self, x_cm: float, y_cm: float, amount: float) -> tuple[int, int]:
         gx, gy = self.coordinate_to_cell(x_cm, y_cm)
-        self.grid[gy, gx] += float(amount)
+        radius_cm = max(float(self.cfg.pheromone_deposit_radius_cm), 0.0)
+        if radius_cm <= 0.0:
+            self.grid[gy, gx] += float(amount)
+            return gx, gy
+
+        radius_cells = max(1, int(math.ceil(radius_cm / self.cell_size_cm)))
+        for offset_y in range(-radius_cells, radius_cells + 1):
+            cell_y = gy + offset_y
+            if cell_y < 0 or cell_y >= self.grid_h:
+                continue
+            for offset_x in range(-radius_cells, radius_cells + 1):
+                cell_x = gx + offset_x
+                if cell_x < 0 or cell_x >= self.grid_w:
+                    continue
+                dist_cm = math.hypot(offset_x * self.cell_size_cm, offset_y * self.cell_size_cm)
+                if dist_cm > radius_cm:
+                    continue
+                weight = 1.0 - (dist_cm / max(radius_cm, 1e-6))
+                self.grid[cell_y, cell_x] += float(amount) * max(weight, 0.0)
         return gx, gy
 
     def decay_step(self) -> None:

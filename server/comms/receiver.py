@@ -209,11 +209,20 @@ class BLEPeripheralWorker(_Worker):
         self.on_line = on_line
         self.stop_event = threading.Event()
         self._server = None
+        # BLE writes do not currently expose a stable per-central identifier in
+        # this transport layer, so multi-robot BLE is multiplexed over one
+        # shared text channel and separated by robot_id in each message.
         self._rx_buffer = ""
 
     @property
     def label(self) -> str:
         return f"ble:{self.device_name}"
+
+    def _line_label(self, line: str) -> str:
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) >= 2 and parts[1]:
+            return f"{self.label}:{parts[1]}"
+        return self.label
 
     def _handle_write(self, value) -> None:
         if value is None:
@@ -230,7 +239,12 @@ class BLEPeripheralWorker(_Worker):
             line = line.strip()
             if not line:
                 continue
-            for response in self.on_line(self.label, line):
+            # All BLE robots share the same characteristic pair, so the server
+            # relies on robot_id in the protocol line to derive a logical
+            # per-robot connection label. Responses still include robot_id and
+            # may be observed by all centrals, with clients ignoring replies
+            # that do not match their own robot_id.
+            for response in self.on_line(self._line_label(line), line):
                 self._notify_line(response)
 
     def _notify_line(self, line: str) -> None:

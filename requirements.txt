@@ -10,3 +10,4 @@ ray[rllib]
 pydantic
 matplotlib
 bless
+bleak

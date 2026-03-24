@@ -70,3 +70,11 @@ class CommandCenterConfig:
     @property
     def deposit_amount(self) -> float:
         return float(self.swarm_cfg.pheromone_deposit)
+
+    @property
+    def pheromone_awareness_radius_cm(self) -> float:
+        return float(self.pheromone_samples) * float(self.agent_radius_cm) * 1.5
+
+    @property
+    def pheromone_deposit_radius_cm(self) -> float:
+        return self.pheromone_awareness_radius_cm

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import serial
 import time
 import json
@@ -18,7 +20,16 @@ class ESP32Robot:
         self.startup_delay = startup_delay
         self.ser: Optional[serial.Serial] = None
 
+    @staticmethod
+    def _require_pyserial() -> None:
+        if not hasattr(serial, "Serial"):
+            raise ImportError(
+                "Expected pyserial's 'serial' module, but 'serial.Serial' is unavailable. "
+                "Install 'pyserial' in this environment and remove the unrelated 'serial' package if present."
+            )
+
     def connect(self) -> None:
+        self._require_pyserial()
         if self.ser is not None and self.ser.is_open:
             return
 
@@ -39,6 +50,7 @@ class ESP32Robot:
             self.ser = None
 
     def _require_serial(self) -> serial.Serial:
+        self._require_pyserial()
         if self.ser is None or not self.ser.is_open:
             raise RuntimeError("Serial port is not connected. Call connect() first.")
         return self.ser
