@@ -1,6 +1,6 @@
 # Robot-Side Bluetooth Design Notes for Command Center Integration
 
-This note reviews the current [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) code and describes the cleanest way to add robot-to-MacBook Bluetooth communication so it works with the current [command_center/](/Users/christopherlin/dev/cwsf2026/sim/command_center/) protocol.
+This note reviews the current [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) code and describes the cleanest way to add robot-to-MacBook Bluetooth communication so it works with the current [server/](/Users/christopherlin/dev/cwsf2026/sim/server/) protocol.
 
 No code changes are made here. This is design guidance only.
 

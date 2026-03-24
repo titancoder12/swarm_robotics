@@ -1,6 +1,6 @@
 # Codex Prompt — Build a Pygame Command Center for Physical Swarm Robots
 
-You are working in the existing repository and must **add a new `command_center/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
+You are working in the existing repository and must **add a new `server/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
 
 ## High-level goal
 
@@ -27,7 +27,7 @@ The robots themselves remain responsible for their own movement and local decisi
 
    * The Raspberry Pi robot workflow must remain isolated.
    * Do not make `firmware/` depend on the command center.
-   * Do not introduce imports from `command_center/` into Pi runtime code.
+   * Do not introduce imports from `server/` into Pi runtime code.
 
 2. **Keep the command center in the same repo, but as a cleanly separated subsystem.**
 
@@ -148,7 +148,7 @@ Please define and document:
 Create something along these lines:
 
 ```text
-command_center/
+server/
   __init__.py
   main.py
   config.py
@@ -372,7 +372,7 @@ Provide example pseudocode showing:
 
 ### Integration constraint
 
-* Do NOT add dependencies from `firmware/` → `command_center/`
+* Do NOT add dependencies from `firmware/` → `server/`
 * Protocol must be compatible with existing serial workflow
 
 ---

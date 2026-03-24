@@ -4,7 +4,7 @@ import math
 
 import numpy as np
 
-from command_center.config import CommandCenterConfig
+from server.config import CommandCenterConfig
 
 
 class PheromoneField:

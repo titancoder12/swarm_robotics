@@ -8,10 +8,10 @@ from typing import Any
 
 import numpy as np
 
-from command_center.config import CommandCenterConfig
-from command_center.core.pheromone_field import PheromoneField
-from command_center.core.robot_registry import RobotRegistry
-from command_center.core.trail_store import TrailStore
+from server.config import CommandCenterConfig
+from server.core.pheromone_field import PheromoneField
+from server.core.robot_registry import RobotRegistry
+from server.core.trail_store import TrailStore
 
 
 @dataclass

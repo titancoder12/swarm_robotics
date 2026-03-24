@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from command_center.ui import colors
+from server.ui import colors
 
 
 def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dict) -> None:

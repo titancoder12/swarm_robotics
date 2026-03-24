@@ -298,11 +298,11 @@ def main(argv=None):
         agent_radius_cm=args.agent_radius_cm,
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
-    command_center = None
+    server_link = None
     if args.cc_ble_enable:
         # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
-        # with the desktop command center.
-        command_center = CommandCenterBLEClient(
+        # with the desktop server.
+        server_link = CommandCenterBLEClient(
             address=args.cc_ble_address,
             device_name=args.cc_ble_device_name,
             write_char_uuid=args.cc_ble_write_char_uuid,
@@ -345,13 +345,13 @@ def main(argv=None):
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
             pheromone_values = (0.0, 0.0, 0.0)
-            if command_center is not None:
-                # Pose is maintained locally in mm, while the command-center
+            if server_link is not None:
+                # Pose is maintained locally in mm, while the server
                 # protocol uses nest-relative centimeters.
                 x_cm = pose.x_mm / 10.0
                 y_cm = pose.y_mm / 10.0
-                command_center.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
-                pheromone_values = command_center.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                server_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                pheromone_values = server_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
             observation = build_observation(
                 cfg,
@@ -377,11 +377,11 @@ def main(argv=None):
                 reverse_distance_mm=args.reverse_distance_mm,
             )
             speed_mps = commanded_distance_mm / 1000.0 / period_s
-            if command_center is not None and args.cc_deposit_on_forward and throttle > 0.0:
+            if server_link is not None and args.cc_deposit_on_forward and throttle > 0.0:
                 # This is a simple placeholder trigger for digital deposits; it
                 # is intentionally explicit so real deployment logic can replace
                 # it with a better behavioral condition later.
-                command_center.deposit_pheromone(
+                server_link.deposit_pheromone(
                     args.robot_id,
                     pose.x_mm / 10.0,
                     pose.y_mm / 10.0,
@@ -418,8 +418,8 @@ def main(argv=None):
     finally:
         if args.debug:
             print("[debug] closing robot connection", flush=True)
-        if command_center is not None:
-            command_center.close()
+        if server_link is not None:
+            server_link.close()
         robot.close()
 
 

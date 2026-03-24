@@ -167,7 +167,7 @@ This runtime loads [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/
 
 ## Command Center
 
-The repo now includes a separate live operator subsystem in [command_center/](/Users/christopherlin/dev/cwsf2026/sim/command_center/). It is a PyGame command center for:
+The repo now includes a separate live operator subsystem in [server/](/Users/christopherlin/dev/cwsf2026/sim/server/). It is a PyGame command center for:
 
 - receiving live robot `POS`, `PHER`, and `SENSE` messages
 - visualizing robot positions and trails
@@ -177,13 +177,13 @@ The repo now includes a separate live operator subsystem in [command_center/](/U
 Run it locally:
 
 ```bash
-python -m command_center.main --tcp-host 127.0.0.1 --tcp-port 8765
+python -m server.main --tcp-host 127.0.0.1 --tcp-port 8765
 ```
 
 Run a local fake robot against it:
 
 ```bash
-python -m command_center.fake_robot --robot-id robot_0 --port 8765
+python -m server.fake_robot --robot-id robot_0 --port 8765
 ```
 
 Documentation:

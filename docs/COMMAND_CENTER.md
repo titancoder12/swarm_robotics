@@ -1,6 +1,6 @@
 # Command Center
 
-This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) and does not introduce any `firmware -> command_center` dependency.
+This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) and does not introduce any `firmware -> server` dependency.
 
 ## Purpose
 
@@ -16,27 +16,27 @@ It is not a planner and it does not make robot motion decisions.
 
 ## Architecture
 
-The subsystem lives under [command_center/](/Users/christopherlin/dev/cwsf2026/sim/command_center/):
+The subsystem lives under [server/](/Users/christopherlin/dev/cwsf2026/sim/server/):
 
-- [command_center/main.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/main.py)
+- [server/main.py](/Users/christopherlin/dev/cwsf2026/sim/server/main.py)
   - app entrypoint, event loop, keyboard controls, receiver wiring
-- [command_center/config.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/config.py)
+- [server/config.py](/Users/christopherlin/dev/cwsf2026/sim/server/config.py)
   - shared configuration derived from current simulator defaults
-- [command_center/core/robot_registry.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/core/robot_registry.py)
+- [server/core/robot_registry.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/robot_registry.py)
   - latest robot state per ID
-- [command_center/core/trail_store.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/core/trail_store.py)
+- [server/core/trail_store.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/trail_store.py)
   - bounded trail history per robot
-- [command_center/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/core/pheromone_field.py)
+- [server/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/pheromone_field.py)
   - pheromone grid, decay, diffusion, and exact forward-sample query logic
-- [command_center/core/world_state.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/core/world_state.py)
+- [server/core/world_state.py](/Users/christopherlin/dev/cwsf2026/sim/server/core/world_state.py)
   - thread-safe aggregation of robot registry, trails, and pheromone field
-- [command_center/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/comms/protocol.py)
+- [server/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/protocol.py)
   - line protocol parser and `PHER_RESP` formatter
-- [command_center/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/comms/receiver.py)
+- [server/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/server/comms/receiver.py)
   - threaded TCP and serial receivers for direct robot connections
-- [command_center/ui/renderer.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/ui/renderer.py)
+- [server/ui/renderer.py](/Users/christopherlin/dev/cwsf2026/sim/server/ui/renderer.py)
   - PyGame rendering
-- [command_center/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/command_center/fake_robot.py)
+- [server/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/server/fake_robot.py)
   - local harness for test messages without real hardware
 
 ## Protocol
@@ -144,7 +144,7 @@ The transport should remain line-oriented and compatible with `serial.readline()
 Start the command center:
 
 ```bash
-python -m command_center.main --tcp-host 127.0.0.1 --tcp-port 8765
+python -m server.main --tcp-host 127.0.0.1 --tcp-port 8765
 ```
 
 Optional flags:
@@ -185,14 +185,14 @@ BLE mode uses the same newline-delimited `POS`, `PHER`, `SENSE`, and `PHER_RESP`
 Run the command center:
 
 ```bash
-python -m command_center.main --tcp-port 8765
+python -m server.main --tcp-port 8765
 ```
 
 Then run one or more fake robots in other terminals:
 
 ```bash
-python -m command_center.fake_robot --robot-id robot_0 --port 8765
-python -m command_center.fake_robot --robot-id robot_1 --port 8765
+python -m server.fake_robot --robot-id robot_0 --port 8765
+python -m server.fake_robot --robot-id robot_1 --port 8765
 ```
 
 The fake harness sends `POS`, periodic `PHER`, and `SENSE` messages and prints the returned `PHER_RESP` values.

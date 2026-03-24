@@ -6,7 +6,7 @@ import time
 
 import pygame
 
-from command_center.comms.protocol import (
+from server.comms.protocol import (
     PheromoneMessage,
     PositionMessage,
     ProtocolError,
@@ -14,10 +14,10 @@ from command_center.comms.protocol import (
     format_pheromone_response,
     parse_line,
 )
-from command_center.comms.receiver import ReceiverManager
-from command_center.config import CommandCenterConfig
-from command_center.core.world_state import WorldState
-from command_center.ui.renderer import Renderer
+from server.comms.receiver import ReceiverManager
+from server.config import CommandCenterConfig
+from server.core.world_state import WorldState
+from server.ui.renderer import Renderer
 
 
 logger = logging.getLogger(__name__)
