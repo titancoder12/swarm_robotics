@@ -53,6 +53,8 @@ class TCPClientWorker(_Worker):
                 if not chunk:
                     break
                 buffer += chunk.decode("utf-8", errors="ignore")
+                # TCP is a byte stream, not a message transport, so accumulate
+                # partial data until complete newline-delimited messages arrive.
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)
                     for response in self.on_line(self.label, line.strip()):
@@ -100,6 +102,8 @@ class TCPServerWorker(_Worker):
                     continue
                 except OSError:
                     break
+                # Each robot gets its own worker so request/response traffic
+                # stays isolated per connection and never cross-talks.
                 child = TCPClientWorker(conn, address, self.on_line)
                 self.children.append(child)
                 child.start()
@@ -151,6 +155,8 @@ class SerialWorker(_Worker):
                 line = raw.decode("utf-8", errors="ignore").strip()
                 if not line:
                     continue
+                # Serial transport already provides line framing, so each line
+                # can be parsed immediately and any reply written back directly.
                 for response in self.on_line(self.label, line):
                     self._write_line(response)
 

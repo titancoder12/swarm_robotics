@@ -39,6 +39,8 @@ class SenseMessage(Message):
 
 
 def parse_line(line: str) -> Message:
+    # Keep the wire format deliberately small and line-oriented so it can be
+    # mirrored easily on the robot side with serial.readline()-style loops.
     parts = [part.strip() for part in line.strip().split(",")]
     if not parts or not parts[0]:
         raise ProtocolError("empty line")
@@ -64,8 +66,9 @@ def parse_line(line: str) -> Message:
 
 
 def format_pheromone_response(robot_id: str, samples: np.ndarray) -> str:
+    # Always emit exactly 3 pheromone values so the reply can be copied
+    # directly into the current 23-D observation vector slots.
     values = [f"{float(value):.6f}" for value in samples[:3]]
     while len(values) < 3:
         values.append("0.000000")
     return ",".join(["PHER_RESP", str(robot_id), *values])
-

@@ -14,6 +14,8 @@ class PheromoneField:
         self.cfg = cfg
         self.width_cm = cfg.world_width_cm
         self.height_cm = cfg.world_height_cm
+        # The live command center uses nest-relative coordinates with the nest
+        # at (0, 0), so the pheromone grid is centered around that origin.
         self.x_min_cm = -cfg.half_width_cm
         self.y_min_cm = -cfg.half_height_cm
         self.cell_size_cm = cfg.cell_size_cm
@@ -25,6 +27,7 @@ class PheromoneField:
         self.grid.fill(0.0)
 
     def coordinate_to_cell(self, x_cm: float, y_cm: float) -> tuple[int, int]:
+        # Convert nest-relative world coordinates into a bounded grid index.
         gx = int(np.clip((x_cm - self.x_min_cm) // self.cell_size_cm, 0, self.grid_w - 1))
         gy = int(np.clip((y_cm - self.y_min_cm) // self.cell_size_cm, 0, self.grid_h - 1))
         return gx, gy
@@ -42,6 +45,8 @@ class PheromoneField:
         if diff <= 0.0:
             return
         grid = self.grid
+        # Match the simulator's simple four-neighbor diffusion rather than
+        # introducing a different physical model at deployment time.
         rolled = (
             np.roll(grid, 1, axis=0)
             + np.roll(grid, -1, axis=0)
@@ -57,6 +62,8 @@ class PheromoneField:
     def sample_forward(self, x_cm: float, y_cm: float, heading_rad: float) -> np.ndarray:
         samples = []
         for i in range(self.cfg.pheromone_samples):
+            # This distance rule mirrors env.swarm_env._pheromone_samples()
+            # exactly so the returned values remain compatible with training.
             dist = (i + 1) * self.cfg.agent_radius_cm * 1.5
             sx = x_cm + math.cos(heading_rad) * dist
             sy = y_cm + math.sin(heading_rad) * dist
@@ -64,6 +71,8 @@ class PheromoneField:
             samples.append(self.grid[gy, gx])
         arr = np.array(samples, dtype=np.float32)
         if arr.max() > 0:
+            # The current model was trained on local-max-normalized pheromone
+            # samples, not a global heatmap intensity scale.
             arr = arr / (arr.max() + 1e-6)
         return arr
 
@@ -76,4 +85,3 @@ class PheromoneField:
             "grid_w": float(self.grid_w),
             "grid_h": float(self.grid_h),
         }
-

@@ -28,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
             theta = step * 0.17
             x_cm = math.cos(theta) * args.radius_cm
             y_cm = math.sin(theta) * args.radius_cm
+            # Point tangentially around the loop so forward pheromone queries
+            # exercise different sample directions over time.
             heading_deg = (math.degrees(theta) + 90.0) % 360.0
 
             pos_line = f"POS,{args.robot_id},{x_cm:.2f},{y_cm:.2f},{heading_deg:.2f}\n"
@@ -48,4 +50,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

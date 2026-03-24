@@ -53,6 +53,8 @@ def main(argv: list[str] | None = None) -> int:
     world = WorldState(cfg)
 
     def handle_line(connection_label: str, line: str) -> list[str]:
+        # All transport workers funnel through one parser/dispatcher so the
+        # protocol behavior is consistent across TCP and serial connections.
         try:
             msg = parse_line(line)
         except ProtocolError as exc:
@@ -118,4 +120,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

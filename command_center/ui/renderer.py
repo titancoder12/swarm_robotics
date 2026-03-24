@@ -104,6 +104,8 @@ class Renderer:
             self.screen.blit(label, (center[0] + 8, center[1] - 8))
 
     def _world_to_screen(self, rect: pygame.Rect, x_cm: float, y_cm: float) -> tuple[int, int]:
+        # World coordinates are centered at the nest, while screen coordinates
+        # are top-left-origin with +y pointing downward.
         x = int((x_cm + self.cfg.half_width_cm) * self.render_scale)
         y = int((self.cfg.half_height_cm - y_cm) * self.render_scale)
         return rect.left + x, rect.top + y
@@ -111,4 +113,3 @@ class Renderer:
     @staticmethod
     def _lerp(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
         return tuple(int(x + (y - x) * t) for x, y in zip(a, b))
-

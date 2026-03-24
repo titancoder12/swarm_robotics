@@ -68,6 +68,8 @@ class WorldState:
             if self._paused:
                 return
             now = time.time()
+            # Decouple pheromone update cadence from render cadence so the UI
+            # can run smoothly without changing the field dynamics.
             if now - self._last_decay >= self.cfg.pheromone_decay_period_s:
                 self.pheromone.update()
                 self._last_decay = now
@@ -103,8 +105,9 @@ class WorldState:
             }
             return WorldSnapshot(
                 robots=self.robot_registry.snapshot(),
+                # Snapshot copies keep the renderer read-only and avoid holding
+                # locks while PyGame is drawing.
                 trails=self.trails.snapshot() if self._show_trails else {},
                 pheromone_grid=self.pheromone.grid.copy() if self._show_pheromone else np.zeros_like(self.pheromone.grid),
                 telemetry=telemetry,
             )
-
