@@ -355,3 +355,6 @@ A: Shared policy means shared weights, not shared behavior. In this repo, each a
 
 ## Q: Are the lidar readings based on the surrounding simulation?
 A: Yes. In [env/swarm_env.py](../env/swarm_env.py), `_lidar_scan()` casts rays from each agent into the current simulated world, and `_ray_distance()` marches each ray forward until it hits either a world boundary or an obstacle rectangle. The returned lidar values are therefore derived from the actual surrounding simulation geometry at that moment, not from a placeholder pattern. One important limitation is that the current lidar does not treat other agents or targets as ray-cast obstacles; it only reacts to walls and obstacle rectangles.
+
+## Q: What is the recommended plan to turn the current RL stack into a stronger best-of-breed existing approach for this problem?
+A: The recommended path is: first upgrade the current DQN into a much stronger baseline with Double DQN, dueling heads, prioritized replay, n-step returns, and ideally a distributional variant; then add proper recurrent rollout support; then implement **recurrent MAPPO with parameter sharing and centralized training / decentralized execution** as the main target algorithm; and finally add a cooperative value-decomposition baseline such as QMIX for comparison. The reasoning and phased plan are documented in [docs/best_rl.md](best_rl.md).
