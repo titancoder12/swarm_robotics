@@ -77,6 +77,41 @@ def plot_training_metrics(csv_path: str, out_dir: str) -> None:
         plt.close(fig)
 
 
+def plot_eval_metrics(csv_path: str, out_dir: str) -> None:
+    """Generate evaluation plots from an evaluation metrics CSV."""
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise RuntimeError("matplotlib is required to generate evaluation plots.") from exc
+
+    with open(csv_path, "r", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    if not rows:
+        return
+
+    steps = [int(row["global_step"]) for row in rows]
+    rewards = [float(row["mean_episode_reward"]) for row in rows]
+    food_retrieval = [float(row["food_retrieved"]) for row in rows]
+    coverage = [float(row["exploration_coverage"]) for row in rows]
+
+    plots = [
+        ("eval_reward_vs_step.png", rewards, "Mean Episode Reward", "Evaluation Reward vs Step"),
+        ("eval_food_retrieval_vs_step.png", food_retrieval, "Food Retrieved", "Evaluation Food Retrieval vs Step"),
+        ("eval_coverage_vs_step.png", coverage, "Exploration Coverage", "Evaluation Coverage vs Step"),
+    ]
+
+    for filename, series, ylabel, title in plots:
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.plot(steps, series, linewidth=2)
+        ax.set_xlabel("Global Step")
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.grid(True, alpha=0.3)
+        fig.tight_layout()
+        fig.savefig(os.path.join(out_dir, filename))
+        plt.close(fig)
+
+
 def add_env_config_args(parser) -> None:
     """Add shared environment override flags to a CLI parser."""
     parser.add_argument("--n-targets", type=int, default=4)
@@ -86,6 +121,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--pheromone-disabled", action="store_true")
     parser.add_argument("--failed-agent-count", type=int, default=0)
     parser.add_argument("--observation-noise-std", type=float, default=0.0)
+    parser.add_argument("--observation-history-steps", type=int, default=3)
 
 
 def make_swarm_config(args) -> SwarmConfig:
@@ -102,6 +138,7 @@ def make_swarm_config(args) -> SwarmConfig:
         obs_include_pheromone=pheromone_enabled,
         failed_agent_count=getattr(args, "failed_agent_count", 0),
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
+        observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),
     )
 
 

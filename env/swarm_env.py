@@ -119,7 +119,12 @@ class SwarmEnv(ParallelEnv):
         self._screen = None
         self._clock = None
 
+        self._single_obs_dim = self._compute_single_obs_dim()
         self._obs_dim = self._compute_obs_dim()
+        self._obs_history = np.zeros(
+            (self.cfg.n_agents, self.cfg.observation_history_steps, self._single_obs_dim),
+            dtype=np.float32,
+        )
         self._observation_spaces = {
             agent: spaces.Box(low=-1.0, high=1.0, shape=(self._obs_dim,), dtype=np.float32)
             for agent in self.possible_agents
@@ -137,8 +142,8 @@ class SwarmEnv(ParallelEnv):
         """Return the action space for a given agent."""
         return self._action_spaces[agent]
 
-    def _compute_obs_dim(self) -> int:
-        """Return the length of the per-agent observation vector."""
+    def _compute_single_obs_dim(self) -> int:
+        """Return the length of one per-agent observation frame."""
         return (
             self.cfg.lidar_rays
             + 2  # target vector
@@ -150,6 +155,10 @@ class SwarmEnv(ParallelEnv):
             + (1 if self.cfg.obs_include_carrying else 0)
             + self.cfg.pheromone_samples
         )
+
+    def _compute_obs_dim(self) -> int:
+        """Return the flattened length of the per-agent observation history."""
+        return self._single_obs_dim * self.cfg.observation_history_steps
 
     def reset(self, seed: int | None = None, options: dict | None = None):
         """Reset the environment and return initial observations and info."""
@@ -185,7 +194,7 @@ class SwarmEnv(ParallelEnv):
         else:
             self.pheromone_grid = None
 
-        obs = self._get_obs()
+        obs = self._get_obs(reset_history=True)
         obs_dict = {agent: obs[i] for i, agent in enumerate(self.possible_agents)}
         info = {
             "n_targets": len(self.targets),
@@ -569,9 +578,18 @@ class SwarmEnv(ParallelEnv):
             neighbor_avg = (up + down + left + right) * 0.25
             grid[:] = grid * (1.0 - diff) + neighbor_avg * diff
 
-    def _get_obs(self):
-        """Assemble per-agent observations (lidar, targets, neighbors, etc.)."""
-        # Build per-agent observation vectors.
+    def _get_obs(self, reset_history: bool = False):
+        """Assemble per-agent observations and flatten the recent history window."""
+        frame_obs = self._get_obs_frame()
+        if reset_history:
+            self._obs_history[:] = frame_obs[:, None, :]
+        else:
+            self._obs_history[:, :-1, :] = self._obs_history[:, 1:, :]
+            self._obs_history[:, -1, :] = frame_obs
+        return self._obs_history.reshape(self.cfg.n_agents, self._obs_dim)
+
+    def _get_obs_frame(self):
+        """Assemble a single per-agent observation frame without history stacking."""
         obs_list = []
         for idx, agent in enumerate(self.agent_states):
             lidar = self._lidar_scan(agent)
@@ -685,9 +703,12 @@ class SwarmEnv(ParallelEnv):
             return np.zeros(self.cfg.pheromone_samples, dtype=np.float32)
         grid = self.pheromone_grid
         cell = self.cfg.pheromone_cell_size
+        awareness_radius = self._pheromone_awareness_radius()
         samples = []
-        for i in range(self.cfg.pheromone_samples):
-            dist = (i + 1) * self.cfg.agent_radius * 1.5
+        for dist in self._pheromone_sample_distances():
+            if dist > awareness_radius:
+                samples.append(0.0)
+                continue
             sx = agent.x + math.cos(agent.theta) * dist
             sy = agent.y + math.sin(agent.theta) * dist
             gx = int(np.clip(sx // cell, 0, grid.shape[1] - 1))
@@ -697,6 +718,16 @@ class SwarmEnv(ParallelEnv):
         if samples.max() > 0:
             samples = samples / (samples.max() + 1e-6)
         return samples
+
+    def _pheromone_sample_distances(self) -> list[float]:
+        """Return the forward pheromone sampling distances for one observation."""
+        spacing = float(self.cfg.agent_radius) * float(self.cfg.pheromone_sample_spacing_scale)
+        return [float(i + 1) * spacing for i in range(self.cfg.pheromone_samples)]
+
+    def _pheromone_awareness_radius(self) -> float:
+        """Return the farthest distance at which pheromone can affect the observation."""
+        distances = self._pheromone_sample_distances()
+        return max(distances) if distances else 0.0
 
     def _food_presence(self, agent: AgentState) -> np.ndarray:
         """Return a binary local food-presence cue."""

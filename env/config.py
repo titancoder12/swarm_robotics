@@ -40,10 +40,12 @@ class SwarmConfig:
     lidar_step: float = 6.0
     obs_include_pheromone: bool = True
     pheromone_samples: int = 3
+    pheromone_sample_spacing_scale: float = 1.5
     obs_include_food_presence: bool = True
     obs_include_nest_direction: bool = True
     obs_include_carrying: bool = True
     food_presence_radius: float = 120.0
+    observation_history_steps: int = 3
 
     # Pheromone grid
     pheromone_enabled: bool = True

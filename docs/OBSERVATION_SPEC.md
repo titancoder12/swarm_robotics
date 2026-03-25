@@ -22,20 +22,26 @@ Per-component helper methods:
 
 ## Default Shape
 
-Default per-agent observation shape is `(23,)`.
+Default per-agent observation shape is `(69,)`.
+
+The environment now returns a short sliding window of observation frames. With
+the default `observation_history_steps = 3`, the agent receives the last 3
+frames concatenated oldest-to-newest.
+
+One frame still has shape `(23,)`.
 
 Formula:
 
 ```python
-cfg.lidar_rays
-+ 2
-+ (2 if cfg.obs_include_nest_direction else 0)
-+ 2
-+ 2
-+ 1
-+ (1 if cfg.obs_include_food_presence else 0)
-+ (1 if cfg.obs_include_carrying else 0)
-+ cfg.pheromone_samples
+(cfg.lidar_rays
+ + 2
+ + (2 if cfg.obs_include_nest_direction else 0)
+ + 2
+ + 2
+ + 1
+ + (1 if cfg.obs_include_food_presence else 0)
+ + (1 if cfg.obs_include_carrying else 0)
+ + cfg.pheromone_samples) * cfg.observation_history_steps
 ```
 
 With defaults:
@@ -45,14 +51,16 @@ With defaults:
 - `obs_include_food_presence = True`
 - `obs_include_carrying = True`
 - `pheromone_samples = 3`
+- `observation_history_steps = 3`
 
 Total:
 
-- `9 + 2 + 2 + 2 + 2 + 1 + 1 + 1 + 3 = 23`
+- one frame: `9 + 2 + 2 + 2 + 2 + 1 + 1 + 1 + 3 = 23`
+- stacked history: `23 * 3 = 69`
 
 ## Assembly Order
 
-Observation assembly order in `_get_obs()` is:
+Observation assembly order for one frame in `_get_obs_frame()` is:
 
 1. lidar rays
 2. nearest target vector
@@ -63,6 +71,9 @@ Observation assembly order in `_get_obs()` is:
 7. food-presence flag, if enabled
 8. carrying-food flag, if enabled
 9. pheromone samples
+
+`_get_obs()` then concatenates the most recent `cfg.observation_history_steps`
+frames in chronological order.
 
 ## Coordinate Frame
 
@@ -242,7 +253,7 @@ Source: `_pheromone_samples()`
 Sampling distance for index `i`:
 
 ```python
-(i + 1) * cfg.agent_radius * 1.5
+(i + 1) * cfg.agent_radius * cfg.pheromone_sample_spacing_scale
 ```
 
 Behavior:
@@ -251,6 +262,12 @@ Behavior:
 2. convert to pheromone-grid indices with floor division by `cfg.pheromone_cell_size`
 3. read raw grid values
 4. divide the sample vector by its own max if that max is positive
+
+Awareness radius:
+
+- pheromone can only affect the observation out to the farthest forward sample distance
+- with the defaults, `3 * 7.0 * 1.5 = 31.5`
+- pheromone outside that sensing radius does not contribute to the observation
 
 Unavailable case:
 
@@ -262,5 +279,6 @@ Unavailable case:
 
 - The current default observation is 23-D, not the older 19-D layout described in some earlier docs.
 - Pheromone samples are normalized locally by the sample vector maximum, not globally by the grid maximum.
+- Pheromone sensing is bounded by the derived awareness radius rather than being treated as globally visible.
 - Failed agents observe all zeros.
 - Observation noise, when enabled, is applied after the full vector is assembled.

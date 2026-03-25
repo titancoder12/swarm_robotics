@@ -4,7 +4,7 @@ import numpy as np
 
 
 class RuleBasedSwarmPolicy:
-    """A lightweight baseline policy that consumes the standard 23-dim observation."""
+    """A lightweight baseline policy that reads the newest frame from the observation history."""
 
     def __init__(self, cfg, seed: int = 0):
         self.cfg = cfg
@@ -35,6 +35,9 @@ class RuleBasedSwarmPolicy:
         return self._explore(lidar)
 
     def _split_obs(self, obs: np.ndarray) -> dict[str, np.ndarray | float]:
+        frame_dim = self._frame_dim()
+        if obs.shape[0] > frame_dim:
+            obs = obs[-frame_dim:]
         idx = 0
         lidar = obs[idx : idx + self.cfg.lidar_rays]
         idx += self.cfg.lidar_rays
@@ -64,6 +67,19 @@ class RuleBasedSwarmPolicy:
             "carrying": carrying,
             "pheromone": pheromone,
         }
+
+    def _frame_dim(self) -> int:
+        return (
+            self.cfg.lidar_rays
+            + 2
+            + (2 if self.cfg.obs_include_nest_direction else 0)
+            + 2
+            + 2
+            + 1
+            + (1 if self.cfg.obs_include_food_presence else 0)
+            + (1 if self.cfg.obs_include_carrying else 0)
+            + self.cfg.pheromone_samples
+        )
 
     def _steer_toward(self, vec: np.ndarray, lidar: np.ndarray, deposit: bool = False) -> int:
         turn = 0

@@ -29,6 +29,7 @@ from train.experiment_utils import (
     add_env_config_args,
     make_run_dir,
     make_swarm_config,
+    plot_eval_metrics,
     plot_training_metrics,
     write_json,
 )
@@ -186,6 +187,8 @@ def train(args):
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")  # Device.
 
     run_dir = make_run_dir(args.output_dir, args.experiment_name)
+    graph_dir = os.path.join("training_graphs", os.path.basename(run_dir))
+    os.makedirs(graph_dir, exist_ok=True)
     episode_logger = CSVLogger(
         os.path.join(run_dir, "episode_metrics.csv"),
         [
@@ -408,6 +411,8 @@ def train(args):
         _save_models(args.save_dir, q_nets, args.shared_policy, obs_dim, global_step)
         if not args.no_plots:
             plot_training_metrics(os.path.join(run_dir, "episode_metrics.csv"), run_dir)
+            plot_training_metrics(os.path.join(run_dir, "episode_metrics.csv"), graph_dir)
+            plot_eval_metrics(os.path.join(run_dir, "eval_metrics.csv"), graph_dir)
         write_json(
             os.path.join(run_dir, "summary.json"),
             {
@@ -416,6 +421,7 @@ def train(args):
                 "total_steps": global_step,
                 "episodes_completed": episode,
                 "checkpoint_dir": args.save_dir,
+                "graph_dir": graph_dir,
             },
         )
         return run_dir

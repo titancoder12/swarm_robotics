@@ -19,4 +19,3 @@ class QNetwork(nn.Module):
     def forward(self, x):
         """Return Q-values for each action."""
         return self.net(x)
-

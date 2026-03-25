@@ -37,9 +37,11 @@ class PolicyConfig:
     max_speed_mps: float = 0.5
     agent_radius_cm: float = 7.0
     pheromone_samples: int = 3
+    pheromone_sample_spacing_scale: float = 1.5
     obs_include_nest_direction: bool = True
     obs_include_food_presence: bool = True
     obs_include_carrying: bool = True
+    observation_history_steps: int = 3
 
 
 @dataclass
@@ -91,6 +93,10 @@ def parse_args(argv=None):
 
 
 def obs_dim(cfg: PolicyConfig) -> int:
+    return single_obs_dim(cfg) * cfg.observation_history_steps
+
+
+def single_obs_dim(cfg: PolicyConfig) -> int:
     # Mirror the simulator's feature count exactly. The trained MLP expects a
     # fixed-length vector; a mismatch here means the checkpoint is unusable.
     return (
@@ -170,10 +176,23 @@ def normalize_pheromone(cfg: PolicyConfig, values: list[float]) -> np.ndarray:
 def pheromone_awareness_radius_cm(cfg: PolicyConfig) -> float:
     # This matches the simulator's forward sampling geometry:
     # sample_i distance = (i + 1) * agent_radius * 1.5.
-    return float(cfg.pheromone_samples) * float(cfg.agent_radius_cm) * 1.5
+    return float(cfg.pheromone_samples) * float(cfg.agent_radius_cm) * float(cfg.pheromone_sample_spacing_scale)
 
 
 def build_observation(
+    cfg: PolicyConfig,
+    scan_points: list[dict],
+    pose: PoseEstimate,
+    pheromone_values: list[float] | tuple[float, ...] | None = None,
+    speed_mps: float = 0.0,
+) -> np.ndarray:
+    return build_observation_history(
+        cfg,
+        [build_single_observation(cfg, scan_points, pose, pheromone_values=pheromone_values, speed_mps=speed_mps)],
+    )
+
+
+def build_single_observation(
     cfg: PolicyConfig,
     scan_points: list[dict],
     pose: PoseEstimate,
@@ -212,8 +231,21 @@ def build_observation(
     parts.append(pheromone)
 
     observation = np.concatenate(parts).astype(np.float32)
+    if observation.shape[0] != single_obs_dim(cfg):
+        raise ValueError(f"Observation size mismatch: expected {single_obs_dim(cfg)}, got {observation.shape[0]}.")
+    return observation
+
+
+def build_observation_history(cfg: PolicyConfig, frames: list[np.ndarray]) -> np.ndarray:
+    """Flatten a short observation history into the model input vector."""
+    if not frames:
+        raise ValueError("At least one observation frame is required.")
+    normalized_frames = [np.asarray(frame, dtype=np.float32) for frame in frames[-cfg.observation_history_steps :]]
+    while len(normalized_frames) < cfg.observation_history_steps:
+        normalized_frames.insert(0, normalized_frames[0].copy())
+    observation = np.concatenate(normalized_frames, axis=0).astype(np.float32)
     if observation.shape[0] != obs_dim(cfg):
-        raise ValueError(f"Observation size mismatch: expected {obs_dim(cfg)}, got {observation.shape[0]}.")
+        raise ValueError(f"Observation history size mismatch: expected {obs_dim(cfg)}, got {observation.shape[0]}.")
     return observation
 
 
@@ -371,6 +403,7 @@ def main(argv=None):
     # Speed is reconstructed from the commanded step size and loop frequency,
     # not measured from wheel odometry.
     speed_mps = 0.0
+    obs_history: list[np.ndarray] = []
 
     if args.debug:
         print(
@@ -419,13 +452,16 @@ def main(argv=None):
                 # before inference.
                 pheromone_values = mission_control_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
-            observation = build_observation(
+            current_frame = build_single_observation(
                 cfg,
                 scan_points,
                 pose=pose,
                 pheromone_values=pheromone_values,
                 speed_mps=speed_mps,
             )
+            obs_history.append(current_frame)
+            obs_history = obs_history[-cfg.observation_history_steps :]
+            observation = build_observation_history(cfg, obs_history)
             action_id, q_values = predict_action(policy, observation)
             throttle, turn, deposit = execute_action(
                 robot,
