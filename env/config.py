@@ -44,6 +44,7 @@ class SwarmConfig:
     obs_include_food_presence: bool = True
     obs_include_nest_direction: bool = True
     obs_include_carrying: bool = True
+    food_detection_radius: float = 150.0
     food_presence_radius: float = 120.0
     observation_history_steps: int = 3
 
@@ -63,7 +64,11 @@ class SwarmConfig:
     reward_nest_delivery: float = 10.0
     reward_exploration: float = 0.02
     reward_pheromone_following: float = 0.0
+    reward_food_approach: float = 0.2
+    reward_food_detected: float = 0.05
+    reward_pheromone_follow: float = 0.03
     reward_pheromone_deposit_cost: float = -0.02
+    pheromone_follow_min_gradient: float = 0.05
 
     # Task
     nest_enabled: bool = True

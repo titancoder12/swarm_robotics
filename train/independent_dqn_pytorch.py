@@ -208,6 +208,11 @@ def train(args):
             "reward_delivery_component",
             "reward_collision_component",
             "reward_exploration_component",
+            "reward_food_approach_component",
+            "reward_food_detected_component",
+            "reward_pheromone_follow_component",
+            "reward_pheromone_usage_component",
+            "reward_pheromone_deposit_component",
             "reward_pheromone_component",
             "swarm_efficiency",
         ],
@@ -279,7 +284,11 @@ def train(args):
         "delivery": 0.0,
         "collision": 0.0,
         "exploration": 0.0,
-        "pheromone": 0.0,
+        "food_approach": 0.0,
+        "food_detected": 0.0,
+        "pheromone_follow": 0.0,
+        "pheromone_usage": 0.0,
+        "pheromone_deposit": 0.0,
     }
     next_eval_step = args.eval_every
     next_reset_seed = args.seed + 1
@@ -409,7 +418,16 @@ def train(args):
                     "reward_delivery_component": episode_reward_breakdown["delivery"],
                     "reward_collision_component": episode_reward_breakdown["collision"],
                     "reward_exploration_component": episode_reward_breakdown["exploration"],
-                    "reward_pheromone_component": episode_reward_breakdown["pheromone"],
+                    "reward_food_approach_component": episode_reward_breakdown["food_approach"],
+                    "reward_food_detected_component": episode_reward_breakdown["food_detected"],
+                    "reward_pheromone_follow_component": episode_reward_breakdown["pheromone_follow"],
+                    "reward_pheromone_usage_component": episode_reward_breakdown["pheromone_usage"],
+                    "reward_pheromone_deposit_component": episode_reward_breakdown["pheromone_deposit"],
+                    "reward_pheromone_component": (
+                        episode_reward_breakdown["pheromone_follow"]
+                        + episode_reward_breakdown["pheromone_usage"]
+                        + episode_reward_breakdown["pheromone_deposit"]
+                    ),
                     "swarm_efficiency": swarm_efficiency,
                 }
                 episode_logger.log(episode_row)

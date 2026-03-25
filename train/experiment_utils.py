@@ -122,6 +122,11 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--failed-agent-count", type=int, default=0)
     parser.add_argument("--observation-noise-std", type=float, default=0.0)
     parser.add_argument("--observation-history-steps", type=int, default=3)
+    parser.add_argument("--food-detection-radius", type=float, default=150.0)
+    parser.add_argument("--reward-food-approach", type=float, default=0.2)
+    parser.add_argument("--reward-food-detected", type=float, default=0.05)
+    parser.add_argument("--reward-pheromone-follow", type=float, default=0.03)
+    parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
 
 
 def make_swarm_config(args) -> SwarmConfig:
@@ -136,9 +141,14 @@ def make_swarm_config(args) -> SwarmConfig:
         pheromone_enabled=pheromone_enabled,
         render_pheromone=pheromone_enabled,
         obs_include_pheromone=pheromone_enabled,
+        food_detection_radius=getattr(args, "food_detection_radius", 150.0),
         failed_agent_count=getattr(args, "failed_agent_count", 0),
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
         observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),
+        reward_food_approach=getattr(args, "reward_food_approach", 0.2),
+        reward_food_detected=getattr(args, "reward_food_detected", 0.05),
+        reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.03),
+        pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
     )
 
 

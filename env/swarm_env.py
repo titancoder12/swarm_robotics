@@ -108,6 +108,8 @@ class SwarmEnv(ParallelEnv):
         self.covered_cells = 0
         self.total_cover_cells = 1
         self.failed_agent_indices: set[int] = set()
+        self._prev_detectable_food_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
+        self._prev_food_detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
 
         self.step_count = 0
         self.terminated = False
@@ -185,6 +187,7 @@ class SwarmEnv(ParallelEnv):
         self._init_coverage_grid()
         self._assign_failed_agents()
         self._update_coverage()
+        self._reset_food_shaping_state()
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -226,7 +229,11 @@ class SwarmEnv(ParallelEnv):
             "delivery": 0.0,
             "collision": 0.0,
             "exploration": 0.0,
-            "pheromone": 0.0,
+            "food_approach": 0.0,
+            "food_detected": 0.0,
+            "pheromone_follow": 0.0,
+            "pheromone_usage": 0.0,
+            "pheromone_deposit": 0.0,
         }
 
         for i, agent in enumerate(self.agent_states):
@@ -247,18 +254,23 @@ class SwarmEnv(ParallelEnv):
 
             if deposit:
                 rewards[i] += self.cfg.reward_pheromone_deposit_cost
-                reward_breakdown["pheromone"] += float(self.cfg.reward_pheromone_deposit_cost)
+                reward_breakdown["pheromone_deposit"] += float(self.cfg.reward_pheromone_deposit_cost)
 
         # Handle target collection and pheromone updates.
         picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
         reward_breakdown["pickup"] += float(pickup_reward)
         reward_breakdown["delivery"] += float(delivery_reward)
 
+        food_approach_reward, food_detect_reward = self._apply_food_shaping(rewards)
+        reward_breakdown["food_approach"] += float(food_approach_reward)
+        reward_breakdown["food_detected"] += float(food_detect_reward)
+
         exploration_reward, new_cells = self._apply_exploration_reward(rewards)
         reward_breakdown["exploration"] += float(exploration_reward)
 
-        pheromone_reward, pheromone_usage = self._apply_pheromone_reward(rewards)
-        reward_breakdown["pheromone"] += float(pheromone_reward)
+        pheromone_usage_reward, pheromone_follow_reward, pheromone_usage = self._apply_pheromone_reward(rewards, actions)
+        reward_breakdown["pheromone_usage"] += float(pheromone_usage_reward)
+        reward_breakdown["pheromone_follow"] += float(pheromone_follow_reward)
 
         if self.cfg.pheromone_enabled:
             self._update_pheromone(actions)
@@ -504,6 +516,12 @@ class SwarmEnv(ParallelEnv):
                 reward_total += float(self.cfg.reward_nest_delivery)
         return delivered, reward_total
 
+    def _reset_food_shaping_state(self) -> None:
+        """Initialize detectable-food shaping state from the freshly reset world."""
+        distances, detected = self._compute_detectable_food_state()
+        self._prev_detectable_food_distances = distances
+        self._prev_food_detected = detected
+
     def _init_coverage_grid(self):
         """Initialize per-episode exploration coverage tracking."""
         cell = max(self.cfg.coverage_cell_size, 1)
@@ -542,13 +560,62 @@ class SwarmEnv(ParallelEnv):
             rewards += reward_total / self.cfg.n_agents
         return reward_total, new_cells
 
-    def _apply_pheromone_reward(self, rewards: np.ndarray) -> tuple[float, float]:
-        """Optionally shape behavior using local pheromone intensity."""
+    def _apply_food_shaping(self, rewards: np.ndarray) -> tuple[float, float]:
+        """Apply local food-detection shaping without changing the observation contract."""
+        # This uses environment-side distance bookkeeping for training reward
+        # shaping only. The policy still consumes the existing local observation.
+        current_distances, current_detected = self._compute_detectable_food_state()
+        approach_total = 0.0
+        detected_total = 0.0
+
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food:
+                continue
+
+            prev_dist = float(self._prev_detectable_food_distances[i])
+            curr_dist = float(current_distances[i])
+            if np.isfinite(prev_dist) and np.isfinite(curr_dist) and curr_dist < prev_dist:
+                progress = min((prev_dist - curr_dist) / max(self.cfg.food_detection_radius, 1e-6), 1.0)
+                reward = float(self.cfg.reward_food_approach) * progress
+                rewards[i] += reward
+                approach_total += reward
+
+            if bool(current_detected[i]) and not bool(self._prev_food_detected[i]):
+                reward = float(self.cfg.reward_food_detected)
+                rewards[i] += reward
+                detected_total += reward
+
+        self._prev_detectable_food_distances = current_distances
+        self._prev_food_detected = current_detected
+        return approach_total, detected_total
+
+    def _apply_pheromone_reward(self, rewards: np.ndarray, actions: np.ndarray) -> tuple[float, float, float]:
+        """Apply conservative pheromone shaping using existing sample geometry."""
         usage = self._mean_pheromone_usage()
-        reward_total = float(self.cfg.reward_pheromone_following * usage * self.cfg.n_agents)
-        if reward_total != 0.0 and self.cfg.n_agents > 0:
-            rewards += reward_total / self.cfg.n_agents
-        return reward_total, usage
+        usage_reward_total = float(self.cfg.reward_pheromone_following * usage * self.cfg.n_agents)
+        if usage_reward_total != 0.0 and self.cfg.n_agents > 0:
+            rewards += usage_reward_total / self.cfg.n_agents
+
+        follow_reward_total = 0.0
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food:
+                continue
+            throttle, _, _ = self.action_table[int(actions[i])]
+            if throttle <= 0.0:
+                continue
+            samples = self._pheromone_samples(agent)
+            if samples.size == 0:
+                continue
+            split = max(1, len(samples) // 2)
+            near = float(np.mean(samples[:split]))
+            far = float(np.mean(samples[split:])) if split < len(samples) else near
+            gradient = far - near
+            if gradient <= self.cfg.pheromone_follow_min_gradient:
+                continue
+            reward = float(self.cfg.reward_pheromone_follow) * min(gradient, 1.0)
+            rewards[i] += reward
+            follow_reward_total += reward
+        return usage_reward_total, follow_reward_total, usage
 
     def _update_pheromone(self, actions: np.ndarray):
         """Deposit, decay, and diffuse pheromone values."""
@@ -664,6 +731,24 @@ class SwarmEnv(ParallelEnv):
         rel = self._to_agent_frame(rel, agent.theta)
         return np.clip(rel / self.cfg.lidar_max_range, -1.0, 1.0)
 
+    def _compute_detectable_food_state(self) -> tuple[np.ndarray, np.ndarray]:
+        """Return per-agent nearest detectable-food distances and detection flags."""
+        distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
+        detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
+        if not self.targets:
+            return distances, detected
+
+        targets = np.array(self.targets, dtype=np.float32)
+        radius = float(self.cfg.food_detection_radius)
+        for i, agent in enumerate(self.agent_states):
+            dx = targets[:, 0] - float(agent.x)
+            dy = targets[:, 1] - float(agent.y)
+            nearest = float(np.min(np.hypot(dx, dy)))
+            if nearest <= radius:
+                distances[i] = nearest
+                detected[i] = True
+        return distances, detected
+
     def _nest_direction(self, agent: AgentState) -> np.ndarray:
         """Return nest direction in agent-local coordinates."""
         if not self.cfg.nest_enabled:
@@ -734,7 +819,7 @@ class SwarmEnv(ParallelEnv):
         if not self.cfg.obs_include_food_presence or not self.targets:
             return np.zeros(1, dtype=np.float32)
         nearest = min(math.hypot(tx - agent.x, ty - agent.y) for tx, ty in self.targets)
-        value = 1.0 if nearest <= self.cfg.food_presence_radius else 0.0
+        value = 1.0 if nearest <= self.cfg.food_detection_radius else 0.0
         return np.array([value], dtype=np.float32)
 
     def _carrying_food(self, agent: AgentState) -> np.ndarray:
