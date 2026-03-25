@@ -24,6 +24,7 @@ from firmware.bluetooth import (
     CommandCenterBLEClient,
 )
 from models.q_network import QNetwork
+from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 
 
 @dataclass
@@ -89,6 +90,9 @@ def parse_args(argv=None):
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
     parser.add_argument("--debug", action="store_true")
+    parser.add_argument("--debug-policy", action="store_true")
+    parser.add_argument("--debug-policy-agents", type=str, default="")
+    parser.add_argument("--debug-policy-max-steps", type=int, default=0)
     return parser.parse_args(argv)
 
 
@@ -404,6 +408,7 @@ def main(argv=None):
     # not measured from wheel odometry.
     speed_mps = 0.0
     obs_history: list[np.ndarray] = []
+    debug_policy_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
 
     if args.debug:
         print(
@@ -463,6 +468,18 @@ def main(argv=None):
             obs_history = obs_history[-cfg.observation_history_steps :]
             observation = build_observation_history(cfg, obs_history)
             action_id, q_values = predict_action(policy, observation)
+            if should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
+                print_policy_debug(
+                    step=step,
+                    agent_index=0,
+                    agent_id=args.robot_id,
+                    policy_label="shared" if args.shared_policy else "agent_0",
+                    mode="greedy",
+                    output_name="q_values",
+                    output_values=q_values,
+                    action=action_id,
+                    num_actions=cfg.num_actions,
+                )
             throttle, turn, deposit = execute_action(
                 robot,
                 action_id=action_id,

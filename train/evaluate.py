@@ -15,6 +15,7 @@ from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
 from models.rule_based_policy import RuleBasedSwarmPolicy
+from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 from train.experiment_utils import CSVLogger, add_env_config_args, make_swarm_config, write_json
 
 
@@ -27,6 +28,9 @@ def parse_args(argv=None):
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--output-dir", type=str, default="runs/eval")
+    parser.add_argument("--debug-policy", action="store_true")
+    parser.add_argument("--debug-policy-agents", type=str, default="")
+    parser.add_argument("--debug-policy-max-steps", type=int, default=0)
     add_env_config_args(parser)
     return parser.parse_args(argv)
 
@@ -67,6 +71,7 @@ def run(args):
         nets, device = _load_models(args.checkpoint_dir, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
     else:
         policies = _build_rule_based_policies(cfg, args.seed)
+    debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
 
     logger = CSVLogger(
         os.path.join(args.output_dir, "eval_metrics.csv"),
@@ -92,6 +97,8 @@ def run(args):
             exploration_coverage = 0.0
             pheromone_usage_values = []
             episode_length = 0
+            prev_rewards = None
+            prev_done = None
 
             while True:
                 actions = np.zeros(cfg.n_agents, dtype=np.int64)
@@ -101,13 +108,46 @@ def run(args):
                             obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
                             q_vals = nets[i](obs_tensor)
                             actions[i] = int(torch.argmax(q_vals, dim=1).item())
+                        if should_debug_policy(debug_cfg, episode_length, i, agent_ids[i]):
+                            print_policy_debug(
+                                step=episode_length,
+                                agent_index=i,
+                                agent_id=agent_ids[i],
+                                policy_label="shared" if args.shared_policy else f"agent_{i}",
+                                mode="greedy",
+                                output_name="q_values",
+                                output_values=q_vals.detach().cpu().numpy(),
+                                action=int(actions[i]),
+                                num_actions=cfg.num_actions,
+                                prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                                prev_done=None if prev_done is None else bool(prev_done[i]),
+                            )
                     else:
                         actions[i] = int(policies[i].act(obs[i]))
+                        if should_debug_policy(debug_cfg, episode_length, i, agent_ids[i]):
+                            print_policy_debug(
+                                step=episode_length,
+                                agent_index=i,
+                                agent_id=agent_ids[i],
+                                policy_label="rule_based",
+                                mode="rule_based",
+                                output_name=None,
+                                output_values=None,
+                                action=int(actions[i]),
+                                num_actions=cfg.num_actions,
+                                prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                                prev_done=None if prev_done is None else bool(prev_done[i]),
+                            )
 
                 action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
                 next_obs_dict, rewards_dict, terminations, truncations, info_dict = env.step(action_dict)
                 obs = np.stack([next_obs_dict[agent] for agent in agent_ids], axis=0)
                 rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
+                prev_rewards = rewards
+                prev_done = np.array(
+                    [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
+                    dtype=np.bool_,
+                )
                 info = info_dict[agent_ids[0]]
 
                 episode_rewards += rewards

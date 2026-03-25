@@ -24,6 +24,7 @@ if ROOT not in sys.path:  # Ensure local imports work.
 from env.config import SwarmConfig  # Environment config.
 from env.swarm_env import SwarmEnv  # PettingZoo env.
 from models.q_network import QNetwork  # Shared Q-network definition.
+from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 from train.experiment_utils import (
     CSVLogger,
     add_env_config_args,
@@ -282,6 +283,9 @@ def train(args):
     }
     next_eval_step = args.eval_every
     next_reset_seed = args.seed + 1
+    debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
+    prev_rewards = None
+    prev_done = None
 
     # 4) Main training loop.
     try:
@@ -292,13 +296,33 @@ def train(args):
 
             # Select actions for each agent (random with prob epsilon, else greedy).
             for i in range(cfg.n_agents):
+                with torch.no_grad():
+                    obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)  # Batch-1 obs.
+                    q_vals = q_nets[i](obs_tensor)  # Q-values.
+                    greedy_action = int(torch.argmax(q_vals, dim=1).item())  # Greedy action.
+
                 if random.random() < epsilon:
                     actions[i] = np.random.randint(0, action_dim)  # Explore.
+                    mode = "explore"
                 else:
-                    with torch.no_grad():
-                        obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)  # Batch-1 obs.
-                        q_vals = q_nets[i](obs_tensor)  # Q-values.
-                        actions[i] = int(torch.argmax(q_vals, dim=1).item())  # Greedy action.
+                    actions[i] = greedy_action
+                    mode = "greedy"
+
+                if should_debug_policy(debug_cfg, global_step, i, agent_ids[i]):
+                    print_policy_debug(
+                        step=global_step,
+                        agent_index=i,
+                        agent_id=agent_ids[i],
+                        policy_label="shared" if args.shared_policy else f"agent_{i}",
+                        epsilon=epsilon,
+                        mode=mode,
+                        output_name="q_values",
+                        output_values=q_vals.detach().cpu().numpy(),
+                        action=int(actions[i]),
+                        num_actions=action_dim,
+                        prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                        prev_done=None if prev_done is None else bool(prev_done[i]),
+                    )
 
             # Agent sees observation, picks action, gets reward, environment changes.
             action_dict = _array_to_dict(actions, agent_ids)  # Array -> dict (PettingZoo).
@@ -308,6 +332,8 @@ def train(args):
             step_info = info[agent_ids[0]]
             terminated = any(terminations.values())  # Episode ended (success).
             truncated = any(truncations.values())  # Episode ended (time limit).
+            prev_rewards = rewards.copy()
+            prev_done = np.full((cfg.n_agents,), bool(terminated or truncated), dtype=np.bool_)
             done_flag = float(terminated or truncated)  # Done flag for training target.
 
             # Store transitions in each agent's replay buffer.
@@ -451,6 +477,9 @@ def parse_args(argv=None):
     parser.add_argument("--epsilon-final", type=float, default=0.05, help="Final epsilon after annealing.")
     parser.add_argument("--epsilon-decay-steps", type=int, default=8000, help="Number of training steps over which epsilon decays.")
     parser.add_argument("--warmup-steps", type=int, default=500, help="Number of steps to collect before gradient updates start.")
+    parser.add_argument("--debug-policy", action="store_true")
+    parser.add_argument("--debug-policy-agents", type=str, default="")
+    parser.add_argument("--debug-policy-max-steps", type=int, default=0)
     add_env_config_args(parser)
     return parser.parse_args(argv)
 
