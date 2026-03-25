@@ -228,7 +228,7 @@ class SwarmEnv(ParallelEnv):
             "pickup": 0.0,
             "delivery": 0.0,
             "collision": 0.0,
-            "exploration": 0.0,
+            "new_cell": 0.0,
             "food_approach": 0.0,
             "food_detected": 0.0,
             "pheromone_follow": 0.0,
@@ -265,15 +265,17 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["food_approach"] += float(food_approach_reward)
         reward_breakdown["food_detected"] += float(food_detect_reward)
 
-        exploration_reward, new_cells = self._apply_exploration_reward(rewards)
-        reward_breakdown["exploration"] += float(exploration_reward)
+        coverage_reward_total, new_cells = self._apply_exploration_reward(rewards)
+        reward_breakdown["new_cell"] += float(coverage_reward_total)
 
         pheromone_usage_reward, pheromone_follow_reward, pheromone_usage = self._apply_pheromone_reward(rewards, actions)
         reward_breakdown["pheromone_usage"] += float(pheromone_usage_reward)
         reward_breakdown["pheromone_follow"] += float(pheromone_follow_reward)
 
         if self.cfg.pheromone_enabled:
-            self._update_pheromone(actions)
+            pheromone_deposit_events = self._update_pheromone(actions)
+        else:
+            pheromone_deposit_events = 0
 
         # Episode end conditions.
         self.step_count += 1
@@ -292,8 +294,10 @@ class SwarmEnv(ParallelEnv):
             "food_delivered": delivered,
             "collisions": collisions,
             "new_cells_visited": new_cells,
+            "coverage_reward_total": coverage_reward_total,
             "exploration_coverage": self._coverage_ratio(),
             "pheromone_usage": pheromone_usage,
+            "pheromone_deposit_events": pheromone_deposit_events,
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
             "reward_breakdown": reward_breakdown,
@@ -555,7 +559,7 @@ class SwarmEnv(ParallelEnv):
     def _apply_exploration_reward(self, rewards: np.ndarray) -> tuple[float, int]:
         """Reward visiting previously unseen coverage cells."""
         new_cells = self._update_coverage()
-        reward_total = float(new_cells * self.cfg.reward_exploration)
+        reward_total = float(new_cells * self.cfg.reward_new_cell)
         if reward_total != 0.0 and self.cfg.n_agents > 0:
             rewards += reward_total / self.cfg.n_agents
         return reward_total, new_cells
@@ -617,15 +621,19 @@ class SwarmEnv(ParallelEnv):
             follow_reward_total += reward
         return usage_reward_total, follow_reward_total, usage
 
-    def _update_pheromone(self, actions: np.ndarray):
+    def _update_pheromone(self, actions: np.ndarray) -> int:
         """Deposit, decay, and diffuse pheromone values."""
         # Deposit pheromone only for agents whose action explicitly requested it,
-        # then decay/diffuse the grid globally.
+        # then decay/diffuse the grid globally. When pheromone_requires_food is
+        # enabled, deposition is a physically motivated food-trail signal only.
         grid = self.pheromone_grid
         cell = self.cfg.pheromone_cell_size
+        deposit_events = 0
         for i, agent in enumerate(self.agent_states):
             _, _, deposit = self.action_table[int(actions[i])]
             if not deposit:
+                continue
+            if self.cfg.pheromone_requires_food and not agent.carrying_food:
                 continue
             gx = int(agent.x // cell)
             gy = int(agent.y // cell)
@@ -634,6 +642,7 @@ class SwarmEnv(ParallelEnv):
                 if agent.carrying_food:
                     deposit *= self.cfg.pheromone_deposit_carrying_scale
                 grid[gy, gx] += deposit
+                deposit_events += 1
 
         grid *= (1.0 - (1.0 - self.cfg.pheromone_decay))
         diff = self.cfg.pheromone_diffuse_rate
@@ -644,6 +653,7 @@ class SwarmEnv(ParallelEnv):
             right = np.roll(grid, -1, axis=1)
             neighbor_avg = (up + down + left + right) * 0.25
             grid[:] = grid * (1.0 - diff) + neighbor_avg * diff
+        return deposit_events
 
     def _get_obs(self, reset_history: bool = False):
         """Assemble per-agent observations and flatten the recent history window."""

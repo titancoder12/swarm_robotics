@@ -200,7 +200,9 @@ def train(args):
             "food_discovered",
             "food_retrieved",
             "exploration_coverage",
+            "coverage_reward_total",
             "pheromone_usage",
+            "pheromone_deposit_events",
             "episode_length",
             "collisions",
             "reward_step_component",
@@ -208,6 +210,7 @@ def train(args):
             "reward_delivery_component",
             "reward_collision_component",
             "reward_exploration_component",
+            "reward_new_cell_component",
             "reward_food_approach_component",
             "reward_food_detected_component",
             "reward_pheromone_follow_component",
@@ -276,14 +279,16 @@ def train(args):
     episode_food_retrieved = 0
     episode_collisions = 0
     episode_exploration_coverage = 0.0
+    episode_coverage_reward_total = 0.0
     episode_pheromone_usage = []
+    episode_pheromone_deposit_events = 0
     episode_length = 0
     episode_reward_breakdown = {
         "step": 0.0,
         "pickup": 0.0,
         "delivery": 0.0,
         "collision": 0.0,
-        "exploration": 0.0,
+        "new_cell": 0.0,
         "food_approach": 0.0,
         "food_detected": 0.0,
         "pheromone_follow": 0.0,
@@ -357,7 +362,9 @@ def train(args):
                 episode_exploration_coverage,
                 float(step_info.get("exploration_coverage", 0.0)),
             )
+            episode_coverage_reward_total += float(step_info.get("coverage_reward_total", 0.0))
             episode_pheromone_usage.append(float(step_info.get("pheromone_usage", 0.0)))
+            episode_pheromone_deposit_events += int(step_info.get("pheromone_deposit_events", 0))
             episode_length = int(step_info.get("episode_length", episode_length + 1))
             reward_breakdown = step_info.get("reward_breakdown", {})
             for key in episode_reward_breakdown:
@@ -410,14 +417,17 @@ def train(args):
                     "food_discovered": episode_food_discovered,
                     "food_retrieved": episode_food_retrieved,
                     "exploration_coverage": episode_exploration_coverage,
+                    "coverage_reward_total": episode_coverage_reward_total,
                     "pheromone_usage": pheromone_usage_mean,
+                    "pheromone_deposit_events": episode_pheromone_deposit_events,
                     "episode_length": episode_length,
                     "collisions": episode_collisions,
                     "reward_step_component": episode_reward_breakdown["step"],
                     "reward_pickup_component": episode_reward_breakdown["pickup"],
                     "reward_delivery_component": episode_reward_breakdown["delivery"],
                     "reward_collision_component": episode_reward_breakdown["collision"],
-                    "reward_exploration_component": episode_reward_breakdown["exploration"],
+                    "reward_exploration_component": episode_reward_breakdown["new_cell"],
+                    "reward_new_cell_component": episode_reward_breakdown["new_cell"],
                     "reward_food_approach_component": episode_reward_breakdown["food_approach"],
                     "reward_food_detected_component": episode_reward_breakdown["food_detected"],
                     "reward_pheromone_follow_component": episode_reward_breakdown["pheromone_follow"],
@@ -444,7 +454,9 @@ def train(args):
                 episode_food_retrieved = 0
                 episode_collisions = 0
                 episode_exploration_coverage = 0.0
+                episode_coverage_reward_total = 0.0
                 episode_pheromone_usage = []
+                episode_pheromone_deposit_events = 0
                 episode_length = 0
                 episode_reward_breakdown = {key: 0.0 for key in episode_reward_breakdown}
 
