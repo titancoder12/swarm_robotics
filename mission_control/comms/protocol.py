@@ -38,6 +38,12 @@ class SenseMessage(Message):
     heading_deg: float
 
 
+@dataclass(frozen=True)
+class LidarMessage(Message):
+    robot_id: str
+    ranges_mm: tuple[float, ...]
+
+
 def parse_line(line: str) -> Message:
     # Keep the wire format deliberately small and line-oriented so it can be
     # mirrored easily on the robot side with serial.readline()-style loops.
@@ -61,6 +67,15 @@ def parse_line(line: str) -> Message:
         if len(parts) != 5:
             raise ProtocolError(f"SENSE expects 5 fields, got {len(parts)}")
         return SenseMessage(kind="SENSE", robot_id=parts[1], x_cm=float(parts[2]), y_cm=float(parts[3]), heading_deg=float(parts[4]))
+
+    if kind == "LIDAR":
+        if len(parts) < 3:
+            raise ProtocolError(f"LIDAR expects at least 3 fields, got {len(parts)}")
+        try:
+            ranges_mm = tuple(float(part) for part in parts[2:])
+        except ValueError as exc:
+            raise ProtocolError(f"LIDAR contains a non-numeric range: {exc}") from exc
+        return LidarMessage(kind="LIDAR", robot_id=parts[1], ranges_mm=ranges_mm)
 
     raise ProtocolError(f"unknown message type {kind}")
 

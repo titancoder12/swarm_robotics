@@ -1,22 +1,22 @@
 # Robot-Side Bluetooth Design Notes for Command Center Integration
 
-This note reviews the current [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) code and describes the cleanest way to add robot-to-MacBook Bluetooth communication so it works with the current [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/) protocol.
+This note reviews the current [firmware/](../firmware) code and describes the cleanest way to add robot-to-MacBook Bluetooth communication so it works with the current [mission_control/](../mission_control) protocol.
 
 No code changes are made here. This is design guidance only.
 
-In this repo, "robot-side Bluetooth" should be read as **Raspberry Pi-side Bluetooth**, not ESP32-side Bluetooth. The policy loop, observation assembly, and command-center interaction all live in [firmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run_policy.py), so the natural place for the command-center link is the Pi.
+In this repo, "robot-side Bluetooth" should be read as **Raspberry Pi-side Bluetooth**, not ESP32-side Bluetooth. The policy loop, observation assembly, and command-center interaction all live in [firmware/run.py](../firmware/run.py), so the natural place for the command-center link is the Pi.
 
 ## Current firmware structure
 
 The current robot runtime is centered around:
 
-- [firmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run_policy.py)
+- [firmware/run.py](../firmware/run.py)
   - main control loop
   - reads scan data
   - builds the observation vector
   - runs the policy
   - executes movement commands
-- [firmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/ant.py)
+- [firmware/ant.py](../firmware/ant.py)
   - serial transport to the ESP32 motion/sensor controller
   - line-oriented command / response flow
 
@@ -28,7 +28,7 @@ Important repo-specific observation:
 
 ## Recommended placement of Bluetooth logic
 
-Do **not** put command-center transport logic into [firmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/ant.py).
+Do **not** put command-center transport logic into [firmware/ant.py](../firmware/ant.py).
 
 Reason:
 
@@ -74,7 +74,7 @@ That keeps the Bluetooth transport isolated and allows the policy loop to stay s
 
 ## Where it fits into the current control loop
 
-The current loop in [firmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run_policy.py) does this:
+The current loop in [firmware/run.py](../firmware/run.py) does this:
 
 1. read scan data from `ESP32Robot`
 2. build observation
@@ -130,7 +130,7 @@ Use a Bluetooth transport that behaves like a serial stream:
 
 Why this fits the repo:
 
-- [firmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/ant.py) already uses this exact transport style
+- [firmware/ant.py](../firmware/ant.py) already uses this exact transport style
 - the command center protocol is already line-oriented
 - request/response timing for `SENSE -> PHER_RESP` is easier to manage with stream semantics
 
@@ -192,11 +192,11 @@ This protects the policy loop from malformed or stale transport data.
 
 If this is implemented later, the clean repo-level split would be:
 
-- [firmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/ant.py)
+- [firmware/ant.py](../firmware/ant.py)
   - unchanged role: ESP32 serial transport only
 - new firmware transport helper
   - command-center Bluetooth client only
-- [firmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run_policy.py)
+- [firmware/run.py](../firmware/run.py)
   - owns both clients and merges local sensing with remote pheromone sensing
 
 This keeps hardware control and command-center networking separate.

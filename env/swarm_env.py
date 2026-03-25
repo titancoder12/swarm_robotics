@@ -224,7 +224,7 @@ class SwarmEnv(ParallelEnv):
             if i in self.failed_agent_indices:
                 continue
             action_id = int(actions[i])
-            throttle, turn = self.action_table[action_id]
+            throttle, turn, deposit = self.action_table[action_id]
             # Propose next state from dynamics, then check collisions.
             proposed = self.driver.apply(agent, (throttle, turn), self.cfg.dt, self.cfg, self.rng)
 
@@ -235,6 +235,10 @@ class SwarmEnv(ParallelEnv):
                 reward_breakdown["collision"] += float(self.cfg.reward_collision)
             else:
                 self.agent_states[i] = proposed
+
+            if deposit:
+                rewards[i] += self.cfg.reward_pheromone_deposit_cost
+                reward_breakdown["pheromone"] += float(self.cfg.reward_pheromone_deposit_cost)
 
         # Handle target collection and pheromone updates.
         picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
@@ -248,7 +252,7 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["pheromone"] += float(pheromone_reward)
 
         if self.cfg.pheromone_enabled:
-            self._update_pheromone()
+            self._update_pheromone(actions)
 
         # Episode end conditions.
         self.step_count += 1
@@ -345,13 +349,15 @@ class SwarmEnv(ParallelEnv):
             self._pygame_inited = True
 
     def _build_action_table(self):
-        """Create the discrete action lookup table (throttle, turn)."""
+        """Create the discrete action lookup table (throttle, turn, deposit)."""
         throttle_vals = [-1.0, 0.0, 1.0]
         turn_vals = [-1.0, 0.0, 1.0]
+        deposit_vals = [0, 1]
         table = []
         for throttle in throttle_vals:
             for turn in turn_vals:
-                table.append((throttle, turn))
+                for deposit in deposit_vals:
+                    table.append((throttle, turn, deposit))
         return table
 
     def _select_driver(self, mode: str) -> DynamicsDriver:
@@ -535,12 +541,16 @@ class SwarmEnv(ParallelEnv):
             rewards += reward_total / self.cfg.n_agents
         return reward_total, usage
 
-    def _update_pheromone(self):
+    def _update_pheromone(self, actions: np.ndarray):
         """Deposit, decay, and diffuse pheromone values."""
-        # Deposit pheromone where agents are, then decay/diffuse the grid.
+        # Deposit pheromone only for agents whose action explicitly requested it,
+        # then decay/diffuse the grid globally.
         grid = self.pheromone_grid
         cell = self.cfg.pheromone_cell_size
-        for agent in self.agent_states:
+        for i, agent in enumerate(self.agent_states):
+            _, _, deposit = self.action_table[int(actions[i])]
+            if not deposit:
+                continue
             gx = int(agent.x // cell)
             gy = int(agent.y // cell)
             if 0 <= gy < grid.shape[0] and 0 <= gx < grid.shape[1]:

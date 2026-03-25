@@ -167,7 +167,12 @@ def train(args):
     """Train independent (or shared) DQN policies for each agent."""
     # 1) Environment and config setup.
     cfg = make_swarm_config(args)  # Env config.
-    dqn_cfg = DQNConfig()  # Training config.
+    dqn_cfg = DQNConfig(
+        epsilon_start=args.epsilon_start,
+        epsilon_final=args.epsilon_final,
+        epsilon_decay_steps=args.epsilon_decay_steps,
+        warmup_steps=args.warmup_steps,
+    )  # Training config.
 
     env = SwarmEnv(cfg, headless=args.headless)  # Create env.
     obs_dict, _ = env.reset(seed=args.seed)  # Reset -> initial observations.
@@ -273,6 +278,7 @@ def train(args):
         "pheromone": 0.0,
     }
     next_eval_step = args.eval_every
+    next_reset_seed = args.seed + 1
 
     # 4) Main training loop.
     try:
@@ -383,8 +389,9 @@ def train(args):
                     f"food {episode_food_retrieved} coverage {episode_exploration_coverage:.3f} "
                     f"pheromone {pheromone_usage_mean:.3f} epsilon {epsilon:.2f}"
                 )
-                obs_dict, _ = env.reset(seed=args.seed)  # Reset environment.
+                obs_dict, _ = env.reset(seed=next_reset_seed)  # Reset environment.
                 obs = _dict_to_array(obs_dict, agent_ids, dtype=np.float32)  # Dict -> array.
+                next_reset_seed += 1
                 episode_rewards = np.zeros(cfg.n_agents, dtype=np.float32)
                 episode_food_discovered = 0
                 episode_food_retrieved = 0
@@ -434,6 +441,10 @@ def parse_args(argv=None):
     parser.add_argument("--eval-every", type=int, default=0, help="Evaluate every N training steps (0 = disabled)")
     parser.add_argument("--eval-episodes", type=int, default=5)
     parser.add_argument("--no-plots", action="store_true")
+    parser.add_argument("--epsilon-start", type=float, default=1.0, help="Initial epsilon for epsilon-greedy exploration.")
+    parser.add_argument("--epsilon-final", type=float, default=0.05, help="Final epsilon after annealing.")
+    parser.add_argument("--epsilon-decay-steps", type=int, default=8000, help="Number of training steps over which epsilon decays.")
+    parser.add_argument("--warmup-steps", type=int, default=500, help="Number of steps to collect before gradient updates start.")
     add_env_config_args(parser)
     return parser.parse_args(argv)
 

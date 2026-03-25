@@ -50,7 +50,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-For robot deployment with [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py), `pyserial` is now included in `requirements.txt` because [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py) depends on it.
+For robot deployment with [firmware/run.py](firmware/run.py), `pyserial` is now included in `requirements.txt` because [firmware/ant.py](firmware/ant.py) depends on it.
 
 ## Random rollout (rendered)
 
@@ -146,28 +146,28 @@ python train/demo.py --backend custom --max-steps 200
 
 ## Robot Deployment
 
-The current robot runtime lives in [AntSwarmFirmware/](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware).
+The current robot runtime lives in [firmware/](firmware).
 
 Main files:
 
-- [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py)
+- [firmware/ant.py](firmware/ant.py)
   - serial client and low-level ESP32 command helpers
-- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py)
+- [firmware/run.py](firmware/run.py)
   - direct checkpoint inference loop for the physical robot
-- [AntSwarmFirmware/ant.service](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.service)
+- [firmware/ant.service](firmware/ant.service)
   - example systemd unit
 
 Typical deployment flow:
 
 ```bash
-python AntSwarmFirmware/run_policy.py --checkpoint-dir checkpoints --shared-policy
+python firmware/run.py --checkpoint-dir checkpoints --shared-policy
 ```
 
-This runtime loads [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py), reads scan lines from `ant.py`, normalizes the observation locally, predicts a discrete action, and sends `turn`, `move`, or `stop` commands directly to the robot.
+This runtime loads [models/q_network.py](models/q_network.py), reads scan lines from `ant.py`, normalizes the observation locally, predicts a discrete action, and sends `turn`, `move`, or `stop` commands directly to the robot.
 
 ## Command Center
 
-The repo now includes a separate live operator subsystem in [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/). It is a PyGame command center for:
+The repo now includes a separate live operator subsystem in [mission_control/](mission_control). It is a PyGame command center for:
 
 - receiving live robot `POS`, `PHER`, and `SENSE` messages
 - visualizing robot positions and trails
@@ -188,8 +188,8 @@ python -m mission_control.fake_robot --robot-id robot_0 --port 8765
 
 Documentation:
 
-- [docs/MISSION_CONTROL.md](/Users/christopherlin/dev/cwsf2026/sim/docs/COMMAND_CENTER.md)
-- [docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md)
+- [docs/MISSION_CONTROL.md](docs/MISSION_CONTROL.md)
+- [docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md](docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md)
 
 ## Environment API (PettingZoo Parallel API)
 
@@ -230,8 +230,8 @@ Toggle pheromone cues in observation with `SwarmConfig.obs_include_pheromone`.
 - `train/random_rollout.py` : random policy sanity check
 - `train/independent_dqn_pytorch.py` : independent or shared DQN training
 - `train/demo.py` : load and render trained checkpoints
-- `AntSwarmFirmware/run_policy.py` : physical robot policy runtime
-- `AntSwarmFirmware/ant.py` : direct serial robot interface
+- `firmware/run.py` : physical robot policy runtime
+- `firmware/ant.py` : direct serial robot interface
 - `docs/ARCHITECTURE.md` : detailed functionality and architecture
 - `docs/PROJECT_LOG.md` : decisions, notes, and next steps to resume later
 

@@ -1,6 +1,6 @@
 # Mission Control
 
-This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/) and does not introduce any `firmware -> mission_control` dependency.
+This subsystem adds a live desktop command center for physical swarm experiments. It is separate from [firmware/](../firmware) and does not introduce any `firmware -> mission_control` dependency.
 
 ## Purpose
 
@@ -16,27 +16,27 @@ It is not a planner and it does not make robot motion decisions.
 
 ## Architecture
 
-The subsystem lives under [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/):
+The subsystem lives under [mission_control/](../mission_control):
 
-- [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
+- [mission_control/main.py](../mission_control/main.py)
   - app entrypoint, event loop, keyboard controls, receiver wiring
-- [mission_control/config.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/config.py)
+- [mission_control/config.py](../mission_control/config.py)
   - shared configuration derived from current simulator defaults
-- [mission_control/core/robot_registry.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/robot_registry.py)
+- [mission_control/core/robot_registry.py](../mission_control/core/robot_registry.py)
   - latest robot state per ID
-- [mission_control/core/trail_store.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/trail_store.py)
+- [mission_control/core/trail_store.py](../mission_control/core/trail_store.py)
   - bounded trail history per robot
-- [mission_control/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/pheromone_field.py)
+- [mission_control/core/pheromone_field.py](../mission_control/core/pheromone_field.py)
   - pheromone grid, decay, diffusion, and exact forward-sample query logic
-- [mission_control/core/world_state.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/world_state.py)
+- [mission_control/core/world_state.py](../mission_control/core/world_state.py)
   - thread-safe aggregation of robot registry, trails, and pheromone field
-- [mission_control/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/protocol.py)
+- [mission_control/comms/protocol.py](../mission_control/comms/protocol.py)
   - line protocol parser and `PHER_RESP` formatter
-- [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
+- [mission_control/comms/receiver.py](../mission_control/comms/receiver.py)
   - threaded TCP and serial receivers for direct robot connections
-- [mission_control/ui/renderer.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/ui/renderer.py)
+- [mission_control/ui/renderer.py](../mission_control/ui/renderer.py)
   - PyGame rendering
-- [mission_control/fake_robot.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/fake_robot.py)
+- [mission_control/fake_robot.py](../mission_control/fake_robot.py)
   - local harness for test messages without real hardware
 
 ## Protocol
@@ -78,7 +78,7 @@ World / arena frame:
 - protocol units are centimeters
 - `+x` points right
 - `+y` points up / forward in the arena
-- default world size is derived from [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py): `900 cm x 600 cm`
+- default world size is derived from [env/config.py](../env/config.py): `900 cm x 600 cm`
 
 Default sim-to-physical conversion:
 
@@ -102,7 +102,7 @@ All other observation channels remain robot-local and are outside this subsystem
 - food presence
 - carrying-food state
 
-`PHER_RESP` is designed to match `_pheromone_samples()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py):
+`PHER_RESP` is designed to match `_pheromone_samples()` in [env/swarm_env.py](../env/swarm_env.py):
 
 - sample count: 3
 - sample distances:
@@ -120,7 +120,7 @@ The current command center also applies simulator-style decay and diffusion so t
 
 ## Robot-Side Integration Guide
 
-The command center does not modify [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/), but the intended robot-side client contract is:
+The command center does not modify [firmware/](../firmware), but the intended robot-side client contract is:
 
 ```python
 send_line(f"POS,{robot_id},{x_cm:.2f},{y_cm:.2f},{heading_deg:.2f}")
@@ -148,10 +148,10 @@ robot runtime even though it is implemented as a GATT service underneath.
 
 Current BLE design:
 
-- the desktop side advertises one BLE peripheral from [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
-- the Mission Control-side transport implementation lives in [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
-- the Raspberry Pi-side BLE client lives in [firmware/bluetooth.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/bluetooth.py)
-- the policy/runtime integration lives in [firmware/run.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run.py)
+- the desktop side advertises one BLE peripheral from [mission_control/main.py](../mission_control/main.py)
+- the Mission Control-side transport implementation lives in [mission_control/comms/receiver.py](../mission_control/comms/receiver.py)
+- the Raspberry Pi-side BLE client lives in [firmware/bluetooth.py](../firmware/bluetooth.py)
+- the policy/runtime integration lives in [firmware/run.py](../firmware/run.py)
 
 Default BLE UUIDs:
 
@@ -198,7 +198,7 @@ connection-level.
 
 ### BLE Runtime Expectations
 
-For the current firmware path in [firmware/run.py](/Users/christopherlin/dev/cwsf2026/sim/firmware/run.py):
+For the current firmware path in [firmware/run.py](../firmware/run.py):
 
 - `--cc-ble-enable` turns on the BLE Mission Control link
 - the robot sends `POS` once per control iteration

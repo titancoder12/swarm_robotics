@@ -31,7 +31,7 @@ class PolicyConfig:
     # Keep these aligned with the observation contract the policy was trained
     # on. If the simulator-side observation layout changes, the robot runtime
     # needs the same shape and ordering or checkpoint inference will drift.
-    num_actions: int = 9
+    num_actions: int = 18
     lidar_rays: int = 9
     lidar_max_range_m: float = 2.0
     max_speed_mps: float = 0.5
@@ -50,6 +50,11 @@ class PoseEstimate:
     x_mm: float = 0.0
     y_mm: float = 0.0
     heading_deg: float = 0.0
+
+
+def pose_to_cm(pose: PoseEstimate) -> tuple[float, float]:
+    """Convert the local dead-reckoned pose from mm to Mission Control cm."""
+    return pose.x_mm / 10.0, pose.y_mm / 10.0
 
 
 def parse_args(argv=None):
@@ -81,7 +86,6 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
-    parser.add_argument("--cc-pheromone-deposit-spacing-cm", type=float, default=0.0)
     parser.add_argument("--debug", action="store_true")
     return parser.parse_args(argv)
 
@@ -267,35 +271,40 @@ def execute_action(
     turn_step_deg: int,
     move_distance_mm: int,
     reverse_distance_mm: int,
-) -> tuple[float, float]:
+) -> tuple[float, float, bool]:
     # Rebuild the same discrete action table used in the simulator so action id
     # -> (throttle, turn) semantics stay stable between training and deployment.
     throttle_vals = (-1.0, 0.0, 1.0)
     turn_vals = (-1.0, 0.0, 1.0)
-    action_table = [(throttle, turn) for throttle in throttle_vals for turn in turn_vals]
+    action_table = [
+        (throttle, turn, bool(deposit))
+        for throttle in throttle_vals
+        for turn in turn_vals
+        for deposit in (0, 1)
+    ]
 
     if action_id < 0 or action_id >= len(action_table):
         raise ValueError(f"Unsupported action id {action_id}.")
 
-    throttle, turn = action_table[action_id]
+    throttle, turn, deposit = action_table[action_id]
 
     if throttle == 0.0 and turn == 0.0:
         robot.stop()
-        return throttle, turn
+        return throttle, turn, deposit
 
     if turn != 0.0:
         robot.turn(int(round(turn * turn_step_deg)))
 
     if throttle > 0.0:
         robot.move(0, move_distance_mm)
-        return throttle, turn
+        return throttle, turn, deposit
 
     if throttle < 0.0:
         robot.move(180, reverse_distance_mm)
-        return throttle, turn
+        return throttle, turn, deposit
 
     robot.stop()
-    return throttle, turn
+    return throttle, turn, deposit
 
 
 def update_pose_estimate(
@@ -323,12 +332,6 @@ def update_pose_estimate(
     return PoseEstimate(x_mm=next_x_mm, y_mm=next_y_mm, heading_deg=next_heading_deg), distance_mm
 
 
-def distance_cm(a: PoseEstimate, b: PoseEstimate) -> float:
-    # Helper for pheromone deposit spacing. We compare dead-reckoned positions
-    # in centimeters because the Mission Control protocol and pheromone field use cm.
-    return math.hypot(a.x_mm - b.x_mm, a.y_mm - b.y_mm) / 10.0
-
-
 def main(argv=None):
     args = parse_args(argv)
     # Runtime config is deliberately small and local: enough to build the
@@ -340,11 +343,6 @@ def main(argv=None):
         agent_radius_cm=args.agent_radius_cm,
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
-    deposit_spacing_cm = (
-        float(args.cc_pheromone_deposit_spacing_cm)
-        if args.cc_pheromone_deposit_spacing_cm > 0.0
-        else awareness_radius_cm
-    )
     mission_control_link = None
     if args.cc_ble_enable:
         # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
@@ -370,7 +368,6 @@ def main(argv=None):
     period_s = 1.0 / max(args.hz, 1e-6)
     step = 0
     pose = PoseEstimate(heading_deg=args.initial_heading_deg)
-    last_deposit_pose: PoseEstimate | None = None
     # Speed is reconstructed from the commanded step size and loop frequency,
     # not measured from wheel odometry.
     speed_mps = 0.0
@@ -382,7 +379,7 @@ def main(argv=None):
             f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm} "
             f"initial_heading_deg={args.initial_heading_deg} robot_id={args.robot_id} "
             f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f} "
-            f"cc_deposit_enable={args.cc_deposit_enable} deposit_spacing_cm={deposit_spacing_cm:.1f}",
+            f"cc_deposit_enable={args.cc_deposit_enable}",
             flush=True,
         )
 
@@ -390,6 +387,12 @@ def main(argv=None):
 
     if args.debug:
         print("[debug] robot connected", flush=True)
+
+    if mission_control_link is not None:
+        # Publish the origin/nest pose immediately so Mission Control has a
+        # consistent starting point before the first SENSE request arrives.
+        x_cm, y_cm = pose_to_cm(pose)
+        mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
     try:
         while args.max_steps <= 0 or step < args.max_steps:
@@ -402,15 +405,15 @@ def main(argv=None):
             # 6. update local dead-reckoned state and optional pheromone deposit
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
+            lidar_ranges_mm = bucketize_scan(cfg, scan_points)
             pheromone_values = (0.0, 0.0, 0.0)
             if mission_control_link is not None:
-                # Pose is maintained locally in mm, while the Mission Control
-                # protocol uses nest-relative centimeters.
-                x_cm = pose.x_mm / 10.0
-                y_cm = pose.y_mm / 10.0
-                # Position is best-effort telemetry; if this succeeds, the
-                # Mission Control can render us and answer a consistent pheromone query.
+                # Publish the latest dead-reckoned pose before the query so
+                # Mission Control samples pheromone against the same nest-relative
+                # displacement estimate the robot uses locally.
+                x_cm, y_cm = pose_to_cm(pose)
                 mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                mission_control_link.send_lidar(args.robot_id, lidar_ranges_mm)
                 # Mission Control is the source of truth for the digital pheromone
                 # field, so the runtime pulls the latest 3-sample slice right
                 # before inference.
@@ -424,7 +427,7 @@ def main(argv=None):
                 speed_mps=speed_mps,
             )
             action_id, q_values = predict_action(policy, observation)
-            throttle, turn = execute_action(
+            throttle, turn, deposit = execute_action(
                 robot,
                 action_id=action_id,
                 turn_step_deg=args.turn_step_deg,
@@ -440,28 +443,25 @@ def main(argv=None):
                 reverse_distance_mm=args.reverse_distance_mm,
             )
             speed_mps = commanded_distance_mm / 1000.0 / period_s
+            if mission_control_link is not None:
+                # Send the post-action pose as soon as the dead-reckoned
+                # displacement update is applied so Mission Control tracks the
+                # robot's current position rather than only the previous step.
+                x_cm, y_cm = pose_to_cm(pose)
+                mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
             if (
                 mission_control_link is not None
                 and args.cc_deposit_enable
-                and throttle > 0.0
-                and (
-                    last_deposit_pose is None
-                    or distance_cm(pose, last_deposit_pose) >= deposit_spacing_cm
-                )
+                and deposit
             ):
-                # Forward motion drops a new digital pheromone mark once the
-                # robot has advanced roughly one awareness radius since the
-                # previous deposit, avoiding a solid line every control tick.
+                # Digital pheromone placement is now policy-driven. The action
+                # id carries a deposit bit, so the robot only emits PHER when
+                # the model explicitly selects a depositing action.
                 mission_control_link.deposit_pheromone(
                     args.robot_id,
                     pose.x_mm / 10.0,
                     pose.y_mm / 10.0,
                     args.cc_pheromone_deposit_amount,
-                )
-                last_deposit_pose = PoseEstimate(
-                    x_mm=pose.x_mm,
-                    y_mm=pose.y_mm,
-                    heading_deg=pose.heading_deg,
                 )
             step += 1
 
@@ -481,7 +481,7 @@ def main(argv=None):
                 q_values_preview = np.round(q_values, 3).tolist()
                 print(
                     f"[debug] step={step} scans={len(scan_points)} valid_scans={valid_scan_count} "
-                    f"action={action_id} throttle={throttle:+.1f} turn={turn:+.1f} "
+                    f"action={action_id} throttle={throttle:+.1f} turn={turn:+.1f} deposit={int(deposit)} "
                     f"heading_deg={pose.heading_deg:.1f} commanded_distance_mm={commanded_distance_mm:.1f} "
                     f"x_mm={pose.x_mm:.1f} y_mm={pose.y_mm:.1f} "
                     f"elapsed={elapsed:.3f}s sleep={max(sleep_time, 0.0):.3f}s",

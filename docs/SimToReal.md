@@ -1,6 +1,6 @@
 # Sim-to-Real Deployment Architecture
 
-This repository now uses a direct robot runtime centered on [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py).
+This repository now uses a direct robot runtime centered on [firmware/run.py](../firmware/run.py).
 
 ## 1) Active Deployment Boundary
 
@@ -15,11 +15,11 @@ On the physical robot, the active path is:
 
 Concretely:
 
-- [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py)
+- [firmware/ant.py](../firmware/ant.py)
   handles serial communication and the low-level command vocabulary
-- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py)
+- [firmware/run.py](../firmware/run.py)
   builds the observation, loads the checkpoint, predicts an action, and executes it
-- [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py)
+- [models/q_network.py](../models/q_network.py)
   defines the network architecture expected by the custom PyTorch checkpoints
 
 The older `pi/` and `robot/` abstraction layers are no longer part of the live deployment path.
@@ -47,7 +47,7 @@ The real robot must still preserve the policy contract used during training:
 
 Important current limitation:
 
-- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py) currently derives lidar from real scan data
+- [firmware/run.py](../firmware/run.py) currently derives lidar from real scan data
 - several non-lidar channels are still placeholders, such as target, nest, neighbor, speed, and pheromone values
 
 That means the runtime is operational, but full sim-to-real fidelity still depends on future sensor integration or retraining.
@@ -59,7 +59,7 @@ The action space remains the trained discrete 9-action table:
 - throttle in `[-1, 0, 1]`
 - turn in `[-1, 0, 1]`
 
-The physical mapping is implemented directly in [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py) using:
+The physical mapping is implemented directly in [firmware/run.py](../firmware/run.py) using:
 
 - `--turn-step-deg`
 - `--move-distance-mm`
@@ -88,11 +88,11 @@ On the ESP32 side:
 
 The minimum robot-side set is now:
 
-- [AntSwarmFirmware/ant.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.py)
-- [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py)
-- [AntSwarmFirmware/ant.service](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/ant.service)
-- [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py)
-- [checkpoints/](/Users/christopherlin/dev/cwsf2026/sim/checkpoints)
+- [firmware/ant.py](../firmware/ant.py)
+- [firmware/run.py](../firmware/run.py)
+- [firmware/ant.service](../firmware/ant.service)
+- [models/q_network.py](../models/q_network.py)
+- [checkpoints/](../checkpoints)
 
 Plus Python dependencies:
 
@@ -102,6 +102,6 @@ Plus Python dependencies:
 
 ## 7) Practical Recommendation
 
-If your goal is to run one physical robot today, treat [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py) as the single source of truth for deployment.
+If your goal is to run one physical robot today, treat [firmware/run.py](../firmware/run.py) as the single source of truth for deployment.
 
 If you later need multiple hardware backends or a more generic deployment framework, reintroduce modular layers only after the direct path is stable and calibrated.

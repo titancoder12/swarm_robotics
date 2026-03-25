@@ -60,6 +60,7 @@ def _custom_demo(env, obs, agent_ids, args):
     obs_dim = obs.shape[1]
     action_dim = env.cfg.num_actions
     device = torch.device("cpu")
+    next_reset_seed = args.seed + 1
 
     nets = load_models(args.checkpoint_dir, obs_dim, action_dim, env.cfg.n_agents, args.shared_policy, device)
 
@@ -88,8 +89,9 @@ def _custom_demo(env, obs, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=args.seed)
+            obs_dict, _ = env.reset(seed=next_reset_seed)
             obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
+            next_reset_seed += 1
 
     return obs
 
@@ -98,6 +100,7 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     from stable_baselines3 import DQN
 
     model = DQN.load(args.sb3_model, device="cpu")
+    next_reset_seed = args.seed + 1
 
     running = True
     steps = 0
@@ -120,7 +123,8 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=args.seed)
+            obs_dict, _ = env.reset(seed=next_reset_seed)
+            next_reset_seed += 1
 
     return obs_dict
 
@@ -172,6 +176,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
 
     running = True
     steps = 0
+    next_reset_seed = args.seed + 1
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -191,7 +196,8 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=args.seed)
+            obs_dict, _ = env.reset(seed=next_reset_seed)
+            next_reset_seed += 1
 
     algo.stop()
     ray.shutdown()

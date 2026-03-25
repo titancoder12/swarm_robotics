@@ -7,6 +7,7 @@ import time
 import pygame
 
 from mission_control.comms.protocol import (
+    LidarMessage,
     PheromoneMessage,
     PositionMessage,
     ProtocolError,
@@ -85,6 +86,10 @@ def main(argv: list[str] | None = None) -> int:
             world.deposit_pheromone(msg.x_cm, msg.y_cm, msg.amount)
             return []
 
+        if isinstance(msg, LidarMessage):
+            world.robot_registry.update_lidar(msg.robot_id, msg.ranges_mm)
+            return []
+
         if isinstance(msg, SenseMessage):
             # `SENSE` is the request/response path: sample the field and return
             # the simulator-compatible pheromone observation slice.
@@ -127,14 +132,19 @@ def main(argv: list[str] | None = None) -> int:
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                        world.flash_control("quit")
                         running = False
                     elif event.key == pygame.K_SPACE:
+                        world.flash_control("space")
                         world.toggle_paused()
                     elif event.key == pygame.K_c:
+                        world.flash_control("c")
                         world.clear_pheromone()
                     elif event.key == pygame.K_t:
+                        world.flash_control("t")
                         world.toggle_trails()
                     elif event.key == pygame.K_p:
+                        world.flash_control("p")
                         world.toggle_pheromone()
 
             world.tick()

@@ -4,31 +4,31 @@ This document is an implementation-grounded reference for the current swarm robo
 
 All behavior described here is based on the current implementation in:
 
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
-- [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
-- [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
-- [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py)
-- [train/random_rollout.py](/Users/christopherlin/dev/cwsf2026/sim/train/random_rollout.py)
-- [train/demo.py](/Users/christopherlin/dev/cwsf2026/sim/train/demo.py)
-- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
-- [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py)
-- [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py)
-- [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
+- [env/config.py](../env/config.py)
+- [env/swarm_env.py](../env/swarm_env.py)
+- [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
+- [train/evaluate.py](../train/evaluate.py)
+- [train/run_experiments.py](../train/run_experiments.py)
+- [train/experiment_utils.py](../train/experiment_utils.py)
+- [train/random_rollout.py](../train/random_rollout.py)
+- [train/demo.py](../train/demo.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
+- [analysis/plot_metrics.py](../analysis/plot_metrics.py)
+- [models/q_network.py](../models/q_network.py)
+- [models/rule_based_policy.py](../models/rule_based_policy.py)
 
 ## 1. Environment Overview
 
 ### Primary class
 
 - `SwarmEnv`
-  - file: [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+  - file: [env/swarm_env.py](../env/swarm_env.py)
   - base class: `pettingzoo.ParallelEnv`
 
 ### Related classes
 
 - `AgentState`
-  - file: [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+  - file: [env/swarm_env.py](../env/swarm_env.py)
   - per-agent continuous state container
 - `DynamicsDriver`
   - abstract driver interface
@@ -37,7 +37,7 @@ All behavior described here is based on the current implementation in:
 - `HovercraftDriver`
   - forward-speed plus yaw-rate kinematics with lateral drift and stochastic slip
 - `SwarmConfig`
-  - file: [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+  - file: [env/config.py](../env/config.py)
   - dataclass holding all environment parameters
 
 ### Instantiation
@@ -132,7 +132,7 @@ Returns:
 
 ### Termination and truncation rules
 
-Implemented in `step()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py):
+Implemented in `step()` in [env/swarm_env.py](../env/swarm_env.py):
 
 - `terminated = True` when:
   - `len(self.targets) == 0`
@@ -293,7 +293,7 @@ So:
 
 ### Observation assembly order
 
-Implemented in `_get_obs()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py):
+Implemented in `_get_obs()` in [env/swarm_env.py](../env/swarm_env.py):
 
 1. lidar
 2. nearest target vector
@@ -376,7 +376,7 @@ Default index layout with all current optional features enabled:
 
 ### Lidar specification
 
-Implemented by `_lidar_scan()` and `_ray_distance()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+Implemented by `_lidar_scan()` and `_ray_distance()` in [env/swarm_env.py](../env/swarm_env.py).
 
 Current defaults:
 
@@ -537,7 +537,7 @@ Implications:
 
 ### Action mapping
 
-Implemented by `_build_action_table()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+Implemented by `_build_action_table()` in [env/swarm_env.py](../env/swarm_env.py).
 
 Construction order:
 
@@ -600,7 +600,7 @@ So the action interface is shared, but motion outcomes differ by driver.
 
 ### Reward terms
 
-Rewards are assembled in `step()` and helper methods in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+Rewards are assembled in `step()` and helper methods in [env/swarm_env.py](../env/swarm_env.py).
 
 Per-step initialization:
 
@@ -889,7 +889,7 @@ This metric is different from the observation pheromone samples:
 
 ## 9. Configuration Reference
 
-All configuration fields are in `SwarmConfig` in [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py).
+All configuration fields are in `SwarmConfig` in [env/config.py](../env/config.py).
 
 | Field | Type | Default | Valid / Expected values | Effect |
 | --- | --- | --- | --- | --- |
@@ -965,7 +965,7 @@ All configuration fields are in `SwarmConfig` in [env/config.py](/Users/christop
 
 #### `train.independent_dqn_pytorch.parse_args(argv=None)`
 
-- file: [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
+- file: [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
 - purpose: CLI parser for custom DQN training
 
 Important arguments:
@@ -1004,7 +1004,7 @@ run_dir = train(args)
 
 #### `ReplayBuffer`
 
-- file: [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
+- file: [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
 - purpose: fixed-capacity FIFO experience storage
 
 Methods:
@@ -1020,7 +1020,7 @@ Methods:
 
 #### `train.evaluate.parse_args(argv=None)`
 
-- file: [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+- file: [train/evaluate.py](../train/evaluate.py)
 
 Important arguments:
 
@@ -1054,7 +1054,7 @@ out_dir = run(args)
 
 #### `train/policy_probe.py`
 
-- file: [train/policy_probe.py](/Users/christopherlin/dev/cwsf2026/sim/train/policy_probe.py)
+- file: [train/policy_probe.py](../train/policy_probe.py)
 - purpose: manually feed named 23-dimensional observation vectors into a trained custom DQN checkpoint and inspect outputs
 
 Typical commands:
@@ -1130,7 +1130,7 @@ Adds shared CLI flags:
 
 #### `experiments.benchmark_configs.get_experiment_cases(name)`
 
-- file: [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+- file: [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
 - returns:
   - a registry dict for `"all"`
   - or a single `{name: spec}` dict
@@ -1241,10 +1241,10 @@ Important arguments:
 
 Files to modify:
 
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- optionally [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
-- optionally [AntSwarmFirmware/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/AntSwarmFirmware/run_policy.py) if the physical robot observation path must stay aligned with the simulator
+- [env/config.py](../env/config.py)
+- [env/swarm_env.py](../env/swarm_env.py)
+- optionally [models/rule_based_policy.py](../models/rule_based_policy.py)
+- optionally [firmware/run.py](../firmware/run.py) if the physical robot observation path must stay aligned with the simulator
 
 Steps:
 
@@ -1259,8 +1259,8 @@ Steps:
 
 Files to modify:
 
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+- [env/config.py](../env/config.py)
+- [env/swarm_env.py](../env/swarm_env.py)
 
 Typical insertion points:
 
@@ -1270,16 +1270,16 @@ Typical insertion points:
 
 If you want the trainer and evaluator to expose the new signal, also update:
 
-- [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
-- [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+- [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
+- [train/evaluate.py](../train/evaluate.py)
 
 ### Add a new action
 
 Files to modify:
 
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py) only if action count changes in downstream code assumptions
+- [env/config.py](../env/config.py)
+- [env/swarm_env.py](../env/swarm_env.py)
+- [models/q_network.py](../models/q_network.py) only if action count changes in downstream code assumptions
 - any policy code that decodes the current 9-action layout
 
 Steps:
@@ -1288,15 +1288,15 @@ Steps:
 2. update `_build_action_table()`
 3. ensure `action_space()` matches the new size
 4. update any hard-coded action lookup tables, such as:
-   - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
+   - [models/rule_based_policy.py](../models/rule_based_policy.py)
 5. retrain checkpoints
 
 ### Add a new dynamics mode
 
 Files to modify:
 
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- optionally [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+- [env/swarm_env.py](../env/swarm_env.py)
+- optionally [env/config.py](../env/config.py)
 
 Steps:
 
@@ -1308,9 +1308,9 @@ Steps:
 
 Likely files:
 
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
-- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+- [env/swarm_env.py](../env/swarm_env.py)
+- [env/config.py](../env/config.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
 
 Typical task hooks:
 
@@ -1328,9 +1328,9 @@ Typical task hooks:
 
 Files to modify:
 
-- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
-- optionally [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
-- optionally [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
+- optionally [train/run_experiments.py](../train/run_experiments.py)
+- optionally [analysis/plot_metrics.py](../analysis/plot_metrics.py)
 
 If the new experiment fits the existing runner pattern:
 

@@ -18,7 +18,7 @@ class SwarmConfig:
 
     # Action space (discrete)
     action_dim: int = 1
-    num_actions: int = 9
+    num_actions: int = 18
 
     # Dynamics
     dt: float = 0.1
@@ -61,6 +61,7 @@ class SwarmConfig:
     reward_nest_delivery: float = 10.0
     reward_exploration: float = 0.02
     reward_pheromone_following: float = 0.0
+    reward_pheromone_deposit_cost: float = -0.02
 
     # Task
     nest_enabled: bool = True

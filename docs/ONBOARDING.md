@@ -20,7 +20,7 @@ That command trains and evaluates the flagship experiment, then writes:
 - aggregated CSVs under `results/`
 - plots under `analysis/`
 
-For a short version, see [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md).
+For a short version, see [docs/manual/QUICK_START.md](manual/QUICK_START.md).
 
 ## 1. Setup
 
@@ -120,7 +120,7 @@ This is a small teaching script for manually feeding 23-dimensional observations
 
 ## 6. Run Experiments
 
-The central experiment entry point is [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py).
+The central experiment entry point is [train/run_experiments.py](../train/run_experiments.py).
 
 ### Collective Intelligence Scaling
 
@@ -167,25 +167,25 @@ The project uses three main output directories:
 
 ## 8. Key Files to Know
 
-- [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+- [env/swarm_env.py](../env/swarm_env.py)
   - environment logic
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+- [env/config.py](../env/config.py)
   - simulation configuration
-- [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
+- [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
   - custom DQN trainer
-- [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+- [train/evaluate.py](../train/evaluate.py)
   - shared evaluation path
-- [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+- [train/run_experiments.py](../train/run_experiments.py)
   - experiment runner
-- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
   - experiment definitions
-- [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
+- [models/rule_based_policy.py](../models/rule_based_policy.py)
   - rule-based baseline
 
 ## 9. Suggested Reading Order
 
-1. [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md)
-2. [docs/ARCHITECTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/ARCHITECTURE.md)
-3. [docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)
-4. [docs/manual/EXPERIMENT_GUIDE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/EXPERIMENT_GUIDE.md)
-5. [docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)
+1. [docs/manual/QUICK_START.md](manual/QUICK_START.md)
+2. [docs/ARCHITECTURE.md](ARCHITECTURE.md)
+3. [docs/manual/PROJECT_STRUCTURE.md](manual/PROJECT_STRUCTURE.md)
+4. [docs/manual/EXPERIMENT_GUIDE.md](manual/EXPERIMENT_GUIDE.md)
+5. [docs/manual/RESULTS_INTERPRETATION.md](manual/RESULTS_INTERPRETATION.md)

@@ -1,6 +1,6 @@
 # Codex Prompt — Add Bluetooth Transport to the Command Center
 
-You are working in the existing repository and must extend the current [mission_control/](/Users/christopherlin/dev/cwsf2026/sim/mission_control/) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
+You are working in the existing repository and must extend the current [mission_control/](../../mission_control) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
 
 ## High-level goal
 
@@ -15,7 +15,7 @@ This is a transport-layer extension only.
 
 Do **not** redesign the protocol, the pheromone logic, or the RL observation contract.
 
-For this repo, interpret "robot-side" to mean the Raspberry Pi runtime in [firmware/](/Users/christopherlin/dev/cwsf2026/sim/firmware/), not the low-level ESP32 motor/sensor controller. The Pi is where the policy loop runs and where interaction with the model and observation vector happens.
+For this repo, interpret "robot-side" to mean the Raspberry Pi runtime in [firmware/](../../firmware), not the low-level ESP32 motor/sensor controller. The Pi is where the policy loop runs and where interaction with the model and observation vector happens.
 
 ---
 
@@ -23,10 +23,10 @@ For this repo, interpret "robot-side" to mean the Raspberry Pi runtime in [firmw
 
 The current command center already has:
 
-* line-based ASCII protocol parsing in [mission_control/comms/protocol.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/protocol.py)
-* TCP and serial transport workers in [mission_control/comms/receiver.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/comms/receiver.py)
-* transport-agnostic dispatch logic in [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py)
-* simulator-aligned pheromone sampling in [mission_control/core/pheromone_field.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/core/pheromone_field.py)
+* line-based ASCII protocol parsing in [mission_control/comms/protocol.py](../../mission_control/comms/protocol.py)
+* TCP and serial transport workers in [mission_control/comms/receiver.py](../../mission_control/comms/receiver.py)
+* transport-agnostic dispatch logic in [mission_control/main.py](../../mission_control/main.py)
+* simulator-aligned pheromone sampling in [mission_control/core/pheromone_field.py](../../mission_control/core/pheromone_field.py)
 
 The current codebase does **not** implement a Bluetooth-specific backend yet.
 
@@ -191,8 +191,8 @@ mission_control/
 Possible additions:
 
 * a `BluetoothWorker`
-* a Bluetooth connection config block in [mission_control/config.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/config.py)
-* CLI flags in [mission_control/main.py](/Users/christopherlin/dev/cwsf2026/sim/mission_control/main.py) to configure Bluetooth devices or enable Bluetooth mode
+* a Bluetooth connection config block in [mission_control/config.py](../../mission_control/config.py)
+* CLI flags in [mission_control/main.py](../../mission_control/main.py) to configure Bluetooth devices or enable Bluetooth mode
 
 But the protocol parser and world-state logic should remain transport-agnostic.
 

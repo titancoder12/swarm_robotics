@@ -7,26 +7,26 @@ This project is a stigmergic swarm robotics simulation and experiment platform. 
 The system has five main layers:
 
 1. Environment
-   - [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py) defines the simulation parameters.
-   - [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py) implements the PettingZoo Parallel environment, rewards, observations, pheromones, and rendering.
+   - [env/config.py](../env/config.py) defines the simulation parameters.
+   - [env/swarm_env.py](../env/swarm_env.py) implements the PettingZoo Parallel environment, rewards, observations, pheromones, and rendering.
 
 2. Policies and models
-   - [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py) defines the shared DQN network used by custom checkpoints.
-   - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py) defines the non-learning rule-based baseline used in comparative experiments.
+   - [models/q_network.py](../models/q_network.py) defines the shared DQN network used by custom checkpoints.
+   - [models/rule_based_policy.py](../models/rule_based_policy.py) defines the non-learning rule-based baseline used in comparative experiments.
 
 3. Training and evaluation
-   - [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py) is the main custom DQN trainer.
-   - [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py) runs shared evaluation for learned and rule-based policies.
-   - [train/train.py](/Users/christopherlin/dev/cwsf2026/sim/train/train.py) dispatches between custom, SB3, and RLlib training backends.
+   - [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py) is the main custom DQN trainer.
+   - [train/evaluate.py](../train/evaluate.py) runs shared evaluation for learned and rule-based policies.
+   - [train/train.py](../train/train.py) dispatches between custom, SB3, and RLlib training backends.
 
 4. Experiment framework
-   - [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py) defines experiment sweeps.
-   - [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py) runs trials, aggregates outputs, and generates plots.
-   - [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py) provides run-directory, CSV, JSON, config, and aggregation helpers.
+   - [experiments/benchmark_configs.py](../experiments/benchmark_configs.py) defines experiment sweeps.
+   - [train/run_experiments.py](../train/run_experiments.py) runs trials, aggregates outputs, and generates plots.
+   - [train/experiment_utils.py](../train/experiment_utils.py) provides run-directory, CSV, JSON, config, and aggregation helpers.
 
 5. Analysis and deployment
-   - [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py) generates training and experiment plots.
-   - [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) and [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) contain sim-to-real and Raspberry Pi integration code.
+   - [analysis/plot_metrics.py](../analysis/plot_metrics.py) generates training and experiment plots.
+   - `robot/` and `pi/` contain sim-to-real and Raspberry Pi integration code.
 
 ## Environment Design
 
@@ -42,7 +42,7 @@ Agents do not communicate directly. Coordination emerges from local sensing and 
 
 ### Observation Space
 
-Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py):
+Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](../env/swarm_env.py):
 
 - lidar obstacle rays
 - nearest food vector in agent-local coordinates
@@ -63,7 +63,7 @@ The action space remains `Discrete(9)`. Actions map to a 3x3 grid of `(throttle,
 - throttle in `{-1, 0, 1}`
 - turn in `{-1, 0, 1}`
 
-This mapping is defined in `_build_action_table()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+This mapping is defined in `_build_action_table()` in [env/swarm_env.py](../env/swarm_env.py).
 
 ### Task Mechanics
 
@@ -87,7 +87,7 @@ Rendering can show the field as a heatmap overlay.
 
 ## Training Architecture
 
-The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py).
+The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py).
 
 It supports:
 
@@ -104,12 +104,12 @@ The trainer reads `obs_dim` dynamically from the environment, so it is aligned w
 
 Optional comparison backends still exist:
 
-- [train/sb3_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/sb3_dqn.py)
-- [train/rllib_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/rllib_dqn.py)
+- [train/sb3_dqn.py](../train/sb3_dqn.py)
+- [train/rllib_dqn.py](../train/rllib_dqn.py)
 
 ## Evaluation and Metrics
 
-Shared evaluation is handled by [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py). It evaluates:
+Shared evaluation is handled by [train/evaluate.py](../train/evaluate.py). It evaluates:
 
 - DQN checkpoints
 - shared-policy DQN checkpoints
@@ -136,8 +136,8 @@ These derived metrics are computed in the analysis/aggregation layer, not in the
 
 The shared experiment system uses:
 
-- [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
-- [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
+- [train/run_experiments.py](../train/run_experiments.py)
 
 Key implemented experiments:
 
@@ -156,9 +156,9 @@ Outputs are written to:
 
 For interactive visualization:
 
-- [train/random_rollout.py](/Users/christopherlin/dev/cwsf2026/sim/train/random_rollout.py) runs a random policy sanity check.
-- [train/demo.py](/Users/christopherlin/dev/cwsf2026/sim/train/demo.py) renders trained policies.
-- [train/capture_screenshots.py](/Users/christopherlin/dev/cwsf2026/sim/train/capture_screenshots.py) generates documentation images.
+- [train/random_rollout.py](../train/random_rollout.py) runs a random policy sanity check.
+- [train/demo.py](../train/demo.py) renders trained policies.
+- [train/capture_screenshots.py](../train/capture_screenshots.py) generates documentation images.
 
 The renderer can show:
 
@@ -172,8 +172,8 @@ The renderer can show:
 
 The project also contains deployment-oriented code:
 
-- [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) provides generic sensor, observation, policy, and action bridges.
-- [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) provides Raspberry Pi-side runtime examples, including a preserved rule-based runtime and a model-driven runtime.
+- `robot/` provides generic sensor, observation, policy, and action bridges.
+- `pi/` provides Raspberry Pi-side runtime examples, including a preserved rule-based runtime and a model-driven runtime.
 
 These modules reuse the same observation and action contracts where possible.
 
@@ -181,8 +181,8 @@ These modules reuse the same observation and action contracts where possible.
 
 For a new reader:
 
-1. [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md)
-2. [docs/ONBOARDING.md](/Users/christopherlin/dev/cwsf2026/sim/docs/ONBOARDING.md)
-3. [docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)
-4. [docs/manual/EXPERIMENT_GUIDE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/EXPERIMENT_GUIDE.md)
-5. [docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)
+1. [docs/manual/QUICK_START.md](manual/QUICK_START.md)
+2. [docs/ONBOARDING.md](ONBOARDING.md)
+3. [docs/manual/PROJECT_STRUCTURE.md](manual/PROJECT_STRUCTURE.md)
+4. [docs/manual/EXPERIMENT_GUIDE.md](manual/EXPERIMENT_GUIDE.md)
+5. [docs/manual/RESULTS_INTERPRETATION.md](manual/RESULTS_INTERPRETATION.md)

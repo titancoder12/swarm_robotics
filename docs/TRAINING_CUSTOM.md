@@ -1,12 +1,12 @@
 # Custom DQN Training Walkthrough
 
-This document explains how the custom training pipeline works in [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py).
+This document explains how the custom training pipeline works in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py).
 
 It is implementation-grounded. The goal is to help a developer understand exactly how training runs in this repo, how data flows through the system, and what each major block of the file is doing.
 
 ## What This File Does
 
-[train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py) implements a classic DQN training loop for the swarm environment.
+[train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py) implements a classic DQN training loop for the swarm environment.
 
 It uses:
 
@@ -54,7 +54,7 @@ The training loop follows this repeated pattern:
 
 ## Hyperparameters
 
-`DQNConfig` is defined at [train/independent_dqn_pytorch.py#L37](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L37).
+`DQNConfig` is defined at [train/independent_dqn_pytorch.py#L37](../train/independent_dqn_pytorch.py#L37).
 
 Current defaults:
 
@@ -72,7 +72,7 @@ These are the learning hyperparameters, separate from environment configuration.
 
 ## Replay Buffer
 
-`ReplayBuffer` is defined at [train/independent_dqn_pytorch.py#L51](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L51).
+`ReplayBuffer` is defined at [train/independent_dqn_pytorch.py#L51](../train/independent_dqn_pytorch.py#L51).
 
 Each stored transition contains:
 
@@ -94,7 +94,7 @@ This is a circular FIFO buffer. When it fills up, old transitions are overwritte
 
 ## Environment Setup
 
-Training begins inside `train(args)` at [train/independent_dqn_pytorch.py#L166](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L166).
+Training begins inside `train(args)` at [train/independent_dqn_pytorch.py#L166](../train/independent_dqn_pytorch.py#L166).
 
 The first important steps are:
 
@@ -120,7 +120,7 @@ The trainer creates a run directory and several outputs:
 - `run_config.json`
 - `summary.json`
 
-This happens at [train/independent_dqn_pytorch.py#L183](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L183) through [train/independent_dqn_pytorch.py#L229](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L229).
+This happens at [train/independent_dqn_pytorch.py#L183](../train/independent_dqn_pytorch.py#L183) through [train/independent_dqn_pytorch.py#L229](../train/independent_dqn_pytorch.py#L229).
 
 Logged episode metrics include:
 
@@ -136,7 +136,7 @@ Logged episode metrics include:
 
 ## Network Initialization
 
-At [train/independent_dqn_pytorch.py#L231](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L231), the trainer builds:
+At [train/independent_dqn_pytorch.py#L231](../train/independent_dqn_pytorch.py#L231), the trainer builds:
 
 - online Q-networks
 - target Q-networks
@@ -187,7 +187,7 @@ These are only for logging. They do not affect the actual DQN update.
 
 ## Main Training Loop
 
-The main loop starts at [train/independent_dqn_pytorch.py#L277](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L277):
+The main loop starts at [train/independent_dqn_pytorch.py#L277](../train/independent_dqn_pytorch.py#L277):
 
 ```python
 while global_step < args.total_steps:
@@ -197,7 +197,7 @@ Each pass through this loop is one environment step.
 
 ### Step 1: Compute Epsilon
 
-At [train/independent_dqn_pytorch.py#L280](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L280):
+At [train/independent_dqn_pytorch.py#L280](../train/independent_dqn_pytorch.py#L280):
 
 ```python
 epsilon = linear_schedule(...)
@@ -207,7 +207,7 @@ This linearly decreases exploration from `1.0` to `0.05` over `8000` steps.
 
 ### Step 2: Choose Actions
 
-At [train/independent_dqn_pytorch.py#L284](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L284), one action is chosen for each agent.
+At [train/independent_dqn_pytorch.py#L284](../train/independent_dqn_pytorch.py#L284), one action is chosen for each agent.
 
 For each agent:
 
@@ -221,7 +221,7 @@ This is epsilon-greedy exploration.
 
 ### Step 3: Step the Environment
 
-At [train/independent_dqn_pytorch.py#L295](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L295):
+At [train/independent_dqn_pytorch.py#L295](../train/independent_dqn_pytorch.py#L295):
 
 - the action array is converted into a PettingZoo dict
 - `env.step(action_dict)` is called
@@ -237,7 +237,7 @@ That single `done_flag` is what gets stored in replay for all agents for that en
 
 ### Step 4: Store Transitions
 
-At [train/independent_dqn_pytorch.py#L304](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L304), each agent transition is added to replay:
+At [train/independent_dqn_pytorch.py#L304](../train/independent_dqn_pytorch.py#L304), each agent transition is added to replay:
 
 ```python
 buffers[i].add(obs[i], actions[i], rewards[i], next_obs[i], done_flag)
@@ -255,7 +255,7 @@ The trainer also updates episode-level stats from the env `info`.
 
 ### Step 5: Move Forward in Time
 
-At [train/independent_dqn_pytorch.py#L322](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L322):
+At [train/independent_dqn_pytorch.py#L322](../train/independent_dqn_pytorch.py#L322):
 
 - `obs = next_obs`
 - `global_step += 1`
@@ -264,7 +264,7 @@ This makes the next observation become the current observation for the next loop
 
 ### Step 6: Learn From Replay
 
-At [train/independent_dqn_pytorch.py#L326](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L326), learning begins once warmup is over:
+At [train/independent_dqn_pytorch.py#L326](../train/independent_dqn_pytorch.py#L326), learning begins once warmup is over:
 
 - if `global_step > warmup_steps`
 - if each buffer has at least `batch_size` samples
@@ -283,7 +283,7 @@ This is the core DQN learning block.
 
 ### Step 7: Sync Target Networks
 
-At [train/independent_dqn_pytorch.py#L345](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L345):
+At [train/independent_dqn_pytorch.py#L345](../train/independent_dqn_pytorch.py#L345):
 
 ```python
 if global_step % dqn_cfg.target_update == 0:
@@ -295,7 +295,7 @@ This stabilizes learning because the Bellman target does not change every gradie
 
 ### Step 8: Periodic Evaluation
 
-At [train/independent_dqn_pytorch.py#L350](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L350), if evaluation is enabled:
+At [train/independent_dqn_pytorch.py#L350](../train/independent_dqn_pytorch.py#L350), if evaluation is enabled:
 
 - `_evaluate_policy(...)` runs deterministic episodes
 - the current policy is tested without epsilon-greedy randomness
@@ -305,7 +305,7 @@ This evaluation uses a fresh headless environment.
 
 ### Step 9: End-of-Episode Logging
 
-At [train/independent_dqn_pytorch.py#L356](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L356), if the episode ended:
+At [train/independent_dqn_pytorch.py#L356](../train/independent_dqn_pytorch.py#L356), if the episode ended:
 
 - aggregate episode metrics
 - compute `swarm_efficiency`
@@ -316,15 +316,15 @@ At [train/independent_dqn_pytorch.py#L356](/Users/christopherlin/dev/cwsf2026/si
 
 ### Step 10: Checkpointing
 
-At [train/independent_dqn_pytorch.py#L397](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L397):
+At [train/independent_dqn_pytorch.py#L397](../train/independent_dqn_pytorch.py#L397):
 
 - if `--save-every > 0`, save intermediate checkpoints every `N` steps
 
-At [train/independent_dqn_pytorch.py#L401](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L401):
+At [train/independent_dqn_pytorch.py#L401](../train/independent_dqn_pytorch.py#L401):
 
 - always save final checkpoints at the end of training
 
-`_save_models(...)` at [train/independent_dqn_pytorch.py#L441](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L441) writes:
+`_save_models(...)` at [train/independent_dqn_pytorch.py#L441](../train/independent_dqn_pytorch.py#L441) writes:
 
 - `metadata.json`
 - `shared.pt` if shared policy mode
@@ -332,7 +332,7 @@ At [train/independent_dqn_pytorch.py#L401](/Users/christopherlin/dev/cwsf2026/si
 
 ## Bellman Update Block: Line-by-Line Walkthrough
 
-This is the core learning block from [train/independent_dqn_pytorch.py#L331](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L331).
+This is the core learning block from [train/independent_dqn_pytorch.py#L331](../train/independent_dqn_pytorch.py#L331).
 
 ### 1. Sample a minibatch
 
@@ -660,7 +660,7 @@ updates the Q-network weights.
 
 ## Evaluation Flow
 
-`_evaluate_policy(...)` is defined at [train/independent_dqn_pytorch.py#L106](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L106).
+`_evaluate_policy(...)` is defined at [train/independent_dqn_pytorch.py#L106](../train/independent_dqn_pytorch.py#L106).
 
 It:
 
@@ -672,7 +672,7 @@ It does not train. It only measures current policy quality.
 
 ## CLI Arguments
 
-`parse_args(...)` is defined at [train/independent_dqn_pytorch.py#L421](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py#L421).
+`parse_args(...)` is defined at [train/independent_dqn_pytorch.py#L421](../train/independent_dqn_pytorch.py#L421).
 
 Core arguments:
 
@@ -711,7 +711,7 @@ If you want the shortest correct understanding of the file, it is this:
 
 After this document, the best files to read are:
 
-1. [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py)
-2. [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-3. [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+1. [models/q_network.py](../models/q_network.py)
+2. [env/swarm_env.py](../env/swarm_env.py)
+3. [train/evaluate.py](../train/evaluate.py)
 

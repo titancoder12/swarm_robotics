@@ -1,12 +1,12 @@
 # Custom Evaluation Walkthrough
 
-This document explains how evaluation works in [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py).
+This document explains how evaluation works in [train/evaluate.py](../train/evaluate.py).
 
 It is implementation-grounded. The goal is to help a developer understand exactly what the evaluation script does, how it differs from training, how policies are loaded, and what files it writes.
 
 ## What This File Does
 
-[train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py) runs headless evaluation episodes and records metrics.
+[train/evaluate.py](../train/evaluate.py) runs headless evaluation episodes and records metrics.
 
 It does not train.
 
@@ -49,7 +49,7 @@ The main parts of the file are:
 
 ## CLI Arguments
 
-`parse_args(...)` is defined at [train/evaluate.py#L21](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L21).
+`parse_args(...)` is defined at [train/evaluate.py#L21](../train/evaluate.py#L21).
 
 Main arguments:
 
@@ -73,7 +73,7 @@ It also imports environment-related flags through `add_env_config_args(parser)`,
 
 ### DQN checkpoints
 
-`_load_models(...)` is defined at [train/evaluate.py#L34](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L34).
+`_load_models(...)` is defined at [train/evaluate.py#L34](../train/evaluate.py#L34).
 
 It always evaluates on CPU:
 
@@ -106,9 +106,9 @@ net.eval()
 
 ### Rule-based policies
 
-`_build_rule_based_policies(...)` is defined at [train/evaluate.py#L51](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L51).
+`_build_rule_based_policies(...)` is defined at [train/evaluate.py#L51](../train/evaluate.py#L51).
 
-It constructs one [RuleBasedSwarmPolicy](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py) per agent:
+It constructs one [RuleBasedSwarmPolicy](../models/rule_based_policy.py) per agent:
 
 ```python
 [RuleBasedSwarmPolicy(cfg, seed=seed + i) for i in range(cfg.n_agents)]
@@ -118,7 +118,7 @@ This gives each agent its own rule-based policy instance with a deterministic se
 
 ## Main Evaluation Flow
 
-The main function is `run(args)` at [train/evaluate.py#L55](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L55).
+The main function is `run(args)` at [train/evaluate.py#L55](../train/evaluate.py#L55).
 
 ### 1. Create output directory
 
@@ -166,7 +166,7 @@ That makes it consistent with the current environment contract.
 
 ### 4. Choose policy type
 
-At [train/evaluate.py#L63](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L63):
+At [train/evaluate.py#L63](../train/evaluate.py#L63):
 
 - if `args.policy_kind == "dqn"`:
   - load DQN checkpoints
@@ -177,7 +177,7 @@ So the evaluator is the shared measurement path for both learned and non-learned
 
 ## Per-Episode Logging Setup
 
-At [train/evaluate.py#L71](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L71), the script creates a CSV logger for:
+At [train/evaluate.py#L71](../train/evaluate.py#L71), the script creates a CSV logger for:
 
 - `episode`
 - `seed`
@@ -196,7 +196,7 @@ It also keeps a `summaries` list in memory so it can compute overall means at th
 
 ## Episode Loop
 
-The main evaluation loop begins at [train/evaluate.py#L87](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L87):
+The main evaluation loop begins at [train/evaluate.py#L87](../train/evaluate.py#L87):
 
 ```python
 for episode in range(1, args.episodes + 1):
@@ -217,7 +217,7 @@ This means different episodes use different seeds, but the sequence is determini
 
 ## Action Selection
 
-Inside the episode, the main step loop begins at [train/evaluate.py#L96](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L96):
+Inside the episode, the main step loop begins at [train/evaluate.py#L96](../train/evaluate.py#L96):
 
 ```python
 while True:
@@ -254,7 +254,7 @@ This uses the same observation vector and the same discrete action space, but pr
 
 ## Environment Step
 
-At [train/evaluate.py#L107](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L107):
+At [train/evaluate.py#L107](../train/evaluate.py#L107):
 
 ```python
 action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
@@ -291,7 +291,7 @@ Interpretation:
 
 ## Episode Termination
 
-At [train/evaluate.py#L119](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L119):
+At [train/evaluate.py#L119](../train/evaluate.py#L119):
 
 ```python
 if any(terminations.values()) or any(truncations.values()):
@@ -324,7 +324,7 @@ The row contains:
 - `episode_length`
 - `swarm_efficiency`
 
-That happens at [train/evaluate.py#L125](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L125) through [train/evaluate.py#L136](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L136).
+That happens at [train/evaluate.py#L125](../train/evaluate.py#L125) through [train/evaluate.py#L136](../train/evaluate.py#L136).
 
 ## Final Summary JSON
 
@@ -332,7 +332,7 @@ After all episodes finish, the evaluator writes:
 
 - `eval_summary.json`
 
-at [train/evaluate.py#L141](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py#L141).
+at [train/evaluate.py#L141](../train/evaluate.py#L141).
 
 It contains:
 
@@ -353,7 +353,7 @@ So:
 
 ## How This Differs From Training
 
-The main differences from [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py) are:
+The main differences from [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py) are:
 
 ### No learning
 
@@ -480,6 +480,6 @@ The shortest correct understanding of this file is:
 
 After this document, the best related files to read are:
 
-1. [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
-2. [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
-3. [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+1. [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
+2. [models/rule_based_policy.py](../models/rule_based_policy.py)
+3. [train/run_experiments.py](../train/run_experiments.py)

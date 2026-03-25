@@ -1,15 +1,15 @@
 # Action Specification
 
-This document is a focused reference for the current action contract implemented by [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+This document is a focused reference for the current action contract implemented by [env/swarm_env.py](../env/swarm_env.py).
 
 ## Source of Truth
 
 Action-space size and mapping are defined in:
 
-- `action_space()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- `_build_action_table()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- `TankKinematicsDriver.apply()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- `HovercraftDriver.apply()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+- `action_space()` in [env/swarm_env.py](../env/swarm_env.py)
+- `_build_action_table()` in [env/swarm_env.py](../env/swarm_env.py)
+- `TankKinematicsDriver.apply()` in [env/swarm_env.py](../env/swarm_env.py)
+- `HovercraftDriver.apply()` in [env/swarm_env.py](../env/swarm_env.py)
 
 ## Space Definition
 
@@ -19,7 +19,7 @@ Per-agent action space:
 
 Default:
 
-- `cfg.num_actions = 9`
+- `cfg.num_actions = 18`
 
 Action input type:
 
@@ -35,9 +35,9 @@ Example:
 
 ```python
 actions = {
-    "agent_0": 7,
-    "agent_1": 4,
-    "agent_2": 6,
+    "agent_0": 14,
+    "agent_1": 8,
+    "agent_2": 12,
 }
 ```
 
@@ -48,24 +48,35 @@ The action table is built in this exact order:
 ```python
 throttle_vals = [-1.0, 0.0, 1.0]
 turn_vals = [-1.0, 0.0, 1.0]
+deposit_vals = [0, 1]
 for throttle in throttle_vals:
     for turn in turn_vals:
-        table.append((throttle, turn))
+        for deposit in deposit_vals:
+            table.append((throttle, turn, deposit))
 ```
 
 Current mapping:
 
 | Action / Index | Name | Meaning | Range | Unit | Internal interpretation | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| 0 | `reverse_left` | reverse and turn left | throttle `-1`, turn `-1` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | action id maps to tuple `(-1.0, -1.0)` |
-| 1 | `reverse_straight` | reverse with no turn | `-1`, `0` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `0` | tuple `(-1.0, 0.0)` |
-| 2 | `reverse_right` | reverse and turn right | `-1`, `1` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(-1.0, 1.0)` |
-| 3 | `idle_left` | zero throttle and turn left | `0`, `-1` | unitless command | target speed `0`, target yaw rate `-cfg.max_yaw_rate` | tuple `(0.0, -1.0)` |
-| 4 | `idle` | zero throttle and zero turn | `0`, `0` | unitless command | target speed `0`, target yaw rate `0` | tuple `(0.0, 0.0)` |
-| 5 | `idle_right` | zero throttle and turn right | `0`, `1` | unitless command | target speed `0`, target yaw rate `+cfg.max_yaw_rate` | tuple `(0.0, 1.0)` |
-| 6 | `forward_left` | forward and turn left | `1`, `-1` | unitless command | target speed `+cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | tuple `(1.0, -1.0)` |
-| 7 | `forward_straight` | forward with no turn | `1`, `0` | unitless command | target speed `+cfg.max_speed`, target yaw rate `0` | tuple `(1.0, 0.0)` |
-| 8 | `forward_right` | forward and turn right | `1`, `1` | unitless command | target speed `+cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(1.0, 1.0)` |
+| 0 | `reverse_left_no_deposit` | reverse and turn left without depositing | throttle `-1`, turn `-1`, deposit `0` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | tuple `(-1.0, -1.0, 0)` |
+| 1 | `reverse_left_deposit` | reverse and turn left while depositing | throttle `-1`, turn `-1`, deposit `1` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | tuple `(-1.0, -1.0, 1)` |
+| 2 | `reverse_straight_no_deposit` | reverse with no turn and no deposit | `-1`, `0`, `0` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `0` | tuple `(-1.0, 0.0, 0)` |
+| 3 | `reverse_straight_deposit` | reverse with no turn while depositing | `-1`, `0`, `1` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `0` | tuple `(-1.0, 0.0, 1)` |
+| 4 | `reverse_right_no_deposit` | reverse and turn right without depositing | `-1`, `1`, `0` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(-1.0, 1.0, 0)` |
+| 5 | `reverse_right_deposit` | reverse and turn right while depositing | `-1`, `1`, `1` | unitless command | target forward speed `-cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(-1.0, 1.0, 1)` |
+| 6 | `idle_left_no_deposit` | zero throttle and turn left without depositing | `0`, `-1`, `0` | unitless command | target speed `0`, target yaw rate `-cfg.max_yaw_rate` | tuple `(0.0, -1.0, 0)` |
+| 7 | `idle_left_deposit` | zero throttle and turn left while depositing | `0`, `-1`, `1` | unitless command | target speed `0`, target yaw rate `-cfg.max_yaw_rate` | tuple `(0.0, -1.0, 1)` |
+| 8 | `idle_no_deposit` | zero throttle and zero turn without depositing | `0`, `0`, `0` | unitless command | target speed `0`, target yaw rate `0` | tuple `(0.0, 0.0, 0)` |
+| 9 | `idle_deposit` | zero throttle and zero turn while depositing | `0`, `0`, `1` | unitless command | target speed `0`, target yaw rate `0` | tuple `(0.0, 0.0, 1)` |
+| 10 | `idle_right_no_deposit` | zero throttle and turn right without depositing | `0`, `1`, `0` | unitless command | target speed `0`, target yaw rate `+cfg.max_yaw_rate` | tuple `(0.0, 1.0, 0)` |
+| 11 | `idle_right_deposit` | zero throttle and turn right while depositing | `0`, `1`, `1` | unitless command | target speed `0`, target yaw rate `+cfg.max_yaw_rate` | tuple `(0.0, 1.0, 1)` |
+| 12 | `forward_left_no_deposit` | forward and turn left without depositing | `1`, `-1`, `0` | unitless command | target speed `+cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | tuple `(1.0, -1.0, 0)` |
+| 13 | `forward_left_deposit` | forward and turn left while depositing | `1`, `-1`, `1` | unitless command | target speed `+cfg.max_speed`, target yaw rate `-cfg.max_yaw_rate` | tuple `(1.0, -1.0, 1)` |
+| 14 | `forward_straight_no_deposit` | forward with no turn and no deposit | `1`, `0`, `0` | unitless command | target speed `+cfg.max_speed`, target yaw rate `0` | tuple `(1.0, 0.0, 0)` |
+| 15 | `forward_straight_deposit` | forward with no turn while depositing | `1`, `0`, `1` | unitless command | target speed `+cfg.max_speed`, target yaw rate `0` | tuple `(1.0, 0.0, 1)` |
+| 16 | `forward_right_no_deposit` | forward and turn right without depositing | `1`, `1`, `0` | unitless command | target speed `+cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(1.0, 1.0, 0)` |
+| 17 | `forward_right_deposit` | forward and turn right while depositing | `1`, `1`, `1` | unitless command | target speed `+cfg.max_speed`, target yaw rate `+cfg.max_yaw_rate` | tuple `(1.0, 1.0, 1)` |
 
 ## Semantics
 
@@ -75,12 +86,15 @@ Each action is decoded into:
 
 - `throttle`
 - `turn`
+- `deposit`
 
 Then passed into the active dynamics driver as:
 
 ```python
 driver.apply(agent_state, (throttle, turn), cfg.dt, cfg, rng)
 ```
+
+The `deposit` bit is handled by the environment after motion is resolved. When it is `1`, the agent pays `cfg.reward_pheromone_deposit_cost` and writes a new pheromone deposit into the grid at its resulting position.
 
 ## Dynamics Interpretation
 
@@ -168,8 +182,8 @@ env = SwarmEnv(cfg, headless=True)
 obs_dict, _ = env.reset(seed=0)
 
 actions = {
-    "agent_0": 7,  # forward_straight
-    "agent_1": 3,  # idle_left
+    "agent_0": 14,  # forward_straight_no_deposit
+    "agent_1": 7,   # idle_left_deposit
 }
 obs_dict, rewards_dict, terminations, truncations, infos = env.step(actions)
 env.close()
@@ -180,12 +194,12 @@ env.close()
 ```python
 cfg = SwarmConfig()
 env = SwarmEnv(cfg, headless=True)
-print(env.action_table[7])  # (1.0, 0.0)
+print(env.action_table[15])  # (1.0, 0.0, 1)
 env.close()
 ```
 
 ## Important Notes
 
-- The action interface has remained `Discrete(9)` through the recent environment upgrades.
+- The action interface is now `Discrete(18)` because each movement action has a paired deposit / no-deposit variant.
 - The meaning of action ids is defined only by the construction order in `_build_action_table()`.
-- Any change to `num_actions` or the table order will break existing learned policies and any code that assumes the current 9-action layout.
+- Any change to `num_actions` or the table order will break existing learned policies and any code that assumes the current 18-action layout.

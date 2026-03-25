@@ -394,36 +394,36 @@ Output:
   The system has five main layers:
 
   1. Environment
-     - [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py) defines the simulation parameters.
-     - [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py) implements the PettingZoo Parallel environment,
+     - [env/config.py](../../env/config.py) defines the simulation parameters.
+     - [env/swarm_env.py](../../env/swarm_env.py) implements the PettingZoo Parallel environment,
   rewards, observations, pheromones, and rendering.
 
   2. Policies and models
-     - [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py) defines the shared DQN network used by custom
+     - [models/q_network.py](../../models/q_network.py) defines the shared DQN network used by custom
   checkpoints.
-     - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py) defines the non-learning
+     - [models/rule_based_policy.py](../../models/rule_based_policy.py) defines the non-learning
   rule-based baseline used in comparative experiments.
 
   3. Training and evaluation
-     - [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py) is the main custom
+     - [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py) is the main custom
   DQN trainer.
-     - [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py) runs shared evaluation for learned and rule-based
+     - [train/evaluate.py](../../train/evaluate.py) runs shared evaluation for learned and rule-based
   policies.
-     - [train/train.py](/Users/christopherlin/dev/cwsf2026/sim/train/train.py) dispatches between custom, SB3, and RLlib training
+     - [train/train.py](../../train/train.py) dispatches between custom, SB3, and RLlib training
   backends.
 
   4. Experiment framework
-     - [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py) defines experiment
+     - [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py) defines experiment
   sweeps.
-     - [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py) runs trials, aggregates outputs,
+     - [train/run_experiments.py](../../train/run_experiments.py) runs trials, aggregates outputs,
   and generates plots.
-     - [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py) provides run-directory, CSV,
+     - [train/experiment_utils.py](../../train/experiment_utils.py) provides run-directory, CSV,
   JSON, config, and aggregation helpers.
 
   5. Analysis and deployment
-     - [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py) generates training and experiment
+     - [analysis/plot_metrics.py](../../analysis/plot_metrics.py) generates training and experiment
   plots.
-     - [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) and [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) contain sim-to-real
+     - `robot/` and `pi/` contain sim-to-real
   and Raspberry Pi integration code.
 
   ## Environment Design
@@ -462,7 +462,7 @@ Output:
   - throttle in `{-1, 0, 1}`
   - turn in `{-1, 0, 1}`
 
-  This mapping is defined in `_build_action_table()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+  This mapping is defined in `_build_action_table()` in [env/swarm_env.py](../../env/swarm_env.py).
 
   ### Task Mechanics
 
@@ -504,12 +504,12 @@ Output:
 
   Optional comparison backends still exist:
 
-  - [train/sb3_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/sb3_dqn.py)
-  - [train/rllib_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/rllib_dqn.py)
+  - [train/sb3_dqn.py](../../train/sb3_dqn.py)
+  - [train/rllib_dqn.py](../../train/rllib_dqn.py)
 
   ## Evaluation and Metrics
 
-  Shared evaluation is handled by [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py). It evaluates:
+  Shared evaluation is handled by [train/evaluate.py](../../train/evaluate.py). It evaluates:
 
   - DQN checkpoints
   - shared-policy DQN checkpoints
@@ -536,8 +536,8 @@ Output:
 
   The shared experiment system uses:
 
-  - [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
-  - [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+  - [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
+  - [train/run_experiments.py](../../train/run_experiments.py)
 
   Key implemented experiments:
 
@@ -556,9 +556,9 @@ Output:
 
   For interactive visualization:
 
-  - [train/random_rollout.py](/Users/christopherlin/dev/cwsf2026/sim/train/random_rollout.py) runs a random policy sanity check.
-  - [train/demo.py](/Users/christopherlin/dev/cwsf2026/sim/train/demo.py) renders trained policies.
-  - [train/capture_screenshots.py](/Users/christopherlin/dev/cwsf2026/sim/train/capture_screenshots.py) generates documentation
+  - [train/random_rollout.py](../../train/random_rollout.py) runs a random policy sanity check.
+  - [train/demo.py](../../train/demo.py) renders trained policies.
+  - [train/capture_screenshots.py](../../train/capture_screenshots.py) generates documentation
   images.
 
   The renderer can show:
@@ -573,8 +573,8 @@ Output:
 
   The project also contains deployment-oriented code:
 
-  - [robot/](/Users/christopherlin/dev/cwsf2026/sim/robot) provides generic sensor, observation, policy, and action bridges.
-  - [pi/](/Users/christopherlin/dev/cwsf2026/sim/pi) provides Raspberry Pi-side runtime examples, including a preserved rule-based
+  - `robot/` provides generic sensor, observation, policy, and action bridges.
+  - `pi/` provides Raspberry Pi-side runtime examples, including a preserved rule-based
   runtime and a model-driven runtime.
 
   These modules reuse the same observation and action contracts where possible.
@@ -583,11 +583,11 @@ Output:
 
   For a new reader:
 
-  1. [docs/manual/QUICK_START.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/QUICK_START.md)
-  2. [docs/ONBOARDING.md](/Users/christopherlin/dev/cwsf2026/sim/docs/ONBOARDING.md)
-  3. [docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)
-  4. [docs/manual/EXPERIMENT_GUIDE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/EXPERIMENT_GUIDE.md)
-  5. [docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)
+  1. [docs/manual/QUICK_START.md](../manual/QUICK_START.md)
+  2. [docs/ONBOARDING.md](../ONBOARDING.md)
+  3. [docs/manual/PROJECT_STRUCTURE.md](../manual/PROJECT_STRUCTURE.md)
+  4. [docs/manual/EXPERIMENT_GUIDE.md](../manual/EXPERIMENT_GUIDE.md)
+  5. [docs/manual/RESULTS_INTERPRETATION.md](../manual/RESULTS_INTERPRETATION.md)
 
   ———
 
@@ -756,7 +756,7 @@ Output:
 
   ---
 
-  **[docs/manual/PROJECT_STRUCTURE.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/PROJECT_STRUCTURE.md)**
+  **[docs/manual/PROJECT_STRUCTURE.md](../manual/PROJECT_STRUCTURE.md)**
   ```md
   # Project Structure Guide
 
@@ -768,10 +768,10 @@ Output:
 
   Core simulation environment.
 
-  - [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+  - [env/config.py](../../env/config.py)
     - `SwarmConfig` dataclass
     - world size, counts, rewards, sensor settings, pheromone parameters, and experiment hooks
-  - [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+  - [env/swarm_env.py](../../env/swarm_env.py)
     - environment API
     - reset/step/render logic
     - observations
@@ -782,32 +782,32 @@ Output:
 
   Training, evaluation, and experiment orchestration.
 
-  - [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
+  - [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
     - main custom DQN training path
-  - [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
+  - [train/evaluate.py](../../train/evaluate.py)
     - shared evaluation for DQN and rule-based policies
-  - [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py)
+  - [train/experiment_utils.py](../../train/experiment_utils.py)
     - CSV logging, JSON writing, config helpers, aggregation helpers
-  - [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+  - [train/run_experiments.py](../../train/run_experiments.py)
     - central experiment runner
-  - [train/train.py](/Users/christopherlin/dev/cwsf2026/sim/train/train.py)
+  - [train/train.py](../../train/train.py)
     - backend dispatcher
-  - [train/demo.py](/Users/christopherlin/dev/cwsf2026/sim/train/demo.py)
+  - [train/demo.py](../../train/demo.py)
     - render trained policies
-  - [train/random_rollout.py](/Users/christopherlin/dev/cwsf2026/sim/train/random_rollout.py)
+  - [train/random_rollout.py](../../train/random_rollout.py)
     - random-policy sanity check
-  - [train/capture_screenshots.py](/Users/christopherlin/dev/cwsf2026/sim/train/capture_screenshots.py)
+  - [train/capture_screenshots.py](../../train/capture_screenshots.py)
     - screenshot generation
-  - [train/sb3_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/sb3_dqn.py)
+  - [train/sb3_dqn.py](../../train/sb3_dqn.py)
     - Stable-Baselines3 backend
-  - [train/rllib_dqn.py](/Users/christopherlin/dev/cwsf2026/sim/train/rllib_dqn.py)
+  - [train/rllib_dqn.py](../../train/rllib_dqn.py)
     - RLlib backend
 
   ### `experiments/`
 
   Experiment definitions.
 
-  - [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
+  - [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
     - named sweeps
     - trial counts
     - case definitions
@@ -817,7 +817,7 @@ Output:
 
   Plot generation utilities.
 
-  - [analysis/plot_metrics.py](/Users/christopherlin/dev/cwsf2026/sim/analysis/plot_metrics.py)
+  - [analysis/plot_metrics.py](../../analysis/plot_metrics.py)
     - training plots
     - grouped error-bar experiment plots
     - bar charts with standard deviation
@@ -826,9 +826,9 @@ Output:
 
   Shared policy definitions.
 
-  - [models/q_network.py](/Users/christopherlin/dev/cwsf2026/sim/models/q_network.py)
+  - [models/q_network.py](../../models/q_network.py)
     - custom DQN network
-  - [models/rule_based_policy.py](/Users/christopherlin/dev/cwsf2026/sim/models/rule_based_policy.py)
+  - [models/rule_based_policy.py](../../models/rule_based_policy.py)
     - hand-coded baseline policy
 
   ### `robot/`
@@ -845,11 +845,11 @@ Output:
 
   Raspberry Pi-side integration examples.
 
-  - [pi/ants.py](/Users/christopherlin/dev/cwsf2026/sim/pi/ants.py)
+  - `pi/ants.py`
     - compatibility-first runtime based on the existing Pi controller style
-  - [pi/run_policy.py](/Users/christopherlin/dev/cwsf2026/sim/pi/run_policy.py)
+  - `pi/run_policy.py`
     - model-driven Pi runtime
-  - [pi/ants.service](/Users/christopherlin/dev/cwsf2026/sim/pi/ants.service)
+  - `pi/ants.service`
     - service file example
 
   ### `docs/`
@@ -900,11 +900,11 @@ Output:
 
   If you are reading the code for the first time:
 
-  1. [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-  2. [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/sim/train/independent_dqn_pytorch.py)
-  3. [train/evaluate.py](/Users/christopherlin/dev/cwsf2026/sim/train/evaluate.py)
-  4. [experiments/benchmark_configs.py](/Users/christopherlin/dev/cwsf2026/sim/experiments/benchmark_configs.py)
-  5. [train/run_experiments.py](/Users/christopherlin/dev/cwsf2026/sim/train/run_experiments.py)
+  1. [env/swarm_env.py](../../env/swarm_env.py)
+  2. [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
+  3. [train/evaluate.py](../../train/evaluate.py)
+  4. [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
+  5. [train/run_experiments.py](../../train/run_experiments.py)
 
   ———
 
@@ -1070,7 +1070,7 @@ Output:
 
   ---
 
-  **[docs/manual/RESULTS_INTERPRETATION.md](/Users/christopherlin/dev/cwsf2026/sim/docs/manual/RESULTS_INTERPRETATION.md)**
+  **[docs/manual/RESULTS_INTERPRETATION.md](../manual/RESULTS_INTERPRETATION.md)**
   ```md
   # Results Interpretation Guide
 

@@ -22,7 +22,7 @@ class Renderer:
         self.panel_width_px = cfg.status_panel_width_px
         self.screen_size = (self.world_width_px + self.panel_width_px, self.world_height_px)
         self.screen = pygame.display.set_mode(self.screen_size)
-        pygame.display.set_caption("Swarm Command Center")
+        pygame.display.set_caption("Mission Control")
         self.robot_font = pygame.font.SysFont("Menlo", 14, bold=True)
         self.clock = pygame.time.Clock()
 
@@ -70,7 +70,11 @@ class Renderer:
                 color = self._lerp(colors.HEAT_COLD, colors.HEAT_HOT, ratio)
                 alpha = int(28 + 150 * ratio)
                 px = int(gx * cell_px)
-                py = int(gy * cell_px)
+                # Pheromone grid rows increase with +y in world coordinates,
+                # while the screen uses top-left origin with +y downward. Flip
+                # the row index here so heatmap cells line up with robot/trail
+                # rendering, which already uses _world_to_screen(...).
+                py = int(rect.height - (gy + 1) * cell_px)
                 pygame.draw.rect(heat, (*color, alpha), pygame.Rect(px, py, cell_px, cell_px))
         self.screen.blit(heat, rect.topleft)
 
@@ -92,16 +96,57 @@ class Renderer:
             center = self._world_to_screen(rect, state.x_cm, state.y_cm)
             base_color = colors.ROBOT_COLORS[index % len(colors.ROBOT_COLORS)]
             draw_color = colors.STALE if robot_id in stale_ids else base_color
+            if state.heading_deg is not None and state.lidar_ranges_mm:
+                self._draw_lidar_semicircle(rect, center, state.heading_deg, state.lidar_ranges_mm)
             pygame.draw.circle(self.screen, draw_color, center, max(6, int(self.cfg.agent_radius_cm * 0.6 * self.render_scale)))
             if state.heading_deg is not None:
                 theta = math.radians(state.heading_deg)
                 tip = (
-                    center[0] + int(math.cos(theta) * 18),
-                    center[1] - int(math.sin(theta) * 18),
+                    center[0] + int(math.cos(theta) * 7),
+                    center[1] - int(math.sin(theta) * 7),
                 )
                 pygame.draw.line(self.screen, colors.TEXT, center, tip, 2)
             label = self.robot_font.render(robot_id, True, colors.TEXT)
             self.screen.blit(label, (center[0] + 8, center[1] - 8))
+
+    def _draw_lidar_semicircle(
+        self,
+        rect: pygame.Rect,
+        center: tuple[int, int],
+        heading_deg: float,
+        lidar_ranges_mm: tuple[float, ...],
+    ) -> None:
+        max_range_cm = float(self.cfg.swarm_cfg.lidar_max_range) * self.cfg.scale_cm_per_world_unit
+        if max_range_cm <= 0.0:
+            return
+
+        arc_points = []
+        for idx in range(25):
+            frac = idx / 24.0
+            sample_heading_deg = heading_deg - 90.0 + frac * 180.0
+            sample_heading_rad = math.radians(sample_heading_deg)
+            arc_points.append(
+                (
+                    center[0] + int(math.cos(sample_heading_rad) * max_range_cm * self.render_scale),
+                    center[1] - int(math.sin(sample_heading_rad) * max_range_cm * self.render_scale),
+                )
+            )
+        if len(arc_points) >= 2:
+            pygame.draw.lines(self.screen, colors.LIDAR_ARC, False, arc_points, 1)
+            pygame.draw.line(self.screen, colors.LIDAR_ARC, arc_points[0], arc_points[-1], 1)
+
+        if not lidar_ranges_mm:
+            return
+        ray_count = max(1, min(len(lidar_ranges_mm), int(self.cfg.swarm_cfg.lidar_rays)))
+        for ray_idx, distance_mm in enumerate(lidar_ranges_mm[:ray_count]):
+            frac = ray_idx / max(1, ray_count - 1)
+            ray_heading_deg = heading_deg - 90.0 + frac * 180.0
+            distance_cm = min(max_range_cm, max(0.0, float(distance_mm) / 10.0))
+            dot = (
+                center[0] + int(math.cos(math.radians(ray_heading_deg)) * distance_cm * self.render_scale),
+                center[1] - int(math.sin(math.radians(ray_heading_deg)) * distance_cm * self.render_scale),
+            )
+            pygame.draw.circle(self.screen, colors.LIDAR_HIT, dot, 3)
 
     def _world_to_screen(self, rect: pygame.Rect, x_cm: float, y_cm: float) -> tuple[int, int]:
         # World coordinates are centered at the nest, while screen coordinates

@@ -1,17 +1,17 @@
 # Configuration Reference
 
-This document is a focused reference for the current configuration surface implemented by [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py) and the shared CLI/config helpers in [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py).
+This document is a focused reference for the current configuration surface implemented by [env/config.py](../env/config.py) and the shared CLI/config helpers in [train/experiment_utils.py](../train/experiment_utils.py).
 
 ## Source of Truth
 
 Primary config definition:
 
-- [env/config.py](/Users/christopherlin/dev/cwsf2026/sim/env/config.py)
+- [env/config.py](../env/config.py)
   - `SwarmConfig`
 
 CLI-to-config mapping helpers:
 
-- [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py)
+- [train/experiment_utils.py](../train/experiment_utils.py)
   - `add_env_config_args(parser)`
   - `make_swarm_config(args)`
 
@@ -119,7 +119,7 @@ These directly change `obs_dim` in `_compute_obs_dim()`.
 
 ## CLI Mapping
 
-The shared CLI config layer is implemented in [train/experiment_utils.py](/Users/christopherlin/dev/cwsf2026/sim/train/experiment_utils.py).
+The shared CLI config layer is implemented in [train/experiment_utils.py](../train/experiment_utils.py).
 
 ### Added CLI flags
 

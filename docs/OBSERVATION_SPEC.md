@@ -1,13 +1,13 @@
 # Observation Specification
 
-This document is a focused reference for the current observation contract implemented by [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py).
+This document is a focused reference for the current observation contract implemented by [env/swarm_env.py](../env/swarm_env.py).
 
 ## Source of Truth
 
 Observation shape and ordering are defined in:
 
-- `_compute_obs_dim()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
-- `_get_obs()` in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py)
+- `_compute_obs_dim()` in [env/swarm_env.py](../env/swarm_env.py)
+- `_get_obs()` in [env/swarm_env.py](../env/swarm_env.py)
 
 Per-component helper methods:
 

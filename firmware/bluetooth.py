@@ -113,6 +113,10 @@ class CommandCenterBLEClient:
     async def _send_position_async(self, robot_id: str, x_cm: float, y_cm: float, heading_deg: float) -> None:
         await self._write_line(f"POS,{robot_id},{x_cm:.2f},{y_cm:.2f},{heading_deg:.2f}")
 
+    async def _send_lidar_async(self, robot_id: str, ranges_mm: list[float] | tuple[float, ...]) -> None:
+        values = [f"{float(value):.1f}" for value in ranges_mm]
+        await self._write_line(",".join(["LIDAR", robot_id, *values]))
+
     async def _deposit_pheromone_async(self, robot_id: str, x_cm: float, y_cm: float, amount: float) -> None:
         await self._write_line(f"PHER,{robot_id},{x_cm:.2f},{y_cm:.2f},{amount:.3f}")
 
@@ -139,6 +143,14 @@ class CommandCenterBLEClient:
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
                 print(f"[debug] BLE PHER send failed: {exc}", flush=True)
+
+    def send_lidar(self, robot_id: str, ranges_mm: list[float] | tuple[float, ...]) -> None:
+        # Lidar uploads are best-effort telemetry like position updates.
+        try:
+            self._loop.run_until_complete(self._send_lidar_async(robot_id, ranges_mm))
+        except Exception as exc:  # pragma: no cover - hardware-dependent path
+            if self.debug:
+                print(f"[debug] BLE LIDAR send failed: {exc}", flush=True)
 
     def sense_pheromone(self, robot_id: str, x_cm: float, y_cm: float, heading_deg: float) -> tuple[float, float, float]:
         # SENSE is the only request that feeds directly into inference, so this

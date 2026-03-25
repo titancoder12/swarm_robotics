@@ -9,17 +9,13 @@ class RuleBasedSwarmPolicy:
     def __init__(self, cfg, seed: int = 0):
         self.cfg = cfg
         self.rng = np.random.default_rng(seed)
-        self._action_lookup = {
-            (-1, -1): 0,
-            (-1, 0): 1,
-            (-1, 1): 2,
-            (0, -1): 3,
-            (0, 0): 4,
-            (0, 1): 5,
-            (1, -1): 6,
-            (1, 0): 7,
-            (1, 1): 8,
-        }
+        self._action_lookup = {}
+        index = 0
+        for throttle in (-1, 0, 1):
+            for turn in (-1, 0, 1):
+                for deposit in (0, 1):
+                    self._action_lookup[(throttle, turn, deposit)] = index
+                    index += 1
 
     def act(self, obs: np.ndarray) -> int:
         parts = self._split_obs(obs)
@@ -31,9 +27,9 @@ class RuleBasedSwarmPolicy:
         pheromone = parts["pheromone"]
 
         if carrying > 0.5 and np.linalg.norm(nest_vec) > 0.05:
-            return self._steer_toward(nest_vec, lidar)
+            return self._steer_toward(nest_vec, lidar, deposit=True)
         if food_presence > 0.5 or np.linalg.norm(target_vec) > 0.10:
-            return self._steer_toward(target_vec, lidar)
+            return self._steer_toward(target_vec, lidar, deposit=False)
         if float(np.max(pheromone)) > 0.05:
             return self._follow_pheromone(pheromone, lidar)
         return self._explore(lidar)
@@ -69,7 +65,7 @@ class RuleBasedSwarmPolicy:
             "pheromone": pheromone,
         }
 
-    def _steer_toward(self, vec: np.ndarray, lidar: np.ndarray) -> int:
+    def _steer_toward(self, vec: np.ndarray, lidar: np.ndarray, deposit: bool = False) -> int:
         turn = 0
         lateral = float(vec[1])
         if lateral > 0.12:
@@ -81,25 +77,25 @@ class RuleBasedSwarmPolicy:
         if self._front_blocked(lidar):
             turn = self._clearer_turn(lidar)
             throttle = 0
-        return self._action_lookup[(throttle, turn)]
+        return self._action_lookup[(throttle, turn, int(deposit))]
 
     def _follow_pheromone(self, pheromone: np.ndarray, lidar: np.ndarray) -> int:
         if self._front_blocked(lidar):
-            return self._action_lookup[(0, self._clearer_turn(lidar))]
+            return self._action_lookup[(0, self._clearer_turn(lidar), 0)]
         near = float(np.mean(pheromone[: max(1, len(pheromone) // 2)]))
         far = float(np.mean(pheromone[max(1, len(pheromone) // 2) :]))
         if far >= near:
-            return self._action_lookup[(1, 0)]
+            return self._action_lookup[(1, 0, 0)]
         turn = int(self.rng.choice([-1, 1]))
-        return self._action_lookup[(0, turn)]
+        return self._action_lookup[(0, turn, 0)]
 
     def _explore(self, lidar: np.ndarray) -> int:
         if self._front_blocked(lidar):
-            return self._action_lookup[(0, self._clearer_turn(lidar))]
+            return self._action_lookup[(0, self._clearer_turn(lidar), 0)]
         turn = 0
         if self.rng.random() < 0.2:
             turn = int(self.rng.choice([-1, 1]))
-        return self._action_lookup[(1, turn)]
+        return self._action_lookup[(1, turn, 0)]
 
     def _front_blocked(self, lidar: np.ndarray) -> bool:
         center = len(lidar) // 2

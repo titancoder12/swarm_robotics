@@ -75,7 +75,7 @@ OBS_NAMES_23 = [
 # Legacy observation order used by older checkpoints from this repo.
 # Older custom checkpoints were trained before nest direction, local food
 # presence, and carrying-food state were added to the environment. Those
-# checkpoints still use the same 9-action output, but their input layer expects
+# checkpoints still use the same output layout for their era, but their input layer expects
 # only 19 observation values.
 OBS_NAMES_19 = [
     "lidar_0",
@@ -105,27 +105,45 @@ OBS_NAMES_19 = [
 # per discrete action index, so we keep the human-readable names and
 # explanations here for printing.
 ACTION_NAMES = [
-    "reverse_left",
-    "reverse_straight",
-    "reverse_right",
-    "idle_left",
-    "idle",
-    "idle_right",
-    "forward_left",
-    "forward_straight",
-    "forward_right",
+    "reverse_left_no_deposit",
+    "reverse_left_deposit",
+    "reverse_straight_no_deposit",
+    "reverse_straight_deposit",
+    "reverse_right_no_deposit",
+    "reverse_right_deposit",
+    "idle_left_no_deposit",
+    "idle_left_deposit",
+    "idle_no_deposit",
+    "idle_deposit",
+    "idle_right_no_deposit",
+    "idle_right_deposit",
+    "forward_left_no_deposit",
+    "forward_left_deposit",
+    "forward_straight_no_deposit",
+    "forward_straight_deposit",
+    "forward_right_no_deposit",
+    "forward_right_deposit",
 ]
 
 ACTION_EXPLANATIONS = [
-    "move backward while turning left",
-    "move backward in a straight line",
-    "move backward while turning right",
-    "turn left in place / with zero throttle",
-    "stay neutral with zero throttle and zero turn",
-    "turn right in place / with zero throttle",
-    "move forward while turning left",
-    "move forward in a straight line",
-    "move forward while turning right",
+    "move backward while turning left without depositing pheromone",
+    "move backward while turning left and deposit pheromone",
+    "move backward in a straight line without depositing pheromone",
+    "move backward in a straight line and deposit pheromone",
+    "move backward while turning right without depositing pheromone",
+    "move backward while turning right and deposit pheromone",
+    "turn left in place / with zero throttle and no deposit",
+    "turn left in place / with zero throttle and deposit pheromone",
+    "stay neutral with zero throttle, zero turn, and no deposit",
+    "stay neutral with zero throttle, zero turn, and deposit pheromone",
+    "turn right in place / with zero throttle and no deposit",
+    "turn right in place / with zero throttle and deposit pheromone",
+    "move forward while turning left without depositing pheromone",
+    "move forward while turning left and deposit pheromone",
+    "move forward in a straight line without depositing pheromone",
+    "move forward in a straight line and deposit pheromone",
+    "move forward while turning right without depositing pheromone",
+    "move forward while turning right and deposit pheromone",
 ]
 
 
@@ -403,7 +421,7 @@ def main():
     checkpoint_obs_dim = int(state_dict["net.0.weight"].shape[1])
     checkpoint_action_dim = int(state_dict["net.4.weight"].shape[0])
 
-    # The script only knows how to explain this repo's current discrete 9-action
+    # The script only knows how to explain this repo's current discrete 18-action
     # interface. If the checkpoint output width differs, the action labels would
     # no longer be trustworthy.
     if checkpoint_action_dim != len(ACTION_NAMES):

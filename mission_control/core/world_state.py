@@ -35,6 +35,7 @@ class WorldState:
         self._show_trails = True
         self._show_pheromone = True
         self._last_decay = time.time()
+        self._control_flash_until: dict[str, float] = {}
 
     def update_position(
         self,
@@ -93,8 +94,23 @@ class WorldState:
             self._show_pheromone = not self._show_pheromone
             return self._show_pheromone
 
+    def flash_control(self, control_id: str, duration_s: float = 0.3) -> None:
+        with self._lock:
+            self._control_flash_until[control_id] = time.time() + max(0.0, duration_s)
+
     def snapshot(self) -> WorldSnapshot:
         with self._lock:
+            now = time.time()
+            flashed_controls = sorted(
+                control_id
+                for control_id, until in self._control_flash_until.items()
+                if until > now
+            )
+            self._control_flash_until = {
+                control_id: until
+                for control_id, until in self._control_flash_until.items()
+                if until > now
+            }
             telemetry = {
                 **self.robot_registry.telemetry(),
                 **self.pheromone.telemetry(),
@@ -102,6 +118,7 @@ class WorldState:
                 "show_trails": self._show_trails,
                 "show_pheromone": self._show_pheromone,
                 "stale_ids": self.robot_registry.stale_ids(self.cfg.robot_stale_after_s),
+                "flashed_controls": flashed_controls,
             }
             return WorldSnapshot(
                 robots=self.robot_registry.snapshot(),
