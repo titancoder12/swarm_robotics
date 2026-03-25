@@ -57,12 +57,14 @@ def plot_training_metrics(csv_path: str, out_dir: str) -> None:
 
     episodes = [int(row["episode"]) for row in rows]
     rewards = [float(row["mean_episode_reward"]) for row in rows]
-    food_retrieval = [float(row["food_retrieved"]) for row in rows]
+    food_discovery = [float(row.get("food_picked_up", row.get("food_discovered", 0.0))) for row in rows]
+    food_retrieval = [float(row.get("food_delivered", row.get("food_retrieved", 0.0))) for row in rows]
     efficiency = [float(row["swarm_efficiency"]) for row in rows]
 
     plots = [
         ("reward_vs_episode.png", rewards, "Mean Episode Reward", "Reward vs Episode"),
-        ("food_retrieval_vs_episode.png", food_retrieval, "Food Retrieved", "Food Retrieval vs Episode"),
+        ("food_discovery_vs_episode.png", food_discovery, "Food Picked Up", "Food Pickup vs Episode"),
+        ("food_retrieval_vs_episode.png", food_retrieval, "Food Delivered", "Food Delivery vs Episode"),
         ("swarm_efficiency_vs_episode.png", efficiency, "Swarm Efficiency", "Swarm Efficiency vs Episode"),
     ]
 
@@ -92,12 +94,14 @@ def plot_eval_metrics(csv_path: str, out_dir: str) -> None:
 
     steps = [int(row["global_step"]) for row in rows]
     rewards = [float(row["mean_episode_reward"]) for row in rows]
-    food_retrieval = [float(row["food_retrieved"]) for row in rows]
+    food_discovery = [float(row.get("food_discovered", 0.0)) for row in rows]
+    food_retrieval = [float(row.get("food_delivered", row.get("food_retrieved", 0.0))) for row in rows]
     coverage = [float(row["exploration_coverage"]) for row in rows]
 
     plots = [
         ("eval_reward_vs_step.png", rewards, "Mean Episode Reward", "Evaluation Reward vs Step"),
-        ("eval_food_retrieval_vs_step.png", food_retrieval, "Food Retrieved", "Evaluation Food Retrieval vs Step"),
+        ("eval_food_discovery_vs_step.png", food_discovery, "Food Picked Up", "Evaluation Food Pickup vs Step"),
+        ("eval_food_retrieval_vs_step.png", food_retrieval, "Food Delivered", "Evaluation Food Delivery vs Step"),
         ("eval_coverage_vs_step.png", coverage, "Exploration Coverage", "Evaluation Coverage vs Step"),
     ]
 

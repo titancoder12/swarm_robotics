@@ -79,7 +79,10 @@ def run(args):
             "episode",
             "seed",
             "mean_episode_reward",
+            "food_discovered",
+            "food_picked_up",
             "food_retrieved",
+            "food_delivered",
             "exploration_coverage",
             "pheromone_usage",
             "episode_length",
@@ -93,6 +96,7 @@ def run(args):
             obs_dict, _ = env.reset(seed=args.seed + episode - 1)
             obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
             episode_rewards = np.zeros(cfg.n_agents, dtype=np.float32)
+            food_discovered = 0
             food_retrieved = 0
             exploration_coverage = 0.0
             pheromone_usage_values = []
@@ -151,6 +155,7 @@ def run(args):
                 info = info_dict[agent_ids[0]]
 
                 episode_rewards += rewards
+                food_discovered += int(info.get("targets_collected", 0))
                 food_retrieved += int(info.get("food_delivered", 0))
                 exploration_coverage = max(exploration_coverage, float(info.get("exploration_coverage", 0.0)))
                 pheromone_usage_values.append(float(info.get("pheromone_usage", 0.0)))
@@ -166,7 +171,10 @@ def run(args):
                 "episode": episode,
                 "seed": args.seed + episode - 1,
                 "mean_episode_reward": mean_reward,
+                "food_discovered": food_discovered,
+                "food_picked_up": food_discovered,
                 "food_retrieved": food_retrieved,
+                "food_delivered": food_retrieved,
                 "exploration_coverage": exploration_coverage,
                 "pheromone_usage": mean_pheromone,
                 "episode_length": episode_length,
@@ -186,6 +194,7 @@ def run(args):
             "policy_kind": args.policy_kind,
             "metrics": {
                 "mean_reward": float(np.mean([row["mean_episode_reward"] for row in summaries])) if summaries else 0.0,
+                "mean_food_discovered": float(np.mean([row["food_discovered"] for row in summaries])) if summaries else 0.0,
                 "mean_food_retrieved": float(np.mean([row["food_retrieved"] for row in summaries])) if summaries else 0.0,
                 "mean_exploration_coverage": float(np.mean([row["exploration_coverage"] for row in summaries])) if summaries else 0.0,
                 "mean_pheromone_usage": float(np.mean([row["pheromone_usage"] for row in summaries])) if summaries else 0.0,

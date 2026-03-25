@@ -644,15 +644,21 @@ class SwarmEnv(ParallelEnv):
                 grid[gy, gx] += deposit
                 deposit_events += 1
 
-        grid *= (1.0 - (1.0 - self.cfg.pheromone_decay))
+        grid *= self.cfg.pheromone_decay
         diff = self.cfg.pheromone_diffuse_rate
         if diff > 0:
-            up = np.roll(grid, 1, axis=0)
-            down = np.roll(grid, -1, axis=0)
-            left = np.roll(grid, 1, axis=1)
-            right = np.roll(grid, -1, axis=1)
+            # Use zero-padded neighbors so pheromone diffuses within the arena
+            # instead of wrapping from one edge of the grid to the opposite side.
+            padded = np.pad(grid, 1, mode="constant")
+            up = padded[:-2, 1:-1]
+            down = padded[2:, 1:-1]
+            left = padded[1:-1, :-2]
+            right = padded[1:-1, 2:]
             neighbor_avg = (up + down + left + right) * 0.25
             grid[:] = grid * (1.0 - diff) + neighbor_avg * diff
+        min_value = float(self.cfg.pheromone_min_value)
+        if min_value > 0:
+            grid[grid < min_value] = 0.0
         return deposit_events
 
     def _get_obs(self, reset_history: bool = False):

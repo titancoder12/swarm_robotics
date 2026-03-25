@@ -116,6 +116,7 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
             agent_ids = env.possible_agents
             obs = _dict_to_array(obs_dict, agent_ids, dtype=np.float32)
             episode_rewards = np.zeros(eval_cfg.n_agents, dtype=np.float32)
+            food_discovered = 0
             food_retrieved = 0
             exploration_coverage = 0.0
             pheromone_usage_values = []
@@ -136,6 +137,7 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
                 info = info_dict[agent_ids[0]]
 
                 episode_rewards += rewards
+                food_discovered += int(info.get("targets_collected", 0))
                 food_retrieved += int(info.get("food_delivered", 0))
                 exploration_coverage = max(exploration_coverage, float(info.get("exploration_coverage", 0.0)))
                 pheromone_usage_values.append(float(info.get("pheromone_usage", 0.0)))
@@ -146,6 +148,7 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
             metrics.append(
                 {
                     "mean_episode_reward": float(episode_rewards.mean()),
+                    "food_discovered": food_discovered,
                     "food_retrieved": food_retrieved,
                     "exploration_coverage": exploration_coverage,
                     "pheromone_usage": float(np.mean(pheromone_usage_values)) if pheromone_usage_values else 0.0,
@@ -155,6 +158,7 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
             )
         return {
             "mean_episode_reward": float(np.mean([m["mean_episode_reward"] for m in metrics])) if metrics else 0.0,
+            "food_discovered": float(np.mean([m["food_discovered"] for m in metrics])) if metrics else 0.0,
             "food_retrieved": float(np.mean([m["food_retrieved"] for m in metrics])) if metrics else 0.0,
             "exploration_coverage": float(np.mean([m["exploration_coverage"] for m in metrics])) if metrics else 0.0,
             "pheromone_usage": float(np.mean([m["pheromone_usage"] for m in metrics])) if metrics else 0.0,
@@ -198,7 +202,9 @@ def train(args):
             "epsilon",
             "mean_episode_reward",
             "food_discovered",
+            "food_picked_up",
             "food_retrieved",
+            "food_delivered",
             "exploration_coverage",
             "coverage_reward_total",
             "pheromone_usage",
@@ -225,6 +231,7 @@ def train(args):
         [
             "global_step",
             "mean_episode_reward",
+            "food_discovered",
             "food_retrieved",
             "exploration_coverage",
             "pheromone_usage",
@@ -415,7 +422,9 @@ def train(args):
                     "epsilon": epsilon,
                     "mean_episode_reward": float(episode_rewards.mean()),
                     "food_discovered": episode_food_discovered,
+                    "food_picked_up": episode_food_discovered,
                     "food_retrieved": episode_food_retrieved,
+                    "food_delivered": episode_food_retrieved,
                     "exploration_coverage": episode_exploration_coverage,
                     "coverage_reward_total": episode_coverage_reward_total,
                     "pheromone_usage": pheromone_usage_mean,
@@ -443,7 +452,8 @@ def train(args):
                 episode_logger.log(episode_row)
                 print(
                     f"episode {episode} step {global_step} reward {episode_row['mean_episode_reward']:.2f} "
-                    f"food {episode_food_retrieved} coverage {episode_exploration_coverage:.3f} "
+                    f"food_found {episode_food_discovered} food_delivered {episode_food_retrieved} "
+                    f"coverage {episode_exploration_coverage:.3f} "
                     f"pheromone {pheromone_usage_mean:.3f} epsilon {epsilon:.2f}"
                 )
                 obs_dict, _ = env.reset(seed=next_reset_seed)  # Reset environment.

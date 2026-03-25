@@ -1,5 +1,5 @@
 {
   "obs_dim": 69,
   "shared_policy": true,
-  "step": 30000
+  "step": 40000
 }

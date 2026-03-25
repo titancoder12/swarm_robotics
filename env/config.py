@@ -54,8 +54,9 @@ class SwarmConfig:
     pheromone_deposit: float = 1.0
     pheromone_decay: float = 0.985
     pheromone_diffuse_rate: float = 0.25
+    pheromone_min_value: float = 1e-3
     pheromone_deposit_carrying_scale: float = 1.5
-    pheromone_requires_food: bool = True
+    pheromone_requires_food: bool = False
 
     # Rewards
     reward_target: float = 8.0
@@ -66,8 +67,8 @@ class SwarmConfig:
     reward_exploration: float = 0.02
     reward_new_cell: float = 0.02
     reward_pheromone_following: float = 0.0
-    reward_food_approach: float = 0.2
-    reward_food_detected: float = 0.05
+    reward_food_approach: float = 1 #reward_food_approach: float = 0.2
+    reward_food_detected: float = 0.2 #reward_food_detected: float = 0.05
     reward_pheromone_follow: float = 0.03
     reward_pheromone_deposit_cost: float = -0.02
     pheromone_follow_min_gradient: float = 0.05
