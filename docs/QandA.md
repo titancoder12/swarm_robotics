@@ -396,3 +396,87 @@ Training and experiment ergonomics also improved in the `6a9d95d` phase. [train/
 Phase 3 was the most recent commit `130452c` (`Add observation history and training graph outputs`). That commit did not mostly touch Mission Control naming or BLE; instead it changed the observation/training contract. [env/config.py](../env/config.py) now adds `observation_history_steps` with default `3` and `pheromone_sample_spacing_scale` with default `1.5`. [env/swarm_env.py](../env/swarm_env.py) now keeps a rolling history buffer of per-agent observation frames and returns a flattened stacked observation by default, so the default observation shape moved from a single `(23,)` frame to a `(69,)` vector built from three chronological frames. The pheromone geometry in the environment was also cleaned up so forward sample distances and the effective awareness radius are computed through helper methods rather than buried in one inline formula. [firmware/run.py](../firmware/run.py) was updated to mirror that same observation-history contract on the Pi side by building single frames, keeping a bounded local history, and concatenating the newest frames before inference. [models/rule_based_policy.py](../models/rule_based_policy.py) was updated to handle stacked observations by reading only the newest frame. On the training side, [train/experiment_utils.py](../train/experiment_utils.py) gained evaluation-plot generation, [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py) started writing training and evaluation graphs into the top-level [training_graphs/](../training_graphs/) folder, and [checkpoints/metadata.json](../checkpoints/metadata.json) plus [checkpoints/shared.pt](../checkpoints/shared.pt) were updated to a newer shared-policy checkpoint with `obs_dim = 69`. [docs/OBSERVATION_SPEC.md](../docs/OBSERVATION_SPEC.md) was then updated to document the new stacked observation layout and the bounded pheromone awareness radius.
 
 So in one sentence: from `2c9ec70` to `130452c`, the repo moved from an early “server”-named Mission Control baseline to a renamed and much more capable Mission Control + BLE + Pi runtime integration stack, then evolved again into a newer training/runtime contract with explicit policy-controlled pheromone deposition, stacked observation history, explicit pheromone-awareness geometry, and graph-exported training artifacts.
+
+## Q: Which version changed the package name from `command_center` to `server`?
+A: That rename happened in commit `49ee2d9ab6388f9d660f79dfcd3d5e22a07e1b0c` (`49ee2d9`), with subject `Mass rename`. In that commit, the whole [command_center/](/Users/christopherlin/dev/cwsf2026/sim/command_center/) package tree was renamed to [server/](/Users/christopherlin/dev/cwsf2026/sim/server/), including `main.py`, `config.py`, `comms/`, `core/`, `ui/`, and `fake_robot.py`. Later, `server/` itself was renamed again to `mission_control/` in commit `4e3d80c`.
+
+## Q: Starting from revision `33cb33f4f046b9f715b0bf6b2fbcede11e0d91e0`, what changed in each later revision, when did it happen, why was it changed, what enhancement did it bring, what problems might it introduce, and does each change make sense?
+A: From the visible history after that baseline, the later revisions are:
+
+1. `41ca431597e686efae9dc38944186860c357cf34`
+   Date-time: `2026-03-24 12:25:29 -0700`
+   Code changed: no runtime code; documentation files only: [docs/BLUETOOTH_FIRMWARE_NOTES.md](../docs/BLUETOOTH_FIRMWARE_NOTES.md), [docs/prompts/11_bluetooth_prompt.md](../docs/prompts/11_bluetooth_prompt.md), plus log/Q&A updates.
+   Change summary: added a Bluetooth design note for the firmware side and a reusable implementation prompt for adding Bluetooth transport later.
+   Reason: the repo had a new command-center subsystem but no concrete written plan for how Bluetooth should fit the current architecture, especially given that the policy loop lives on the Raspberry Pi while the ESP32 is a lower-level motor/sensor controller.
+   Enhancement: clarified the intended split between Pi-side model/runtime logic and ESP32-side hardware control, and gave the project a reusable prompt to implement Bluetooth consistently later.
+   Possible problems: this was documentation-only, so the main risk was architectural drift if the notes were wrong or later code did not follow them. The docs also used the earlier `command_center` naming just before the later rename.
+   Does it make sense: yes. Before implementing Bluetooth, documenting the intended architecture was a sensible step and reduced the risk of putting the transport in the wrong layer.
+
+2. `ae92c576669e6d1cec5955e341c2c078bfa00381`
+   Date-time: `2026-03-24 13:20:25 -0700`
+   Code changed: [command_center/comms/receiver.py](../command_center/comms/receiver.py), [command_center/config.py](../command_center/config.py), [command_center/main.py](../command_center/main.py), [firmware/bluetooth.py](../firmware/bluetooth.py), [firmware/run.py](../firmware/run.py) (renamed from `run_policy.py`), [firmware/ant.py](../firmware/ant.py), and `requirements.txt`, plus command-center docs/Q&A/log updates.
+   Change summary: implemented Bluetooth-related runtime support. The desktop command-center side gained Bluetooth-related receiver/config wiring, the Pi side gained a dedicated BLE client helper in `firmware/bluetooth.py`, and the main policy runner was renamed to `firmware/run.py` and expanded to interact with the command center over BLE.
+   Reason: the project needed the real robot runtime and the desktop command center to communicate directly, at the same abstraction level as pose/pheromone/model inference, instead of keeping the command center as only a local visualization/TCP test tool.
+   Enhancement: introduced the first end-to-end Pi-to-command-center Bluetooth path, separated BLE transport into a dedicated helper, and aligned the runtime naming (`run.py`) better with the repo’s active deployment path.
+   Possible problems: this was a large behavioral change touching both firmware and command-center code at once, so the main risks were transport brittleness, BLE-specific failure modes, and hidden mismatches between simulator expectations and live runtime observation assembly. Renaming `run_policy.py` at the same time also made the change harder to review.
+   Does it make sense: yes. It was an ambitious but coherent change because the project’s next practical milestone was live Pi-to-desktop integration.
+
+3. `49ee2d9ab6388f9d660f79dfcd3d5e22a07e1b0c`
+   Date-time: `2026-03-24 13:23:38 -0700`
+   Code changed: broad rename from [command_center/](../command_center/) to [server/](../server/), along with README, docs, prompt files, [firmware/run.py](../firmware/run.py), and log/Q&A updates.
+   Change summary: mechanically renamed the whole package tree and all references from `command_center` to `server`.
+   Reason: likely a naming preference shift toward a simpler “server” term once the subsystem was no longer just a UI package and had become the authoritative pheromone/communications endpoint.
+   Enhancement: made the code and docs internally consistent under the new package name and reduced mixed naming between docs and implementation.
+   Possible problems: `server` is a very generic name. It can be less descriptive than `command_center` and later proved unstable because it was renamed again to `mission_control`. A quick succession of renames also increases documentation drift and developer confusion.
+   Does it make sense: partially. The mechanical cleanup made sense, but the chosen name was not ideal long-term, which is supported by the fact that it was renamed again later the same day.
+
+4. `2c9ec7085858c4712c3cd4673635cb4d3c330a45`
+   Date-time: `2026-03-24 15:28:11 -0700`
+   Code changed: [firmware/ant.py](../firmware/ant.py), [firmware/bluetooth.py](../firmware/bluetooth.py), [firmware/run.py](../firmware/run.py), [server/comms/receiver.py](../server/comms/receiver.py), [server/config.py](../server/config.py), [server/core/pheromone_field.py](../server/core/pheromone_field.py), checkpoint metadata, requirements, and docs/log/Q&A.
+   Change summary: refined the first server-era live integration. The Pi-side BLE path was expanded, the server-side transport/config were adjusted, pheromone deposit behavior and live path details were improved, and checkpoint metadata/docs were refreshed.
+   Reason: after the initial Bluetooth integration landed, the project still needed follow-up changes to make the live server path more usable and to align the digital pheromone handling more closely with how the robots were actually expected to interact with the server.
+   Enhancement: made the live server path more complete and likely more practical, especially around firmware/server coordination and pheromone-field behavior.
+   Possible problems: the commit message is vague relative to the amount of behavior changed. Since it touches firmware runtime, BLE transport, server internals, checkpoints, and docs all at once, the review risk is high and it is hard to isolate regressions.
+   Does it make sense: yes in substance, though not in presentation. It looks like a necessary stabilization pass after the larger Bluetooth integration commit.
+
+5. `4e3d80c9401c64cd282c66e66d93484a9b024a3f`
+   Date-time: `2026-03-24 16:08:12 -0700`
+   Code changed: broad rename from [server/](../server/) to [mission_control/](../mission_control/), renamed docs from `COMMAND_CENTER*` to `MISSION_CONTROL*`, and updated firmware/docs/imports accordingly.
+   Change summary: renamed the desktop subsystem from `server` to `mission_control`.
+   Reason: `server` was too generic. `mission_control` better describes the package’s actual role: MacBook-side operator UI, live telemetry hub, and authoritative digital pheromone service.
+   Enhancement: greatly improved conceptual clarity. The new name is more descriptive in code, docs, prompts, and architecture discussions.
+   Possible problems: multiple same-day renames (`command_center` -> `server` -> `mission_control`) create churn, make historical diffs noisier, and increase the chance of stale references or broken scripts.
+   Does it make sense: yes. Of the three names, `mission_control` is the clearest for this repo’s current architecture, so this rename seems directionally correct even if it arrived after extra churn.
+
+6. `6a9d95d9c756d123e5ea5bfe6c84e71237c96a95`
+   Date-time: `2026-03-24 20:28:10 -0700`
+   Code changed: many files across [mission_control/](../mission_control/), [firmware/run.py](../firmware/run.py), [firmware/bluetooth.py](../firmware/bluetooth.py), [env/config.py](../env/config.py), [env/swarm_env.py](../env/swarm_env.py), [models/rule_based_policy.py](../models/rule_based_policy.py), [train/demo.py](../train/demo.py), [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py), [train/policy_probe.py](../train/policy_probe.py), checkpoints, README, and many docs.
+   Change summary: this was the major functional expansion commit. Mission Control gained richer BLE handling, telemetry/UI improvements, lidar protocol support, better fake-robot behavior, and rendering refinements. The Pi runtime became much more Mission Control-aware. The simulator/runtime contract also changed from 9 movement-only actions to 18 actions with explicit policy-controlled pheromone deposition and a deposit cost. Training/demo seed handling and epsilon schedule controls were also improved.
+   Reason: the project was moving from a minimally connected desktop/robot setup to a richer end-to-end live experimentation platform, and the policy needed direct control over deposition instead of relying only on heuristic runtime behavior.
+   Enhancement: this is probably the single biggest step-up in capability in the visible range. It improved live Mission Control usefulness, made robot telemetry much richer, made pheromone deposition policy-controlled, improved testing ergonomics, and improved training/demo repeatability and tunability.
+   Possible problems: it is a very broad commit touching many subsystems at once. Risks include protocol regressions, simulator/runtime mismatch, UI complexity creeping up, checkpoint incompatibility, and unclear causal attribution if a regression appears. It also changes both behavior and tooling/docs simultaneously, which makes debugging harder.
+   Does it make sense: yes, strongly. Even though it is large, the changes are internally coherent: they all support making Mission Control a real live robotics subsystem and making the action/training/runtime contracts more expressive.
+
+7. `130452c0b589ec574299008e79cb17b960ea9362`
+   Date-time: `2026-03-24 23:33:31 -0700`
+   Code changed: [env/config.py](../env/config.py), [env/swarm_env.py](../env/swarm_env.py), [firmware/run.py](../firmware/run.py), [models/rule_based_policy.py](../models/rule_based_policy.py), [train/experiment_utils.py](../train/experiment_utils.py), [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py), checkpoint metadata/shared checkpoint, [docs/OBSERVATION_SPEC.md](../docs/OBSERVATION_SPEC.md), and log/Q&A updates, plus new [training_graphs/](../training_graphs/) artifacts.
+   Change summary: added short sliding-window observation history, making the default observation a 69-D stack of 3 chronological 23-D frames instead of a single frame. It also made pheromone sensing geometry explicit via `pheromone_sample_spacing_scale` and helper methods, and added top-level training/evaluation graph export.
+   Reason: a purely memoryless single-frame observation was too limited for capturing short-term behavior like oscillation or recent motion context, and training artifacts were not easy enough to inspect. The pheromone sampling geometry also needed to be made explicit rather than being hidden in inline formulas.
+   Enhancement: improved temporal context without switching to an RNN, tightened simulator/runtime alignment around pheromone sensing, and made training outputs easier to consume through `training_graphs/`.
+   Possible problems: this creates checkpoint incompatibility because models trained on the old 23-D observation no longer load into the new 69-D input shape. It also increases observation size and therefore may increase training complexity or overfitting risk. Committing generated graph images can also add repo noise if repeated often.
+   Does it make sense: yes. This is a sensible next step once the live Mission Control path existed and the team wanted stronger policy behavior and clearer experiment outputs.
+
+8. `a008c01f8a456efc0b14e8e65fd6d3cd6ecf1ed8`
+   Date-time: `2026-03-24 23:50:49 -0700`
+   Code changed: documentation only: [docs/QandA.md](../docs/QandA.md), [docs/PROJECT_LOG.md](../docs/PROJECT_LOG.md), and new [docs/prompts/12_additional_prompts.md](../docs/prompts/12_additional_prompts.md).
+   Change summary: documented the detailed repo evolution since `2c9ec70` and added a reconstructed set of incremental prompts that could plausibly have produced that evolution.
+   Reason: by this point the repo had changed a lot in a short period, and the history was becoming hard to understand from commit subjects alone.
+   Enhancement: improved maintainability and historical understanding by turning the recent evolution into explicit documentation and reusable prompts.
+   Possible problems: this is interpretive documentation, so the risk is mostly historical overreach or slightly incorrect narrative framing rather than runtime breakage.
+   Does it make sense: yes. Once the project had accumulated several large same-day architectural changes, documenting the path was a reasonable cleanup step.
+
+Overall assessment of the whole sequence:
+- The sequence makes sense as a rapid same-day build-out of a live robotics experiment stack.
+- The strongest improvements were the Mission Control/Pi BLE integration, the move to policy-controlled pheromone deposition, and later the addition of observation history.
+- The biggest weakness in the sequence is not technical direction but churn: multiple same-day renames and several large cross-cutting commits increased review difficulty and historical noisiness.
+- Even with that churn, the overall architectural direction is coherent: move from a basic command-center prototype toward a properly named Mission Control subsystem with richer live integration, better action semantics, stronger training/runtime alignment, and clearer experiment artifacts.
