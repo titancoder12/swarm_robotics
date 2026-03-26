@@ -56,7 +56,7 @@ def parse_args(argv=None):
     parser.add_argument("--agent-max", type=int, default=30)
     parser.add_argument("--agent-step", type=int, default=1)
     parser.add_argument("--episodes-per-agent", type=int, default=10)
-    parser.add_argument("--output-dir", type=str, default="experiment_data")
+    parser.add_argument("--output-dir", type=str, default="experiments/experiment_data")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--max-steps", type=int, default=0, help="Alias for eval-steps/fixed evaluation horizon.")

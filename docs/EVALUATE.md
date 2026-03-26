@@ -1,0 +1,194 @@
+# Evaluation Guide
+
+This document explains the practical evaluation paths in this repo:
+
+- evaluate one saved model or baseline
+- compare multiple saved models across swarm sizes
+- understand where evaluation outputs are written
+
+The main entry points are:
+
+- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py)
+- [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
+
+## 1. Single-Model Evaluation
+
+Use [train/evaluate.py](../train/evaluate.py) when you want to evaluate one checkpoint or the rule-based baseline.
+
+### Shared-policy checkpoint
+
+```bash
+./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_shared --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
+```
+
+### Pheromone-enabled vs pheromone-disabled
+
+Pheromone on:
+
+```bash
+./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_on --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --use-pheromone
+```
+
+Pheromone off:
+
+```bash
+./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_off --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+```
+
+### Rule-based baseline
+
+```bash
+./.venv/bin/python train/evaluate.py --policy-kind rule_based --filename eval_rule_based --output-dir runs/rule_eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+```
+
+## 2. What `train/evaluate.py` Writes
+
+For a run such as:
+
+```bash
+./.venv/bin/python train/evaluate.py --filename eval_shared --output-dir runs/eval ...
+```
+
+the script writes:
+
+- `runs/eval/eval_shared_eval_metrics.csv`
+- `runs/eval/eval_shared_eval_summary.json`
+
+Important metric meanings:
+
+- `targets_collected` = pickup events, not delivery
+- `targets_picked_up` = same pickup count, kept explicitly for clarity
+- `food_delivered` = delivery / return-to-nest count
+- `time_to_first_discovery` = first step where any pickup happens
+- `coverage_efficiency` = `exploration_coverage / total_steps_taken`
+
+Evaluation uses a fixed horizon through `--eval-steps`. In the current evaluation path, targets respawn to maintain `--active-targets` throughout the episode.
+
+## 3. Multi-Model Swarm-Scaling Comparison
+
+Use [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py) when you want one combined comparison across swarm sizes.
+
+It currently evaluates four conditions:
+
+1. `trained_with_pheromone__eval_with_pheromone`
+2. `trained_without_pheromone__eval_without_pheromone`
+3. `trained_with_pheromone__eval_without_pheromone`
+4. `random_walk`
+
+Condition 3 reuses the `--checkpoint-with-pheromone` checkpoint.
+
+Condition 4 uses no checkpoint and samples random actions each step.
+
+### Main comparison command
+
+```bash
+./.venv/bin/python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/full_policy --checkpoint-without-pheromone checkpoints/full_policy --filename pheromone_vs_random --agent-min 1 --agent-max 30 --agent-step 1 --episodes-per-agent 10 --output-dir experiments/experiment_data --headless --max-steps 2000 --active-targets 4 --shared-policy
+```
+
+### Smaller smoke test
+
+```bash
+./.venv/bin/python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/full_policy --checkpoint-without-pheromone checkpoints/full_policy --filename smoke_compare --agent-min 1 --agent-max 3 --agent-step 1 --episodes-per-agent 1 --output-dir experiments/experiment_data --headless --max-steps 50 --active-targets 4 --shared-policy
+```
+
+## 4. What `analysis/evaluate_comparison.py` Writes
+
+By default, outputs go under [experiments/experiment_data/](../experiments/experiment_data/).
+
+Directory structure:
+
+- `experiments/experiment_data/raw/`
+- `experiments/experiment_data/graphs/PNG/`
+- `experiments/experiment_data/graphs/PDF/`
+- `experiments/experiment_data/exploration_graphs/`
+
+Main raw outputs:
+
+- `<filename>_all_conditions_raw.csv`
+- `<filename>_summary.csv`
+- one per-condition raw CSV for each comparison label
+
+Main plots:
+
+- `<filename>_agents_vs_targets_collected`
+- `<filename>_coverage_efficiency_vs_agents`
+- `<filename>_efficiency_vs_agents`
+- `<filename>_time_to_first_discovery_vs_agents`
+
+Exploration outputs:
+
+- one heatmap image per representative swarm size per condition
+
+The comparison metadata file is:
+
+- `<output-dir>/<filename>_metadata.json`
+
+## 5. Checkpoint Conventions
+
+Training saves checkpoints in directory form. The most important paths are usually:
+
+- [checkpoints/full_policy/](../checkpoints/full_policy/)
+- [checkpoints/1_4_trained/](../checkpoints/1_4_trained/)
+- [checkpoints/1_2_trained/](../checkpoints/1_2_trained/)
+- [checkpoints/3_4_trained/](../checkpoints/3_4_trained/)
+
+For shared-policy runs, evaluation expects `shared.pt` inside the checkpoint directory.
+
+Example:
+
+- [checkpoints/full_policy/shared.pt](../checkpoints/full_policy/shared.pt)
+- [checkpoints/full_policy/metadata.json](../checkpoints/full_policy/metadata.json)
+
+## 6. Pheromone Controls During Evaluation
+
+The shared evaluation/config path supports:
+
+- `--use-pheromone`
+- `--no-use-pheromone`
+- `--pheromone-requires-food`
+- `--no-pheromone-requires-food`
+
+When pheromone is disabled:
+
+- deposition is disabled
+- pheromone observations are zeroed
+- observation shape stays compatible with trained models
+
+If you want visible pheromone trails during free exploration in demo/eval, do not forget:
+
+```bash
+--no-pheromone-requires-food
+```
+
+Otherwise deposition can be delayed until pickup.
+
+## 7. Existing Experiment Registry
+
+[experiments/benchmark_configs.py](../experiments/benchmark_configs.py) is different from `experiments/experiment_data/`.
+
+- `experiments/benchmark_configs.py` defines named experiment sweeps for [train/run_experiments.py](../train/run_experiments.py)
+- `experiments/experiment_data/` stores generated comparison outputs
+
+Use [train/run_experiments.py](../train/run_experiments.py) when you want the older benchmark-registry workflow. Use [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py) when you want the newer explicit multi-checkpoint comparison workflow.
+
+## 8. Practical Workflow
+
+Typical flow:
+
+1. Train a pheromone-enabled model.
+2. Train a pheromone-disabled model.
+3. Confirm the checkpoints exist in directories such as:
+   - [checkpoints/full_policy/](../checkpoints/full_policy/)
+4. Run a quick single-checkpoint evaluation with [train/evaluate.py](../train/evaluate.py).
+5. Run the multi-condition comparison with [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py).
+6. Inspect:
+   - raw CSVs in `experiments/experiment_data/raw/`
+   - line plots in `experiments/experiment_data/graphs/`
+   - exploration heatmaps in `experiments/experiment_data/exploration_graphs/`
+
+## 9. Related Docs
+
+- [docs/EVALUATION_CUSTOM.md](EVALUATION_CUSTOM.md)
+- [docs/ONBOARDING.md](ONBOARDING.md)
+- [docs/API_REFERENCE.md](API_REFERENCE.md)
