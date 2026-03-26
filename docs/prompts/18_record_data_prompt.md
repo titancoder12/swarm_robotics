@@ -1,410 +1,325 @@
 You are working in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Implement a systematic swarm-scaling comparison workflow for three evaluation conditions using trained models:
+Extend the evaluation framework to include a random walk baseline and enforce that:
 
-1. a model trained WITH pheromone, evaluated WITH pheromone
-2. a model trained WITHOUT pheromone, evaluated WITHOUT pheromone
-3. the SAME model trained WITH pheromone, but evaluated with pheromone DISABLED
+"targets_collected" refers to PICK-UP events, NOT delivery events.
 
-Goal:
-I want to compare these three conditions across swarm sizes from 1 to 30 agents and generate clean CSV outputs and publication-quality matplotlib graphs.
-
-The three comparison labels should be treated clearly throughout the code and outputs, for example:
-
-- `trained_with_pheromone__eval_with_pheromone`
-- `trained_without_pheromone__eval_without_pheromone`
-- `trained_with_pheromone__eval_without_pheromone`
+Then implement a full swarm-scaling comparison across four conditions.
 
 --------------------------------------------------
-PART 1 — CLI ARGUMENTS
+PART 1 — COMPARISON CONDITIONS
 --------------------------------------------------
 
-Add / update the evaluation entry point so it accepts explicit arguments for the required trained checkpoints:
+Implement evaluation for the following FOUR conditions:
 
-1. checkpoint for model trained with pheromone
-   Example:
-   - `--checkpoint-with-pheromone path/to/model_with_pheromone.pt`
+1. trained_with_pheromone__eval_with_pheromone
+   - model trained WITH pheromone
+   - evaluated WITH pheromone enabled
 
-2. checkpoint for model trained without pheromone
-   Example:
-   - `--checkpoint-without-pheromone path/to/model_without_pheromone.pt`
+2. trained_without_pheromone__eval_without_pheromone
+   - model trained WITHOUT pheromone
+   - evaluated WITHOUT pheromone
 
-3. optional general filename / experiment name
-   Example:
-   - `--filename pheromone_comparison_run`
+3. trained_with_pheromone__eval_without_pheromone
+   - model trained WITH pheromone
+   - evaluated WITHOUT pheromone
 
-4. swarm scaling arguments:
-   - `--agent-min 1`
-   - `--agent-max 30`
-   - `--agent-step 1`
-   - `--episodes-per-agent 10`
-
-5. standard evaluation args if already supported:
-   - `--output-dir experiment_data`
-   - `--headless`
-   - `--seed`
-   - `--max-steps` or equivalent fixed evaluation horizon if already used in repo
+4. random_walk
+   - NO model
+   - NO learning
+   - NO pheromone
+   - random action selection at every step
 
 Important:
-- The script should NOT require a third checkpoint.
-- The third condition must reuse the checkpoint provided by:
-  - `--checkpoint-with-pheromone`
-- but run evaluation with pheromone disabled.
+- Condition 3 must reuse the checkpoint from condition 1
+- Condition 4 must NOT use any checkpoint
 
 --------------------------------------------------
-PART 2 — THREE REQUIRED COMPARISON CONDITIONS
+PART 2 — CRITICAL METRIC DEFINITION
 --------------------------------------------------
 
-Implement evaluation for these three conditions:
+You MUST redefine:
 
-Condition A:
-- model trained WITH pheromone
-- evaluate WITH pheromone enabled
+targets_collected = number of PICK-UP events
 
-Condition B:
-- model trained WITHOUT pheromone
-- evaluate WITH pheromone disabled
+NOT:
+- delivery
+- return-to-nest
+- drop-off
+- food_delivered
 
-Condition C:
-- model trained WITH pheromone
-- evaluate WITH pheromone disabled
+Implementation rules:
 
-Important implementation rules:
-- Condition C must use the same trained checkpoint as Condition A
-- For pheromone-disabled evaluation:
-  - no pheromone deposition
-  - pheromone inputs/signals to the policy should be zeroed or disabled in a repo-consistent way
-- Prefer keeping observation shape unchanged
-- Do NOT break model input dimensionality
-- If pheromone appears in the observation vector, return zeros for those channels/signals when disabled
+- Increment targets_collected the moment a target is first:
+  - detected
+  - picked up
+  - collected
 
-For clarity, store metadata for each run including:
-- comparison_label
-- checkpoint_path
-- trained_with_pheromone (bool)
-- eval_with_pheromone (bool)
+- If the repo currently uses:
+  - food_delivered
+  - targets_retrieved
+  - resources_delivered
+
+DO NOT use those unless they represent PICK-UP
+
+If needed:
+- add a new metric: targets_picked_up
+- and map:
+  targets_collected = targets_picked_up
+
+Clearly document in code:
+"targets_collected refers to pickup events, not delivery"
 
 --------------------------------------------------
-PART 3 — SWARM SCALING EVALUATION
+PART 3 — CLI ARGUMENTS
 --------------------------------------------------
 
-Systematically evaluate swarm sizes:
+Add or update the evaluation entry point to support:
 
-- 1, 2, 3, ..., 30
+--checkpoint-with-pheromone
+--checkpoint-without-pheromone
+--filename
+--agent-min
+--agent-max
+--agent-step
+--episodes-per-agent
+--output-dir
+--headless
+--seed
+--max-steps
 
-Run multiple episodes per swarm size for each of the three comparison conditions.
+Important:
+- Do NOT require a checkpoint for random_walk
+
+--------------------------------------------------
+PART 4 — RANDOM WALK BASELINE
+--------------------------------------------------
+
+Implement a random policy:
 
 Requirements:
-- Use inference only
-- Reuse existing evaluation utilities if possible
-- Aggregate results across episodes
-- Handle failures gracefully if one configuration fails
+- No neural network
+- No checkpoint
+- Same action space as trained policy
+- Works with multi-agent environment
+
+Behavior:
+
+At each step:
+- each agent selects a random action from the action space
+
+Example structure:
+
+class RandomPolicy:
+    def __init__(self, action_space):
+        self.action_space = action_space
+
+    def act(self, obs):
+        return self.action_space.sample()
+
+Multi-agent:
+- each agent acts independently
+- or vectorized sampling if supported
 
 --------------------------------------------------
-PART 4 — METRICS TO COLLECT
+PART 5 — PHEROMONE CONTROL
 --------------------------------------------------
 
-For every episode, collect at minimum:
+For pheromone-disabled evaluation:
 
-- comparison_label
-- checkpoint_path
-- trained_with_pheromone
-- eval_with_pheromone
-- number_of_agents
-- episode_index
-- total_steps_taken
-- targets_collected
-- coverage
-- coverage_efficiency
-- efficiency
-  - define as:
-    targets_collected / number_of_agents
-- time_to_first_discovery
-  - first step at which any target is discovered/detected/picked up/collected
-- total_reward
-- pheromone_usage if available
-- collisions if available
-- filename / experiment_name
-- seed if available
-- episode_done_reason if available
+- disable pheromone deposition
+- zero pheromone inputs in observation
+- keep observation shape unchanged
+- DO NOT break model compatibility
 
-Also include any existing repo metrics already available, such as:
-- food_delivered
-- targets_retrieved
-- swarm_efficiency
-- exploration_coverage
-- new_cells_visited
+--------------------------------------------------
+PART 6 — SWARM SCALING
+--------------------------------------------------
 
-Do not remove existing repo metrics.
+Evaluate across:
+
+agents = 1 → 30
+
+For EACH condition:
+- run multiple episodes
+- use inference only
+- aggregate results
+
+--------------------------------------------------
+PART 7 — METRICS TO COLLECT
+--------------------------------------------------
+
+Per episode, collect:
+
+comparison_label
+checkpoint_path
+trained_with_pheromone
+eval_with_pheromone
+is_random_policy
+number_of_agents
+episode_index
+total_steps_taken
+targets_collected   (PICKUP-based)
+coverage
+coverage_efficiency
+efficiency
+time_to_first_discovery
+total_reward
+pheromone_usage
+collisions
+filename
+seed
+episode_done_reason
+
+Also include existing repo metrics if available.
 
 Definitions:
-- efficiency = targets_collected / number_of_agents
-- coverage_efficiency = coverage / total_steps_taken
-  or a repo-consistent equivalent if one already exists
-- time_to_first_discovery should be clearly documented in code/comments
+
+efficiency = targets_collected / number_of_agents
+coverage_efficiency = coverage / total_steps_taken
+
+time_to_first_discovery:
+- first timestep where ANY agent picks up a target
 
 --------------------------------------------------
-PART 5 — RAW CSV OUTPUT
+PART 8 — RAW CSV OUTPUT
 --------------------------------------------------
 
-Save all raw per-episode information to:
+Save:
 
-- `/experiment_data/raw/`
+/experiment_data/raw/<filename>_all_conditions_raw.csv
 
-Create at least:
+Each row must include:
+- condition label
+- agent count
+- episode index
+- all metrics
 
-1. one master raw CSV containing all conditions
-   Example:
-   - `/experiment_data/raw/<filename>_all_conditions_raw.csv`
-
-Each row should include:
-- comparison_label
-- checkpoint_path
-- trained_with_pheromone
-- eval_with_pheromone
-- number_of_agents
-- episode_index
-- total_steps_taken
-- targets_collected
-- coverage
-- coverage_efficiency
-- efficiency
-- time_to_first_discovery
-- total_reward
-- pheromone_usage
-- collisions
-- and all other available raw metrics
-
-2. optionally, per-condition raw CSVs if convenient
-   Example:
-   - `/experiment_data/raw/<filename>_trained_with_eval_with_raw.csv`
-   - `/experiment_data/raw/<filename>_trained_without_eval_without_raw.csv`
-   - `/experiment_data/raw/<filename>_trained_with_eval_without_raw.csv`
-
-Also create a summary CSV if practical:
-- aggregated by condition and agent count
+Optionally:
+- per-condition CSVs
+- aggregated summary CSV
 
 --------------------------------------------------
-PART 6 — REQUIRED GRAPHS
+PART 9 — REQUIRED GRAPHS
 --------------------------------------------------
 
 Use matplotlib only.
-Do not use seaborn.
-Give each chart its own distinct figure.
-Do not use subplots unless absolutely necessary.
-Keep styling clean and readable.
 
-Create the following required comparison line graphs:
+Create 4 line graphs (ALL conditions included):
 
-1. Agents vs Targets Collected in Time
-- line graph
-- x-axis: number of agents
-- y-axis: mean targets collected
-- include all THREE conditions on the same plot
-- use clear labels / legend
-- include error bars or shaded variability if easy and repo-consistent
+1. Agents vs Targets Collected
+   - y = pickup-based targets_collected
 
 2. Coverage Efficiency vs Agents
-- line graph
-- x-axis: number of agents
-- y-axis: mean coverage efficiency
-- include all THREE conditions on the same plot
 
 3. Efficiency vs Agents
-- line graph
-- x-axis: number of agents
-- y-axis: mean efficiency
-- efficiency = targets_collected / number_of_agents
-- include all THREE conditions on the same plot
+   - targets_collected / number_of_agents
 
 4. Time to First Discovery vs Agents
-- line graph
-- x-axis: number of agents
-- y-axis: mean time to first discovery
-- include all THREE conditions on the same plot
-- handle no-discovery episodes cleanly
-
-Important:
-- These four comparison plots must each show all three conditions together
-- Label the lines clearly and consistently
-
---------------------------------------------------
-PART 7 — EXPLORATION VISUALS
---------------------------------------------------
-
-Create exploration visuals for EACH of the three conditions separately.
-
-Save them under:
-
-- `/experiment_data/exploration_graphs/`
 
 Requirements:
-- produce separate exploration visuals for each comparison condition
-- preferably create one or more representative exploration visualizations per condition
-- use the simplest repo-consistent exploration visualization available:
-  - visited-cell heatmap
-  - occupancy map
-  - visit-count heatmap
-  - or binary visited/unvisited grid
+- all four conditions on same plot
+- clear legend labels
+- optional error bars
+
+--------------------------------------------------
+PART 10 — EXPLORATION VISUALS
+--------------------------------------------------
+
+Generate exploration visuals for EACH condition:
+
+trained_with_pheromone__eval_with_pheromone
+trained_without_pheromone__eval_without_pheromone
+trained_with_pheromone__eval_without_pheromone
+random_walk
+
+Save under:
+
+/experiment_data/exploration_graphs/
 
 Preferred:
-- create visuals for representative swarm sizes such as:
-  - 1, 5, 10, 20, 30
+- heatmap of visited cells
+- occupancy grid
 
-If that is too heavy, at minimum:
-- create at least one representative exploration visual per condition
-
-Suggested filename patterns:
-- `/experiment_data/exploration_graphs/<filename>_trained_with_eval_with_agents_10.png`
-- `/experiment_data/exploration_graphs/<filename>_trained_without_eval_without_agents_10.png`
-- `/experiment_data/exploration_graphs/<filename>_trained_with_eval_without_agents_10.png`
-
-If practical:
-- also save PDF versions
-But PNG is the priority for this directory unless the repo already cleanly supports both.
-
-If possible, overlay:
-- nest position
-- target positions
+Optional:
 - trajectories
-This is optional, not required.
+- nest/target overlays
 
 --------------------------------------------------
-PART 8 — OUTPUT DIRECTORY STRUCTURE
+PART 11 — OUTPUT STRUCTURE
 --------------------------------------------------
 
-Use this output structure:
-
-- raw CSVs:
-  - `/experiment_data/raw/`
-
-- exploration visuals:
-  - `/experiment_data/exploration_graphs/`
-
-- comparison graphs:
-  - save under an experiment_data graph directory, preferably:
-    - `/experiment_data/graphs/PNG/`
-    - `/experiment_data/graphs/PDF/`
+experiment_data/
+  raw/
+  graphs/PNG/
+  graphs/PDF/
+  exploration_graphs/
 
 Requirements:
-- create directories automatically if they do not exist
-- do not hardcode absolute filesystem paths
-- interpret `/experiment_data/...` as relative to the chosen output root
-- default output root should be:
-  - `experiment_data`
-
-For the comparison graphs, save both PNG and PDF if possible:
-- `/experiment_data/graphs/PNG/<filename>_agents_vs_targets_collected.png`
-- `/experiment_data/graphs/PDF/<filename>_agents_vs_targets_collected.pdf`
-- etc.
-
-Use:
-- `plt.tight_layout()`
-- readable labels, title, and legend
-- descriptive filenames
+- auto-create directories
+- use relative paths
+- save graphs as PNG and PDF if possible
 
 --------------------------------------------------
-PART 9 — IMPLEMENTATION RULES
+PART 12 — SUMMARY AGGREGATION
 --------------------------------------------------
 
-- Reuse existing evaluation code where possible
-- Do NOT rewrite the architecture
-- Keep inference/evaluation runnable
-- Prefer keeping observation dimensions unchanged
-- When pheromone is disabled during evaluation:
-  - zero pheromone inputs
-  - disable deposition
-  - keep network input shape compatible
-- Do not add heavy dependencies
+Aggregate by:
 
-If the codebase already has a config object, add or reuse flags such as:
-- `use_pheromone`
-- `render_pheromone`
-- `enable_pheromone_deposition`
+condition + number_of_agents
 
-Be practical and repo-aware.
+Compute:
 
---------------------------------------------------
-PART 10 — SUMMARY / AGGREGATION
---------------------------------------------------
-
-Aggregate results by:
-- comparison condition
-- number_of_agents
-
-For each condition and agent count, compute at least:
-- mean_targets_collected
-- std_targets_collected
-- mean_coverage_efficiency
-- std_coverage_efficiency
-- mean_efficiency
-- std_efficiency
-- mean_time_to_first_discovery
-- std_time_to_first_discovery
-- mean_total_reward
-- std_total_reward
-
-Use these summaries to generate the line graphs.
+mean_targets_collected
+std_targets_collected
+mean_coverage_efficiency
+std_coverage_efficiency
+mean_efficiency
+std_efficiency
+mean_time_to_first_discovery
+std_time_to_first_discovery
+mean_total_reward
+std_total_reward
 
 --------------------------------------------------
-PART 11 — QUALITY REQUIREMENTS
+PART 13 — QUALITY REQUIREMENTS
 --------------------------------------------------
 
-- Real implementation only, not pseudocode
-- Must work from command line
-- Handle missing metrics gracefully
-- Use deterministic seeds where practical
-- If a single evaluation run fails, log it and continue if reasonable
-- Keep naming clear and consistent
-- Keep legend labels understandable
-- Make graphs presentation-ready
+- real implementation only
+- runnable from CLI
+- deterministic seeds where possible
+- handle failures gracefully
+- do not break existing code
+- reuse existing evaluation utilities
 
 --------------------------------------------------
-PART 12 — DELIVERABLES
+PART 14 — DELIVERABLES
 --------------------------------------------------
 
-After implementing, provide:
+After implementation, provide:
 
 1. list of modified / added files
-2. example command to run the comparison
-3. explanation of the three conditions
-4. explanation of how pheromone-disabled evaluation is implemented
-5. description of each generated CSV
-6. description of each generated graph
-7. description of exploration visuals
-8. any assumptions made about discovery, targets collected, coverage efficiency, or no-discovery handling
+2. example command to run
+3. explanation of all four conditions
+4. explanation of random_walk baseline
+5. explanation of pickup-based targets_collected
+6. description of CSV outputs
+7. description of graphs
+8. description of exploration visuals
+9. assumptions made
 
 --------------------------------------------------
 EXAMPLE COMMAND
 --------------------------------------------------
 
-Example only; adapt to repo conventions:
-
 python analysis/evaluate_comparison.py \
   --checkpoint-with-pheromone checkpoints/full_policy_with_pheromone.pt \
   --checkpoint-without-pheromone checkpoints/full_policy_without_pheromone.pt \
-  --filename pheromone_comparison \
+  --filename pheromone_vs_random \
   --agent-min 1 \
   --agent-max 30 \
   --agent-step 1 \
   --episodes-per-agent 10 \
   --output-dir experiment_data \
   --headless
-
---------------------------------------------------
-IMPORTANT
---------------------------------------------------
-
-Implement the feature directly in the existing repo.
-Keep it runnable.
-Follow the project’s naming/style conventions.
-
-Be practical and repo-aware:
-- if “targets collected” is actually called “food delivered” or similar in this repo, adapt terminology accordingly
-- if exploration visuals are not already supported, implement the simplest clean visited-cell heatmap possible using existing environment state
-- prefer clear comparisons over over-engineering
-- the main comparison is the difference between:
-  1. trained with pheromone / eval with pheromone
-  2. trained without pheromone / eval without pheromone
-  3. trained with pheromone / eval without pheromone

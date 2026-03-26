@@ -37,6 +37,13 @@ CONDITIONS = [
         "trained_with_pheromone": True,
         "eval_with_pheromone": False,
     },
+    {
+        "comparison_label": "random_walk",
+        "checkpoint_attr": None,
+        "trained_with_pheromone": False,
+        "eval_with_pheromone": False,
+        "is_random_policy": True,
+    },
 ]
 
 
@@ -52,8 +59,21 @@ def parse_args(argv=None):
     parser.add_argument("--output-dir", type=str, default="experiment_data")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--max-steps", type=int, default=0, help="Alias for eval-steps/fixed evaluation horizon.")
     add_env_config_args(parser)
     return parser.parse_args(argv)
+
+
+class RandomPolicy:
+    """Uniform random policy over the existing discrete action space."""
+
+    def __init__(self, action_dim: int, seed: int):
+        self.action_dim = int(action_dim)
+        self.rng = np.random.default_rng(seed)
+
+    def act(self, obs: np.ndarray) -> int:
+        del obs
+        return int(self.rng.integers(0, self.action_dim))
 
 
 def _resolve_checkpoint_file(path: str, shared_policy: bool, agent_index: int = 0) -> str:
@@ -91,11 +111,12 @@ def _build_cfg(args, n_agents: int, eval_with_pheromone: bool):
     cfg_args.n_agents = int(n_agents)
     cfg_args.use_pheromone = bool(eval_with_pheromone)
     cfg_args.pheromone_disabled = not bool(eval_with_pheromone)
-    cfg_args.max_steps_per_episode = int(args.eval_steps)
+    eval_steps = int(args.max_steps) if int(getattr(args, "max_steps", 0)) > 0 else int(args.eval_steps)
+    cfg_args.max_steps_per_episode = eval_steps
     cfg_args.n_targets = int(args.active_targets)
     cfg_args.target_respawn = True
     cfg = make_swarm_config(cfg_args)
-    cfg.max_steps = int(args.eval_steps)
+    cfg.max_steps = eval_steps
     cfg.n_targets = int(args.active_targets)
     cfg.active_targets = int(args.active_targets)
     cfg.target_respawn = True
@@ -130,7 +151,7 @@ def _save_exploration_visual(path_png: str, path_pdf: str, env: SwarmEnv, title:
     plt.close(fig)
 
 
-def _run_episode(env: SwarmEnv, nets, device, seed: int):
+def _run_episode(env: SwarmEnv, nets, device, seed: int, random_policy: RandomPolicy | None = None):
     obs_dict, _ = env.reset(seed=seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
@@ -149,10 +170,13 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int):
     while True:
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
         for index in range(env.cfg.n_agents):
-            with torch.no_grad():
-                obs_tensor = torch.tensor(obs[index], dtype=torch.float32, device=device).unsqueeze(0)
-                q_vals = nets[index](obs_tensor)
-                actions[index] = int(torch.argmax(q_vals, dim=1).item())
+            if random_policy is not None:
+                actions[index] = random_policy.act(obs[index])
+            else:
+                with torch.no_grad():
+                    obs_tensor = torch.tensor(obs[index], dtype=torch.float32, device=device).unsqueeze(0)
+                    q_vals = nets[index](obs_tensor)
+                    actions[index] = int(torch.argmax(q_vals, dim=1).item())
 
         action_dict = {agent: int(actions[index]) for index, agent in enumerate(agent_ids)}
         next_obs_dict, rewards_dict, terminations, truncations, info_dict = env.step(action_dict)
@@ -163,6 +187,7 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int):
         episode_rewards += rewards
         picked_up = int(info.get("targets_collected", 0))
         delivered = int(info.get("food_delivered", 0))
+        # targets_collected refers to pickup events, not delivery events.
         targets_collected += picked_up
         food_delivered += delivered
         coverage = max(coverage, float(info.get("exploration_coverage", 0.0)))
@@ -181,6 +206,7 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int):
         "mean_episode_reward": float(episode_rewards.mean()),
         "total_reward": float(episode_rewards.sum()),
         "targets_collected": int(targets_collected),
+        "targets_picked_up": int(targets_collected),
         "food_discovered": int(targets_collected),
         "food_picked_up": int(targets_collected),
         "food_retrieved": int(food_delivered),
@@ -286,23 +312,30 @@ def run(args):
     saved_exploration: set[tuple[str, int]] = set()
 
     for condition_index, condition in enumerate(CONDITIONS):
-        checkpoint_path = getattr(args, condition["checkpoint_attr"])
+        checkpoint_path = getattr(args, condition["checkpoint_attr"]) if condition.get("checkpoint_attr") else ""
         for n_agents in range(args.agent_min, args.agent_max + 1, args.agent_step):
             cfg = _build_cfg(args, n_agents=n_agents, eval_with_pheromone=condition["eval_with_pheromone"])
             env = SwarmEnv(cfg, headless=True)
             try:
                 obs_dict, _ = env.reset(seed=args.seed + condition_index * 100_000 + n_agents * 1_000)
                 obs_dim = np.stack([obs_dict[agent] for agent in env.possible_agents], axis=0).shape[1]
-                nets, device = _load_models(checkpoint_path, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
+                nets = []
+                device = torch.device("cpu")
+                random_policy = None
+                if condition.get("is_random_policy", False):
+                    random_policy = RandomPolicy(cfg.num_actions, seed=args.seed + condition_index * 100_000 + n_agents)
+                else:
+                    nets, device = _load_models(checkpoint_path, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
                 for episode_index in range(args.episodes_per_agent):
                     episode_seed = args.seed + condition_index * 100_000 + n_agents * 1_000 + episode_index
-                    metrics = _run_episode(env, nets, device, episode_seed)
+                    metrics = _run_episode(env, nets, device, episode_seed, random_policy=random_policy)
                     row = {
                         "filename": filename,
                         "comparison_label": condition["comparison_label"],
                         "checkpoint_path": checkpoint_path,
                         "trained_with_pheromone": bool(condition["trained_with_pheromone"]),
                         "eval_with_pheromone": bool(condition["eval_with_pheromone"]),
+                        "is_random_policy": bool(condition.get("is_random_policy", False)),
                         "number_of_agents": int(n_agents),
                         "episode_index": int(episode_index),
                         "seed": int(episode_seed),
@@ -342,6 +375,7 @@ def run(args):
         "checkpoint_path",
         "trained_with_pheromone",
         "eval_with_pheromone",
+        "is_random_policy",
         "number_of_agents",
         "episode_index",
         "seed",
@@ -349,6 +383,7 @@ def run(args):
         "eval_steps_configured",
         "total_steps_taken",
         "targets_collected",
+        "targets_picked_up",
         "coverage",
         "coverage_efficiency",
         "efficiency",
@@ -392,6 +427,7 @@ def run(args):
                 "checkpoint_with_pheromone": args.checkpoint_with_pheromone,
                 "checkpoint_without_pheromone": args.checkpoint_without_pheromone,
             },
+            "targets_collected_definition": "pickup_events_not_delivery",
             "agent_range": {
                 "min": int(args.agent_min),
                 "max": int(args.agent_max),

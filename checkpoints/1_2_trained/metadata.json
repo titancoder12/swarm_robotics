@@ -1,8 +1,8 @@
 {
-  "experiment_name": "pheromone_off_run1",
-  "filename": "pheromone_off_run1",
+  "experiment_name": "pheromone_on_run1",
+  "filename": "pheromone_on_run1",
   "obs_dim": 69,
   "shared_policy": true,
   "step": 15000,
-  "use_pheromone": false
+  "use_pheromone": true
 }

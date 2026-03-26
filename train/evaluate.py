@@ -95,6 +95,7 @@ def run(args):
             "food_retrieved",
             "food_delivered",
             "targets_collected",
+            "targets_picked_up",
             "exploration_coverage",
             "coverage_efficiency",
             "efficiency",
@@ -178,6 +179,7 @@ def run(args):
                 info = info_dict[agent_ids[0]]
 
                 episode_rewards += rewards
+                # targets_collected refers to pickup events, not delivery events.
                 food_discovered += int(info.get("targets_collected", 0))
                 food_retrieved += int(info.get("food_delivered", 0))
                 exploration_coverage = max(exploration_coverage, float(info.get("exploration_coverage", 0.0)))
@@ -210,6 +212,7 @@ def run(args):
                 "food_retrieved": food_retrieved,
                 "food_delivered": food_retrieved,
                 "targets_collected": food_discovered,
+                "targets_picked_up": food_discovered,
                 "exploration_coverage": exploration_coverage,
                 "coverage_efficiency": coverage_efficiency,
                 "efficiency": float(food_discovered / max(cfg.n_agents, 1)),
@@ -242,6 +245,7 @@ def run(args):
             "checkpoint_dir": args.checkpoint_dir,
             "metrics_csv": os.path.basename(metrics_path),
             "metrics": {
+                "targets_collected_definition": "pickup_events_not_delivery",
                 "mean_reward": float(np.mean([row["mean_episode_reward"] for row in summaries])) if summaries else 0.0,
                 "mean_food_discovered": float(np.mean([row["food_discovered"] for row in summaries])) if summaries else 0.0,
                 "mean_food_retrieved": float(np.mean([row["food_retrieved"] for row in summaries])) if summaries else 0.0,

@@ -16,6 +16,7 @@ from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
+from train.experiment_utils import add_env_config_args, make_swarm_config
 
 
 def parse_args(argv=None):
@@ -38,6 +39,7 @@ def parse_args(argv=None):
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
     parser.add_argument("--debug-policy-max-steps", type=int, default=0)
+    add_env_config_args(parser)
     return parser.parse_args(argv)
 
 
@@ -218,7 +220,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     dqn_module.DQNConfig.validate = lambda self: None
 
     def env_creator(_):
-        cfg = SwarmConfig(n_agents=args.n_agents)
+        cfg = make_swarm_config(args)
         return ParallelPettingZooEnv(SwarmEnv(cfg, headless=False))
 
     register_env("swarm_pz", env_creator)
@@ -284,7 +286,7 @@ def main():
     args = parse_args()
 
     # 2) Build config + environment, then reset to get initial observations.
-    cfg = SwarmConfig(n_agents=args.n_agents)
+    cfg = make_swarm_config(args)
     env = SwarmEnv(cfg, headless=False)
     obs_dict, _ = env.reset(seed=args.seed)
     agent_ids = env.possible_agents

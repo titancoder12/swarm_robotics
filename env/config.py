@@ -60,11 +60,11 @@ class SwarmConfig:
 
     # Rewards
     reward_target: float = 8.0
-    reward_step: float = -0.01
+    reward_step: float = -0.08 #-0.01 
     reward_collision: float = -0.2
     reward_pickup: float = 8.0
-    reward_nest_delivery: float = 0.0 #10.0
-    reward_exploration: float = 0.02
+    reward_nest_delivery: float = 10.0
+    reward_exploration: float = 0.2 #0.05
     reward_new_cell: float = 0.02
     reward_pheromone_following: float = 0.2
     reward_food_approach: float = 1 #reward_food_approach: float = 0.2
