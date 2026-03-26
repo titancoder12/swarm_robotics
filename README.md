@@ -88,6 +88,14 @@ Save checkpoints during training:
 python train/independent_dqn_pytorch.py --headless --save-every 2000 --save-dir checkpoints
 ```
 
+Train with an explicit epsilon schedule:
+
+```bash
+python train/independent_dqn_pytorch.py --headless --total-steps 30000 --save-dir checkpoints --epsilon-start 1.0 --epsilon-final 0.05 --epsilon-decay-steps 20000 --warmup-steps 2000
+```
+
+If you run that command manually, keep it on one shell line or use `\` line continuations exactly. Entering `>`-prefixed continuation lines or isolated flag lines can make the shell create empty files such as `--epsilon-final`, `--epsilon-decay-steps`, or `--warmup-steps` in the repo root.
+
 ## Training Backends (Optional)
 
 Default (custom DQN):

@@ -3,6 +3,6 @@
   "filename": "pheromone_off_run1",
   "obs_dim": 69,
   "shared_policy": true,
-  "step": 30000,
+  "step": 7500,
   "use_pheromone": false
 }

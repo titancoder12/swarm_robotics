@@ -62,11 +62,11 @@ class SwarmConfig:
     reward_target: float = 8.0
     reward_step: float = -0.01
     reward_collision: float = -0.2
-    reward_pickup: float = 1.5
-    reward_nest_delivery: float = 10.0
+    reward_pickup: float = 8.0
+    reward_nest_delivery: float = 0.0 #10.0
     reward_exploration: float = 0.02
     reward_new_cell: float = 0.02
-    reward_pheromone_following: float = 0.0
+    reward_pheromone_following: float = 0.2
     reward_food_approach: float = 1 #reward_food_approach: float = 0.2
     reward_food_detected: float = 0.2 #reward_food_detected: float = 0.05
     reward_pheromone_follow: float = 0.03
@@ -76,6 +76,8 @@ class SwarmConfig:
     # Task
     nest_enabled: bool = True
     require_nest_delivery: bool = True
+    active_targets: int = 4
+    target_respawn: bool = False
     coverage_cell_size: int = 24
     failed_agent_count: int = 0
     observation_noise_std: float = 0.0

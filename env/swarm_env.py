@@ -279,7 +279,11 @@ class SwarmEnv(ParallelEnv):
 
         # Episode end conditions.
         self.step_count += 1
-        if len(self.targets) == 0 and not any(agent.carrying_food for agent in self.agent_states):
+        if (
+            not self.cfg.target_respawn
+            and len(self.targets) == 0
+            and not any(agent.carrying_food for agent in self.agent_states)
+        ):
             self.terminated = True
         if self.step_count >= self.cfg.max_steps:
             self.truncated = True
@@ -300,6 +304,14 @@ class SwarmEnv(ParallelEnv):
             "pheromone_deposit_events": pheromone_deposit_events,
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
+            "active_targets": len(self.targets),
+            "episode_done_reason": (
+                "max_steps"
+                if self.truncated
+                else "all_targets_cleared"
+                if self.terminated
+                else ""
+            ),
             "reward_breakdown": reward_breakdown,
         }
         infos = {agent: info for agent in self.possible_agents}
@@ -404,9 +416,7 @@ class SwarmEnv(ParallelEnv):
         """Randomly place targets in non-colliding free space."""
         # Randomly place targets in free space.
         self.targets = []
-        for _ in range(self.cfg.n_targets):
-            pos = self._sample_free_position(self.cfg.target_radius)
-            self.targets.append(pos)
+        self._respawn_targets(target_count=self._target_spawn_count())
 
     def _spawn_nest(self):
         """Place a single nest location away from obstacles and borders."""
@@ -460,6 +470,22 @@ class SwarmEnv(ParallelEnv):
             return x, y
         return radius, radius
 
+    def _target_spawn_count(self) -> int:
+        """Return the desired number of simultaneously active targets."""
+        if self.cfg.target_respawn:
+            return max(1, int(self.cfg.active_targets))
+        return max(0, int(self.cfg.n_targets))
+
+    def _respawn_targets(self, target_count: int | None = None) -> int:
+        """Spawn replacement targets until the active target count is reached."""
+        desired = self._target_spawn_count() if target_count is None else max(0, int(target_count))
+        spawned = 0
+        while len(self.targets) < desired:
+            pos = self._sample_free_position(self.cfg.target_radius)
+            self.targets.append(pos)
+            spawned += 1
+        return spawned
+
     def _handle_collisions(self, proposed: AgentState) -> bool:
         """Return True if the proposed state collides with bounds/obstacles."""
         # Check arena bounds and obstacle collision for a proposed state.
@@ -498,6 +524,8 @@ class SwarmEnv(ParallelEnv):
             else:
                 remaining.append((tx, ty))
         self.targets = remaining
+        if self.cfg.target_respawn:
+            self._respawn_targets()
         delivered, delivery_reward = self._handle_nest_delivery(rewards)
         return picked_up, delivered, pickup_reward, delivery_reward
 

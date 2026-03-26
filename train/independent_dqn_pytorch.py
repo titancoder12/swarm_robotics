@@ -32,6 +32,7 @@ from train.experiment_utils import (
     make_swarm_config,
     plot_eval_metrics,
     plot_training_metrics,
+    resolve_filename,
     write_json,
 )
 
@@ -169,10 +170,23 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
         env.close()
 
 
+def _milestone_steps(total_steps: int) -> list[tuple[int, str]]:
+    """Return one-shot checkpoint milestones for 25/50/75/100 percent progress."""
+    total = max(1, int(total_steps))
+    return [
+        (max(1, int(np.ceil(total * 0.25))), "1_4_trained"),
+        (max(1, int(np.ceil(total * 0.50))), "1_2_trained"),
+        (max(1, int(np.ceil(total * 0.75))), "3_4_trained"),
+        (total, "full_policy"),
+    ]
+
+
 def train(args):
     """Train independent (or shared) DQN policies for each agent."""
     # 1) Environment and config setup.
     cfg = make_swarm_config(args)  # Env config.
+    filename = resolve_filename(args, fallback="dqn_foraging")
+    experiment_name = filename
     dqn_cfg = DQNConfig(
         epsilon_start=args.epsilon_start,
         epsilon_final=args.epsilon_final,
@@ -191,7 +205,7 @@ def train(args):
     # Use GPU if requested and available.
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")  # Device.
 
-    run_dir = make_run_dir(args.output_dir, args.experiment_name)
+    run_dir = make_run_dir(args.output_dir, experiment_name)
     graph_dir = os.path.join("training_graphs", os.path.basename(run_dir))
     os.makedirs(graph_dir, exist_ok=True)
     episode_logger = CSVLogger(
@@ -242,15 +256,24 @@ def train(args):
     write_json(
         os.path.join(run_dir, "run_config.json"),
         {
-            "experiment_name": args.experiment_name,
+            "experiment_name": experiment_name,
+            "filename": filename,
             "obs_dim": obs_dim,
             "action_dim": action_dim,
             "shared_policy": bool(args.shared_policy),
             "total_steps": args.total_steps,
             "seed": args.seed,
             "n_agents": args.n_agents,
+            "use_pheromone": bool(cfg.pheromone_enabled),
         },
     )
+    save_metadata = {
+        "filename": filename,
+        "use_pheromone": bool(cfg.pheromone_enabled),
+        "experiment_name": experiment_name,
+    }
+    milestone_targets = _milestone_steps(args.total_steps)
+    saved_milestones: set[str] = set()
 
     # 2) Initialize Q-networks, target networks, optimizers, and replay buffers.
     if args.shared_policy:
@@ -411,6 +434,19 @@ def train(args):
                 eval_logger.log({"global_step": global_step, **eval_metrics})
                 next_eval_step += args.eval_every
 
+            # 7b) One-shot milestone checkpoints.
+            for threshold, milestone_name in milestone_targets:
+                if global_step >= threshold and milestone_name not in saved_milestones:
+                    _save_models(
+                        os.path.join(args.save_dir, milestone_name),
+                        q_nets,
+                        args.shared_policy,
+                        obs_dim,
+                        global_step,
+                        extra_metadata=save_metadata,
+                    )
+                    saved_milestones.add(milestone_name)
+
             # 8) Episode bookkeeping + logging.
             if terminated or truncated:
                 episode += 1
@@ -472,9 +508,32 @@ def train(args):
 
             # 9) Optional checkpointing.
             if args.save_every > 0 and global_step % args.save_every == 0:
-                _save_models(args.save_dir, q_nets, args.shared_policy, obs_dim, global_step)
+                _save_models(
+                    args.save_dir,
+                    q_nets,
+                    args.shared_policy,
+                    obs_dim,
+                    global_step,
+                    extra_metadata=save_metadata,
+                )
 
-        _save_models(args.save_dir, q_nets, args.shared_policy, obs_dim, global_step)
+        _save_models(
+            args.save_dir,
+            q_nets,
+            args.shared_policy,
+            obs_dim,
+            global_step,
+            extra_metadata=save_metadata,
+        )
+        if "full_policy" not in saved_milestones:
+            _save_models(
+                os.path.join(args.save_dir, "full_policy"),
+                q_nets,
+                args.shared_policy,
+                obs_dim,
+                global_step,
+                extra_metadata=save_metadata,
+            )
         if not args.no_plots:
             plot_training_metrics(os.path.join(run_dir, "episode_metrics.csv"), run_dir)
             plot_training_metrics(os.path.join(run_dir, "episode_metrics.csv"), graph_dir)
@@ -488,6 +547,8 @@ def train(args):
                 "episodes_completed": episode,
                 "checkpoint_dir": args.save_dir,
                 "graph_dir": graph_dir,
+                "filename": filename,
+                "use_pheromone": bool(cfg.pheromone_enabled),
             },
         )
         return run_dir
@@ -524,10 +585,19 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def _save_models(save_dir: str, q_nets: List[QNetwork], shared: bool, obs_dim: int, step: int):
+def _save_models(
+    save_dir: str,
+    q_nets: List[QNetwork],
+    shared: bool,
+    obs_dim: int,
+    step: int,
+    extra_metadata: dict | None = None,
+):
     """Save model weights to disk, shared or per-agent."""
     os.makedirs(save_dir, exist_ok=True)  # Ensure dir exists.
     metadata = {"obs_dim": obs_dim, "shared_policy": bool(shared), "step": int(step)}
+    if extra_metadata:
+        metadata.update(extra_metadata)
     write_json(os.path.join(save_dir, "metadata.json"), metadata)
     if shared:
         torch.save(q_nets[0].state_dict(), os.path.join(save_dir, "shared.pt"))  # One shared file.

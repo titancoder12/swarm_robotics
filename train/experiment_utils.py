@@ -4,16 +4,34 @@ import argparse
 import csv
 import json
 import os
+import re
 from datetime import datetime
 from typing import Any, Dict, Iterable, List
 
 from env.config import SwarmConfig
 
 
+def sanitize_filename(value: str | None, default: str = "default_run") -> str:
+    """Return a filesystem-safe experiment label."""
+    raw = (value or "").strip()
+    if not raw:
+        return default
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", raw).strip("._-")
+    return safe or default
+
+
+def resolve_filename(args, fallback: str = "default_run") -> str:
+    """Resolve the preferred user-visible filename for outputs."""
+    explicit = getattr(args, "filename", "")
+    if explicit:
+        return sanitize_filename(explicit, default=fallback)
+    return sanitize_filename(getattr(args, "experiment_name", ""), default=fallback)
+
+
 def make_run_dir(output_dir: str, experiment_name: str) -> str:
     """Create a timestamped run directory for logs and plots."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = os.path.join(output_dir, f"{experiment_name}_{timestamp}")
+    run_dir = os.path.join(output_dir, f"{sanitize_filename(experiment_name)}_{timestamp}")
     os.makedirs(run_dir, exist_ok=True)
     return run_dir
 
@@ -119,10 +137,12 @@ def plot_eval_metrics(csv_path: str, out_dir: str) -> None:
 
 def add_env_config_args(parser) -> None:
     """Add shared environment override flags to a CLI parser."""
+    parser.add_argument("--filename", type=str, default="")
     parser.add_argument("--n-targets", type=int, default=4)
     parser.add_argument("--n-obstacles", type=int, default=6)
     parser.add_argument("--max-steps-per-episode", type=int, default=600)
     parser.add_argument("--dynamics-mode", choices=["tank", "hover", "mixed"], default="tank")
+    parser.add_argument("--use-pheromone", dest="use_pheromone", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-disabled", action="store_true")
     parser.add_argument("--failed-agent-count", type=int, default=0)
     parser.add_argument("--observation-noise-std", type=float, default=0.0)
@@ -134,11 +154,16 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.02)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--eval-steps", type=int, default=600)
+    parser.add_argument("--active-targets", type=int, default=4)
+    parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=False)
 
 
 def make_swarm_config(args) -> SwarmConfig:
     """Build a SwarmConfig from parsed CLI args without changing defaults elsewhere."""
-    pheromone_enabled = not getattr(args, "pheromone_disabled", False)
+    pheromone_enabled = bool(getattr(args, "use_pheromone", True)) and not getattr(args, "pheromone_disabled", False)
+    target_respawn = bool(getattr(args, "target_respawn", False))
+    active_targets = max(1, int(getattr(args, "active_targets", getattr(args, "n_targets", 4))))
     return SwarmConfig(
         n_agents=getattr(args, "n_agents", 6),
         n_targets=getattr(args, "n_targets", 4),
@@ -147,7 +172,7 @@ def make_swarm_config(args) -> SwarmConfig:
         dynamics_mode=getattr(args, "dynamics_mode", "tank"),
         pheromone_enabled=pheromone_enabled,
         render_pheromone=pheromone_enabled,
-        obs_include_pheromone=pheromone_enabled,
+        obs_include_pheromone=True,
         food_detection_radius=getattr(args, "food_detection_radius", 150.0),
         pheromone_requires_food=bool(getattr(args, "pheromone_requires_food", True)),
         failed_agent_count=getattr(args, "failed_agent_count", 0),
@@ -158,6 +183,8 @@ def make_swarm_config(args) -> SwarmConfig:
         reward_food_detected=getattr(args, "reward_food_detected", 0.05),
         reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.03),
         pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
+        active_targets=active_targets,
+        target_respawn=target_respawn,
     )
 
 
