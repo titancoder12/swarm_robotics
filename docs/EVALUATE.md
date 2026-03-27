@@ -101,7 +101,8 @@ Directory structure:
 - `experiments/experiment_data/raw/`
 - `experiments/experiment_data/graphs/PNG/`
 - `experiments/experiment_data/graphs/PDF/`
-- `experiments/experiment_data/exploration_graphs/`
+- `experiments/experiment_data/exploration_graphs/PNG/`
+- `experiments/experiment_data/exploration_graphs/PDF/`
 
 Main raw outputs:
 
@@ -185,7 +186,7 @@ Typical flow:
 6. Inspect:
    - raw CSVs in `experiments/experiment_data/raw/`
    - line plots in `experiments/experiment_data/graphs/`
-   - exploration heatmaps in `experiments/experiment_data/exploration_graphs/`
+   - exploration heatmaps in `experiments/experiment_data/exploration_graphs/PNG/` and `experiments/experiment_data/exploration_graphs/PDF/`
 
 ## 9. Related Docs
 

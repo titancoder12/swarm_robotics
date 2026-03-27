@@ -336,11 +336,13 @@ def run(args):
     args.checkpoint_without_pheromone = resolve_repo_path(args.checkpoint_without_pheromone)
     filename = resolve_filename(args, fallback="pheromone_comparison")
     raw_dir = os.path.join(args.output_dir, "raw")
-    exploration_dir = os.path.join(args.output_dir, "exploration_graphs")
+    exploration_png_dir = os.path.join(args.output_dir, "exploration_graphs", "PNG")
+    exploration_pdf_dir = os.path.join(args.output_dir, "exploration_graphs", "PDF")
     graph_png_dir = os.path.join(args.output_dir, "graphs", "PNG")
     graph_pdf_dir = os.path.join(args.output_dir, "graphs", "PDF")
     os.makedirs(raw_dir, exist_ok=True)
-    os.makedirs(exploration_dir, exist_ok=True)
+    os.makedirs(exploration_png_dir, exist_ok=True)
+    os.makedirs(exploration_pdf_dir, exist_ok=True)
     os.makedirs(graph_png_dir, exist_ok=True)
     os.makedirs(graph_pdf_dir, exist_ok=True)
 
@@ -428,8 +430,8 @@ def run(args):
                     marker = (condition["comparison_label"], n_agents)
                     if n_agents in representative_sizes and episode_index == 0 and marker not in saved_exploration:
                         slug = sanitize_filename(condition["comparison_label"])
-                        png_path = os.path.join(exploration_dir, f"{filename}_{slug}_agents_{n_agents}.png")
-                        pdf_path = os.path.join(exploration_dir, f"{filename}_{slug}_agents_{n_agents}.pdf")
+                        png_path = os.path.join(exploration_png_dir, f"{filename}_{slug}_agents_{n_agents}.png")
+                        pdf_path = os.path.join(exploration_pdf_dir, f"{filename}_{slug}_agents_{n_agents}.pdf")
                         _save_exploration_visual(
                             png_path,
                             pdf_path,

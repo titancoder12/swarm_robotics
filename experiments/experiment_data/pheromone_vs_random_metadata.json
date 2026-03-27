@@ -1,7 +1,7 @@
 {
   "active_targets": 4,
   "agent_range": {
-    "max": 5,
+    "max": 15,
     "min": 1,
     "step": 1
   },
@@ -9,7 +9,7 @@
     "checkpoint_with_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/with_pheremone/full_policy",
     "checkpoint_without_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/without_pheremone/full_policy"
   },
-  "episodes_per_agent": 2,
+  "episodes_per_agent": 1,
   "eval_steps": 600,
   "failures": [],
   "filename": "pheromone_vs_random",
