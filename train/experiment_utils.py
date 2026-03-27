@@ -10,6 +10,8 @@ from typing import Any, Dict, Iterable, List
 
 from env.config import SwarmConfig
 
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 def sanitize_filename(value: str | None, default: str = "default_run") -> str:
     """Return a filesystem-safe experiment label."""
@@ -28,17 +30,31 @@ def resolve_filename(args, fallback: str = "default_run") -> str:
     return sanitize_filename(getattr(args, "experiment_name", ""), default=fallback)
 
 
+def resolve_repo_path(path: str | None) -> str:
+    """Resolve repo-relative paths against the repository root."""
+    raw = (path or "").strip()
+    if not raw:
+        return ROOT
+    if os.path.isabs(raw):
+        return os.path.normpath(raw)
+    return os.path.normpath(os.path.join(ROOT, raw))
+
+
 def make_run_dir(output_dir: str, experiment_name: str) -> str:
     """Create a timestamped run directory for logs and plots."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = os.path.join(output_dir, f"{sanitize_filename(experiment_name)}_{timestamp}")
+    run_dir = os.path.join(resolve_repo_path(output_dir), f"{sanitize_filename(experiment_name)}_{timestamp}")
     os.makedirs(run_dir, exist_ok=True)
     return run_dir
 
 
 def write_json(path: str, payload: Dict[str, Any]) -> None:
     """Write a JSON payload with stable formatting."""
-    with open(path, "w", encoding="utf-8") as f:
+    resolved_path = resolve_repo_path(path)
+    parent = os.path.dirname(resolved_path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    with open(resolved_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, sort_keys=True)
 
 
@@ -46,10 +62,10 @@ class CSVLogger:
     """Simple append-only CSV logger with fixed fieldnames."""
 
     def __init__(self, path: str, fieldnames: Iterable[str]):
-        self.path = path
+        self.path = resolve_repo_path(path)
         self.fieldnames = list(fieldnames)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        self._file = open(path, "w", newline="", encoding="utf-8")
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
+        self._file = open(self.path, "w", newline="", encoding="utf-8")
         self._writer = csv.DictWriter(self._file, fieldnames=self.fieldnames)
         self._writer.writeheader()
 
@@ -68,6 +84,9 @@ def plot_training_metrics(csv_path: str, out_dir: str) -> None:
     except ImportError as exc:
         raise RuntimeError("matplotlib is required to generate training plots.") from exc
 
+    csv_path = resolve_repo_path(csv_path)
+    out_dir = resolve_repo_path(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
     with open(csv_path, "r", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     if not rows:
@@ -105,6 +124,9 @@ def plot_eval_metrics(csv_path: str, out_dir: str) -> None:
     except ImportError as exc:
         raise RuntimeError("matplotlib is required to generate evaluation plots.") from exc
 
+    csv_path = resolve_repo_path(csv_path)
+    out_dir = resolve_repo_path(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
     with open(csv_path, "r", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     if not rows:

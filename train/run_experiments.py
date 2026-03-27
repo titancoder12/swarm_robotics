@@ -18,8 +18,8 @@ from analysis.plot_metrics import (
     plot_mean_std_curve,
 )
 from experiments.benchmark_configs import get_experiment_cases
-from train.evaluate import parse_args as parse_eval_args, run as run_eval
-from train.experiment_utils import aggregate_rows, load_csv_rows, write_json
+from analysis.evaluate import parse_args as parse_eval_args, run as run_eval
+from train.experiment_utils import aggregate_rows, load_csv_rows, resolve_repo_path, write_json
 from train.independent_dqn_pytorch import parse_args as parse_train_args, train as run_train
 
 
@@ -65,6 +65,7 @@ def parse_args(argv=None):
 
 
 def _write_csv(path: str, fieldnames: list[str], rows: list[dict]) -> None:
+    path = resolve_repo_path(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -208,6 +209,9 @@ def _algorithm_bar_rows(rows: list[dict], metric_key: str) -> list[dict]:
 
 
 def run_experiments(args):
+    args.runs_dir = resolve_repo_path(args.runs_dir)
+    args.results_dir = resolve_repo_path(args.results_dir)
+    args.analysis_dir = resolve_repo_path(args.analysis_dir)
     registry = get_experiment_cases(args.experiment)
     for experiment_name, experiment_spec in registry.items():
         cases = experiment_spec["cases"]

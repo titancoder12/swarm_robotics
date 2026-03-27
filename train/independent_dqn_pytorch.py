@@ -33,6 +33,7 @@ from train.experiment_utils import (
     plot_eval_metrics,
     plot_training_metrics,
     resolve_filename,
+    resolve_repo_path,
     write_json,
 )
 
@@ -183,6 +184,8 @@ def _milestone_steps(total_steps: int) -> list[tuple[int, str]]:
 
 def train(args):
     """Train independent (or shared) DQN policies for each agent."""
+    args.output_dir = resolve_repo_path(args.output_dir)
+    args.save_dir = resolve_repo_path(args.save_dir)
     # 1) Environment and config setup.
     cfg = make_swarm_config(args)  # Env config.
     filename = resolve_filename(args, fallback="dqn_foraging")
@@ -206,7 +209,7 @@ def train(args):
     device = torch.device("cuda" if args.cuda and torch.cuda.is_available() else "cpu")  # Device.
 
     run_dir = make_run_dir(args.output_dir, experiment_name)
-    graph_dir = os.path.join("training_graphs", os.path.basename(run_dir))
+    graph_dir = resolve_repo_path(os.path.join("training_graphs", os.path.basename(run_dir)))
     os.makedirs(graph_dir, exist_ok=True)
     episode_logger = CSVLogger(
         os.path.join(run_dir, "episode_metrics.csv"),

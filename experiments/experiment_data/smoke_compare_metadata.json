@@ -1,0 +1,560 @@
+{
+  "active_targets": 4,
+  "agent_range": {
+    "max": 30,
+    "min": 1,
+    "step": 1
+  },
+  "checkpoints": {
+    "checkpoint_with_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+    "checkpoint_without_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy"
+  },
+  "episodes_per_agent": 1,
+  "eval_steps": 600,
+  "failures": [
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 1
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 2
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 3
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 4
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 5
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 6
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 7
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 8
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 9
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 10
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 11
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 12
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 13
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 14
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 15
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 16
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 17
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 18
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 19
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 20
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 21
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 22
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 23
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 24
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 25
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 26
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 27
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 28
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 29
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_with_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 30
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 1
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 2
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 3
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 4
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 5
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 6
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 7
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 8
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 9
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 10
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 11
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 12
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 13
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 14
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 15
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 16
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 17
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 18
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 19
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 20
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 21
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 22
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 23
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 24
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 25
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 26
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 27
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 28
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 29
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy",
+      "comparison_label": "trained_without_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy'",
+      "number_of_agents": 30
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 1
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 2
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 3
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 4
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 5
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 6
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 7
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 8
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 9
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 10
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 11
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 12
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 13
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 14
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 15
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 16
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 17
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 18
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 19
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 20
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 21
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 22
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 23
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 24
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 25
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 26
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 27
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 28
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 29
+    },
+    {
+      "checkpoint_path": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
+      "comparison_label": "trained_with_pheromone__eval_without_pheromone",
+      "error": "[Errno 2] No such file or directory: '/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy'",
+      "number_of_agents": 30
+    }
+  ],
+  "filename": "smoke_compare",
+  "raw_csv": "raw/smoke_compare_all_conditions_raw.csv",
+  "summary_csv": "raw/smoke_compare_summary.csv",
+  "targets_collected_definition": "pickup_events_not_delivery"
+}

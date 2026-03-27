@@ -15,7 +15,7 @@ if ROOT not in sys.path:
 
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
-from train.experiment_utils import add_env_config_args, make_swarm_config, resolve_filename, sanitize_filename, write_json
+from train.experiment_utils import add_env_config_args, make_swarm_config, resolve_filename, resolve_repo_path, sanitize_filename, write_json
 
 
 CONDITIONS = [
@@ -151,7 +151,20 @@ def _save_exploration_visual(path_png: str, path_pdf: str, env: SwarmEnv, title:
     plt.close(fig)
 
 
-def _run_episode(env: SwarmEnv, nets, device, seed: int, random_policy: RandomPolicy | None = None):
+def _progress_interval(max_steps: int) -> int:
+    if max_steps <= 0:
+        return 100
+    return max(1, min(500, max_steps // 5 if max_steps >= 5 else 1))
+
+
+def _run_episode(
+    env: SwarmEnv,
+    nets,
+    device,
+    seed: int,
+    random_policy: RandomPolicy | None = None,
+    progress_label: str = "",
+):
     obs_dict, _ = env.reset(seed=seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
@@ -166,6 +179,7 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int, random_policy: RandomPo
     episode_length = 0
     time_to_first_discovery = -1
     done_reason = ""
+    progress_interval = _progress_interval(int(env.cfg.max_steps))
 
     while True:
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
@@ -198,6 +212,12 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int, random_policy: RandomPo
         if time_to_first_discovery < 0 and picked_up > 0:
             time_to_first_discovery = episode_length
         done_reason = str(info.get("episode_done_reason", done_reason))
+        if progress_label and episode_length % progress_interval == 0 and episode_length < int(env.cfg.max_steps):
+            print(
+                f"[compare] {progress_label} "
+                f"step {episode_length}/{env.cfg.max_steps} "
+                f"targets={targets_collected} coverage={coverage:.3f}"
+            )
 
         if any(terminations.values()) or any(truncations.values()):
             break
@@ -227,9 +247,16 @@ def _run_episode(env: SwarmEnv, nets, device, seed: int, random_policy: RandomPo
 
 
 def _write_csv(path: str, fieldnames: list[str], rows: list[dict]) -> None:
+    normalized_fieldnames = list(fieldnames)
+    known_fields = set(normalized_fieldnames)
+    for row in rows:
+        for key in row.keys():
+            if key not in known_fields:
+                normalized_fieldnames.append(key)
+                known_fields.add(key)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=normalized_fieldnames)
         writer.writeheader()
         for row in rows:
             writer.writerow(row)
@@ -296,6 +323,9 @@ def _save_comparison_plot(summary_rows: list[dict], metric_key: str, ylabel: str
 
 
 def run(args):
+    args.output_dir = resolve_repo_path(args.output_dir)
+    args.checkpoint_with_pheromone = resolve_repo_path(args.checkpoint_with_pheromone)
+    args.checkpoint_without_pheromone = resolve_repo_path(args.checkpoint_without_pheromone)
     filename = resolve_filename(args, fallback="pheromone_comparison")
     raw_dir = os.path.join(args.output_dir, "raw")
     exploration_dir = os.path.join(args.output_dir, "exploration_graphs")
@@ -310,13 +340,33 @@ def run(args):
     raw_rows: list[dict] = []
     failures: list[dict] = []
     saved_exploration: set[tuple[str, int]] = set()
+    total_conditions = len(CONDITIONS)
+    total_agent_sizes = len(range(args.agent_min, args.agent_max + 1, args.agent_step))
+    total_episodes = total_conditions * total_agent_sizes * args.episodes_per_agent
+    completed_episodes = 0
+
+    print(
+        f"[compare] start filename={filename} conditions={total_conditions} "
+        f"agent_sizes={total_agent_sizes} episodes_per_agent={args.episodes_per_agent} "
+        f"total_episodes={total_episodes} output_dir={args.output_dir}"
+    )
 
     for condition_index, condition in enumerate(CONDITIONS):
         checkpoint_path = getattr(args, condition["checkpoint_attr"]) if condition.get("checkpoint_attr") else ""
+        print(
+            f"[compare] condition {condition_index + 1}/{total_conditions} "
+            f"label={condition['comparison_label']} "
+            f"eval_pheromone={'on' if condition['eval_with_pheromone'] else 'off'} "
+            f"policy={'random_walk' if condition.get('is_random_policy', False) else 'checkpoint'}"
+        )
         for n_agents in range(args.agent_min, args.agent_max + 1, args.agent_step):
             cfg = _build_cfg(args, n_agents=n_agents, eval_with_pheromone=condition["eval_with_pheromone"])
             env = SwarmEnv(cfg, headless=True)
             try:
+                print(
+                    f"[compare] running label={condition['comparison_label']} "
+                    f"agents={n_agents} episodes={args.episodes_per_agent} max_steps={cfg.max_steps}"
+                )
                 obs_dict, _ = env.reset(seed=args.seed + condition_index * 100_000 + n_agents * 1_000)
                 obs_dim = np.stack([obs_dict[agent] for agent in env.possible_agents], axis=0).shape[1]
                 nets = []
@@ -328,7 +378,21 @@ def run(args):
                     nets, device = _load_models(checkpoint_path, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
                 for episode_index in range(args.episodes_per_agent):
                     episode_seed = args.seed + condition_index * 100_000 + n_agents * 1_000 + episode_index
-                    metrics = _run_episode(env, nets, device, episode_seed, random_policy=random_policy)
+                    print(
+                        f"[compare] episode {episode_index + 1}/{args.episodes_per_agent} "
+                        f"label={condition['comparison_label']} agents={n_agents} seed={episode_seed}"
+                    )
+                    metrics = _run_episode(
+                        env,
+                        nets,
+                        device,
+                        episode_seed,
+                        random_policy=random_policy,
+                        progress_label=(
+                            f"label={condition['comparison_label']} "
+                            f"agents={n_agents} episode={episode_index + 1}/{args.episodes_per_agent}"
+                        ),
+                    )
                     row = {
                         "filename": filename,
                         "comparison_label": condition["comparison_label"],
@@ -344,6 +408,14 @@ def run(args):
                         **metrics,
                     }
                     raw_rows.append(row)
+                    completed_episodes += 1
+                    print(
+                        f"[compare] done {completed_episodes}/{total_episodes} "
+                        f"label={condition['comparison_label']} agents={n_agents} "
+                        f"episode={episode_index + 1}/{args.episodes_per_agent} "
+                        f"targets={metrics['targets_collected']} reward={metrics['total_reward']:.3f} "
+                        f"done_reason={metrics['episode_done_reason'] or 'unknown'}"
+                    )
 
                     marker = (condition["comparison_label"], n_agents)
                     if n_agents in representative_sizes and episode_index == 0 and marker not in saved_exploration:
@@ -366,6 +438,10 @@ def run(args):
                         "error": str(exc),
                     }
                 )
+                print(
+                    f"[compare] failure label={condition['comparison_label']} "
+                    f"agents={n_agents} error={exc}"
+                )
             finally:
                 env.close()
 
@@ -385,6 +461,7 @@ def run(args):
         "targets_collected",
         "targets_picked_up",
         "coverage",
+        "exploration_coverage",
         "coverage_efficiency",
         "efficiency",
         "time_to_first_discovery",
@@ -440,6 +517,11 @@ def run(args):
             "raw_csv": os.path.relpath(master_raw_path, args.output_dir),
             "summary_csv": os.path.relpath(summary_path, args.output_dir) if summary_rows else "",
         },
+    )
+    print(
+        f"[compare] complete episodes={completed_episodes}/{total_episodes} "
+        f"raw_csv={master_raw_path} summary_csv={summary_path if summary_rows else 'none'} "
+        f"failures={len(failures)}"
     )
     return args.output_dir
 
