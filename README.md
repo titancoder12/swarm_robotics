@@ -62,12 +62,12 @@ python train/random_rollout.py
 
 1. Train headless and save checkpoints:
 ```bash
-python train/independent_dqn_pytorch.py --headless --total-steps 10000 --save-dir checkpoints --save-every 2000
+python train/independent_dqn_pytorch.py --headless --total-steps 10000 --save-dir checkpoints --folder-name demo_run --save-every 2000
 ```
 
 2. Render the trained policy:
 ```bash
-python train/demo.py --checkpoint-dir checkpoints
+python train/demo.py --checkpoint-dir checkpoints/demo_run/full_policy
 ```
 
 ## Train (headless)
@@ -85,13 +85,13 @@ python train/independent_dqn_pytorch.py --shared-policy --headless
 Save checkpoints during training:
 
 ```bash
-python train/independent_dqn_pytorch.py --headless --save-every 2000 --save-dir checkpoints
+python train/independent_dqn_pytorch.py --headless --save-every 2000 --save-dir checkpoints --folder-name demo_run
 ```
 
 Train with an explicit epsilon schedule:
 
 ```bash
-python train/independent_dqn_pytorch.py --headless --total-steps 30000 --save-dir checkpoints --epsilon-start 1.0 --epsilon-final 0.05 --epsilon-decay-steps 20000 --warmup-steps 2000
+python train/independent_dqn_pytorch.py --headless --total-steps 30000 --save-dir checkpoints --folder-name demo_run --epsilon-start 1.0 --epsilon-final 0.05 --epsilon-decay-steps 20000 --warmup-steps 2000
 ```
 
 If you run that command manually, keep it on one shell line or use `\` line continuations exactly. Entering `>`-prefixed continuation lines or isolated flag lines can make the shell create empty files such as `--epsilon-final`, `--epsilon-decay-steps`, or `--warmup-steps` in the repo root.

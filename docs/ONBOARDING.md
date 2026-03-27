@@ -62,13 +62,13 @@ python train/independent_dqn_pytorch.py --headless --total-steps 10000
 Training with checkpoints and run outputs:
 
 ```bash
-python train/independent_dqn_pytorch.py --headless --total-steps 20000 --save-dir checkpoints --save-every 5000 --output-dir runs --experiment-name dqn_foraging --eval-every 5000 --eval-episodes 5
+python train/independent_dqn_pytorch.py --headless --total-steps 20000 --save-dir checkpoints --folder-name dqn_foraging --save-every 5000 --output-dir runs --experiment-name dqn_foraging --eval-every 5000 --eval-episodes 5
 ```
 
 Training with an explicit epsilon schedule:
 
 ```bash
-python train/independent_dqn_pytorch.py --headless --total-steps 30000 --save-dir checkpoints --epsilon-start 1.0 --epsilon-final 0.05 --epsilon-decay-steps 20000 --warmup-steps 2000
+python train/independent_dqn_pytorch.py --headless --total-steps 30000 --save-dir checkpoints --folder-name dqn_foraging --epsilon-start 1.0 --epsilon-final 0.05 --epsilon-decay-steps 20000 --warmup-steps 2000
 ```
 
 Keep those commands on one line unless you are deliberately using shell line continuations. If a shell sees standalone `>` lines or detached flag lines, it can create empty files named after the flags instead of passing them to Python.
@@ -84,7 +84,7 @@ Important notes:
 Custom DQN demo:
 
 ```bash
-python train/demo.py --checkpoint-dir checkpoints
+python train/demo.py --checkpoint-dir checkpoints/dqn_foraging/full_policy
 ```
 
 The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents.
@@ -94,7 +94,7 @@ The demo renders the current environment, including pheromone heatmap, food, nes
 Evaluate saved DQN checkpoints:
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
+python train/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --episodes 10 --output-dir runs/eval
 ```
 
 Evaluate the rule-based baseline directly:

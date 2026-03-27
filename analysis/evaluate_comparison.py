@@ -46,13 +46,6 @@ CONDITIONS = [
     },
 ]
 
-CONDITION_OUTPUT_DIRS = {
-    "trained_with_pheromone__eval_with_pheromone": "trained_pheremone_use_pheremone",
-    "trained_with_pheromone__eval_without_pheromone": "trained_pheremone_no_use_pheremone",
-    "trained_without_pheromone__eval_without_pheromone": "trained_without_pheremone",
-    "random_walk": "random_walk",
-}
-
 
 def parse_args(argv=None):
     parser = argparse.ArgumentParser()
@@ -81,26 +74,6 @@ class RandomPolicy:
     def act(self, obs: np.ndarray) -> int:
         del obs
         return int(self.rng.integers(0, self.action_dim))
-
-
-def _condition_output_name(comparison_label: str) -> str:
-    return CONDITION_OUTPUT_DIRS.get(comparison_label, sanitize_filename(comparison_label))
-
-
-def _condition_output_dirs(base_output_dir: str, comparison_label: str) -> dict[str, str]:
-    root = os.path.join(base_output_dir, _condition_output_name(comparison_label))
-    dirs = {
-        "root": root,
-        "raw": os.path.join(root, "raw"),
-        "graphs_png": os.path.join(root, "graphs", "PNG"),
-        "graphs_pdf": os.path.join(root, "graphs", "PDF"),
-        "exploration_png": os.path.join(root, "exploration_graphs", "PNG"),
-        "exploration_pdf": os.path.join(root, "exploration_graphs", "PDF"),
-    }
-    for path in dirs.values():
-        os.makedirs(path, exist_ok=True)
-    return dirs
-
 
 def _resolve_checkpoint_file(path: str, shared_policy: bool, agent_index: int = 0) -> str:
     if os.path.isdir(path):
@@ -330,7 +303,8 @@ def _save_comparison_plot(
     ylabel: str,
     title: str,
     filename_root: str,
-    output_targets: list[tuple[str, str]],
+    out_png_dir: str,
+    out_pdf_dir: str,
 ) -> None:
     import matplotlib.pyplot as plt
 
@@ -342,19 +316,17 @@ def _save_comparison_plot(
             continue
         xs = [int(row["number_of_agents"]) for row in rows]
         ys = [float(row[f"mean_{metric_key}"]) for row in rows]
-        errs = [float(row[f"std_{metric_key}"]) for row in rows]
-        ax.errorbar(xs, ys, yerr=errs, marker="o", linewidth=2, capsize=3, label=label)
+        ax.plot(xs, ys, marker="o", linewidth=2, label=label)
     ax.set_xlabel("Number of Agents")
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(True, alpha=0.3)
     ax.legend()
     fig.tight_layout()
-    for out_png_dir, out_pdf_dir in output_targets:
-        os.makedirs(out_png_dir, exist_ok=True)
-        os.makedirs(out_pdf_dir, exist_ok=True)
-        fig.savefig(os.path.join(out_png_dir, f"{filename_root}.png"))
-        fig.savefig(os.path.join(out_pdf_dir, f"{filename_root}.pdf"))
+    os.makedirs(out_png_dir, exist_ok=True)
+    os.makedirs(out_pdf_dir, exist_ok=True)
+    fig.savefig(os.path.join(out_png_dir, f"{filename_root}.png"))
+    fig.savefig(os.path.join(out_pdf_dir, f"{filename_root}.pdf"))
     plt.close(fig)
 
 
@@ -376,10 +348,6 @@ def run(args):
     raw_rows: list[dict] = []
     failures: list[dict] = []
     saved_exploration: set[tuple[str, int]] = set()
-    condition_dirs = {
-        condition["comparison_label"]: _condition_output_dirs(args.output_dir, condition["comparison_label"])
-        for condition in CONDITIONS
-    }
     total_conditions = len(CONDITIONS)
     total_agent_sizes = len(range(args.agent_min, args.agent_max + 1, args.agent_step))
     total_episodes = total_conditions * total_agent_sizes * args.episodes_per_agent
@@ -462,18 +430,9 @@ def run(args):
                         slug = sanitize_filename(condition["comparison_label"])
                         png_path = os.path.join(exploration_dir, f"{filename}_{slug}_agents_{n_agents}.png")
                         pdf_path = os.path.join(exploration_dir, f"{filename}_{slug}_agents_{n_agents}.pdf")
-                        condition_dir = condition_dirs[condition["comparison_label"]]
-                        condition_png_path = os.path.join(condition_dir["exploration_png"], f"{filename}_agents_{n_agents}.png")
-                        condition_pdf_path = os.path.join(condition_dir["exploration_pdf"], f"{filename}_agents_{n_agents}.pdf")
                         _save_exploration_visual(
                             png_path,
                             pdf_path,
-                            env,
-                            title=f"{condition['comparison_label']} | agents={n_agents}",
-                        )
-                        _save_exploration_visual(
-                            condition_png_path,
-                            condition_pdf_path,
                             env,
                             title=f"{condition['comparison_label']} | agents={n_agents}",
                         )
@@ -534,28 +493,16 @@ def run(args):
         slug = sanitize_filename(condition["comparison_label"])
         rows = [row for row in raw_rows if row["comparison_label"] == condition["comparison_label"]]
         _write_csv(os.path.join(raw_dir, f"{filename}_{slug}_raw.csv"), fieldnames, rows)
-        _write_csv(os.path.join(condition_dirs[condition["comparison_label"]]["raw"], f"{filename}_raw.csv"), fieldnames, rows)
 
     summary_rows = _aggregate_rows(raw_rows)
     summary_path = os.path.join(raw_dir, f"{filename}_summary.csv")
     if summary_rows:
         _write_csv(summary_path, list(summary_rows[0].keys()), summary_rows)
-        for condition in CONDITIONS:
-            label = condition["comparison_label"]
-            rows = [row for row in summary_rows if row["comparison_label"] == label]
-            if rows:
-                _write_csv(
-                    os.path.join(condition_dirs[label]["raw"], f"{filename}_summary.csv"),
-                    list(rows[0].keys()),
-                    rows,
-                )
 
-    plot_targets = [(graph_png_dir, graph_pdf_dir)]
-    plot_targets.extend((dirs["graphs_png"], dirs["graphs_pdf"]) for dirs in condition_dirs.values())
-    _save_comparison_plot(summary_rows, "targets_collected", "Mean Targets Collected", "Agents vs Targets Collected in Time", f"{filename}_agents_vs_targets_collected", plot_targets)
-    _save_comparison_plot(summary_rows, "coverage_efficiency", "Mean Coverage Efficiency", "Coverage Efficiency vs Agents", f"{filename}_coverage_efficiency_vs_agents", plot_targets)
-    _save_comparison_plot(summary_rows, "efficiency", "Mean Efficiency", "Efficiency vs Agents", f"{filename}_efficiency_vs_agents", plot_targets)
-    _save_comparison_plot(summary_rows, "time_to_first_discovery", "Mean Time to First Discovery", "Time to First Discovery vs Agents", f"{filename}_time_to_first_discovery_vs_agents", plot_targets)
+    _save_comparison_plot(summary_rows, "targets_collected", "Mean Targets Collected", "Agents vs Targets Collected in Time", f"{filename}_agents_vs_targets_collected", graph_png_dir, graph_pdf_dir)
+    _save_comparison_plot(summary_rows, "coverage_efficiency", "Mean Coverage Efficiency", "Coverage Efficiency vs Agents", f"{filename}_coverage_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
+    _save_comparison_plot(summary_rows, "efficiency", "Mean Efficiency", "Efficiency vs Agents", f"{filename}_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
+    _save_comparison_plot(summary_rows, "time_to_first_discovery", "Mean Time to First Discovery", "Time to First Discovery vs Agents", f"{filename}_time_to_first_discovery_vs_agents", graph_png_dir, graph_pdf_dir)
 
     write_json(
         os.path.join(args.output_dir, f"{filename}_metadata.json"),
@@ -577,9 +524,6 @@ def run(args):
             "failures": failures,
             "raw_csv": os.path.relpath(master_raw_path, args.output_dir),
             "summary_csv": os.path.relpath(summary_path, args.output_dir) if summary_rows else "",
-            "condition_output_dirs": {
-                label: os.path.relpath(dirs["root"], args.output_dir) for label, dirs in condition_dirs.items()
-            },
         },
     )
     print(

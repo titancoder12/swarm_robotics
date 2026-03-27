@@ -24,6 +24,9 @@ def sanitize_filename(value: str | None, default: str = "default_run") -> str:
 
 def resolve_filename(args, fallback: str = "default_run") -> str:
     """Resolve the preferred user-visible filename for outputs."""
+    folder_name = getattr(args, "folder_name", "")
+    if folder_name:
+        return sanitize_filename(folder_name, default=fallback)
     explicit = getattr(args, "filename", "")
     if explicit:
         return sanitize_filename(explicit, default=fallback)
@@ -159,6 +162,7 @@ def plot_eval_metrics(csv_path: str, out_dir: str) -> None:
 
 def add_env_config_args(parser) -> None:
     """Add shared environment override flags to a CLI parser."""
+    parser.add_argument("--folder-name", type=str, default="", help="Preferred enclosing output/checkpoint folder name.")
     parser.add_argument("--filename", type=str, default="")
     parser.add_argument("--n-targets", type=int, default=4)
     parser.add_argument("--n-obstacles", type=int, default=6)

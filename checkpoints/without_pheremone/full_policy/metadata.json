@@ -1,0 +1,9 @@
+{
+  "experiment_name": "without_pheremone",
+  "filename": "without_pheremone",
+  "folder_name": "without_pheremone",
+  "obs_dim": 69,
+  "shared_policy": true,
+  "step": 30000,
+  "use_pheromone": false
+}

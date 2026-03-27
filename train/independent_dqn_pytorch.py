@@ -182,14 +182,21 @@ def _milestone_steps(total_steps: int) -> list[tuple[int, str]]:
     ]
 
 
+def _resolve_checkpoint_root(save_dir: str, folder_name: str) -> str:
+    return os.path.join(resolve_repo_path(save_dir), folder_name)
+
+
 def train(args):
     """Train independent (or shared) DQN policies for each agent."""
     args.output_dir = resolve_repo_path(args.output_dir)
     args.save_dir = resolve_repo_path(args.save_dir)
     # 1) Environment and config setup.
     cfg = make_swarm_config(args)  # Env config.
-    filename = resolve_filename(args, fallback="dqn_foraging")
-    experiment_name = filename
+    folder_name = resolve_filename(args, fallback="dqn_foraging")
+    filename = folder_name
+    experiment_name = folder_name
+    checkpoint_root = _resolve_checkpoint_root(args.save_dir, folder_name)
+    full_policy_dir = os.path.join(checkpoint_root, "full_policy")
     dqn_cfg = DQNConfig(
         epsilon_start=args.epsilon_start,
         epsilon_final=args.epsilon_final,
@@ -261,6 +268,7 @@ def train(args):
         {
             "experiment_name": experiment_name,
             "filename": filename,
+            "folder_name": folder_name,
             "obs_dim": obs_dim,
             "action_dim": action_dim,
             "shared_policy": bool(args.shared_policy),
@@ -268,13 +276,26 @@ def train(args):
             "seed": args.seed,
             "n_agents": args.n_agents,
             "use_pheromone": bool(cfg.pheromone_enabled),
+            "checkpoint_root": checkpoint_root,
         },
     )
     save_metadata = {
         "filename": filename,
+        "folder_name": folder_name,
         "use_pheromone": bool(cfg.pheromone_enabled),
         "experiment_name": experiment_name,
     }
+    write_json(
+        os.path.join(checkpoint_root, "metadata.json"),
+        {
+            "filename": filename,
+            "folder_name": folder_name,
+            "experiment_name": experiment_name,
+            "checkpoint_root": checkpoint_root,
+            "shared_policy": bool(args.shared_policy),
+            "use_pheromone": bool(cfg.pheromone_enabled),
+        },
+    )
     milestone_targets = _milestone_steps(args.total_steps)
     saved_milestones: set[str] = set()
 
@@ -441,7 +462,7 @@ def train(args):
             for threshold, milestone_name in milestone_targets:
                 if global_step >= threshold and milestone_name not in saved_milestones:
                     _save_models(
-                        os.path.join(args.save_dir, milestone_name),
+                        os.path.join(checkpoint_root, milestone_name),
                         q_nets,
                         args.shared_policy,
                         obs_dim,
@@ -512,7 +533,7 @@ def train(args):
             # 9) Optional checkpointing.
             if args.save_every > 0 and global_step % args.save_every == 0:
                 _save_models(
-                    args.save_dir,
+                    full_policy_dir,
                     q_nets,
                     args.shared_policy,
                     obs_dim,
@@ -521,7 +542,7 @@ def train(args):
                 )
 
         _save_models(
-            args.save_dir,
+            full_policy_dir,
             q_nets,
             args.shared_policy,
             obs_dim,
@@ -530,7 +551,7 @@ def train(args):
         )
         if "full_policy" not in saved_milestones:
             _save_models(
-                os.path.join(args.save_dir, "full_policy"),
+                full_policy_dir,
                 q_nets,
                 args.shared_policy,
                 obs_dim,
@@ -548,9 +569,10 @@ def train(args):
                 "action_dim": action_dim,
                 "total_steps": global_step,
                 "episodes_completed": episode,
-                "checkpoint_dir": args.save_dir,
+                "checkpoint_dir": checkpoint_root,
                 "graph_dir": graph_dir,
                 "filename": filename,
+                "folder_name": folder_name,
                 "use_pheromone": bool(cfg.pheromone_enabled),
             },
         )
