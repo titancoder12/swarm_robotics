@@ -9,6 +9,12 @@
     "checkpoint_with_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_with_pheromone/full_policy",
     "checkpoint_without_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints_without_pheromone/full_policy"
   },
+  "condition_output_dirs": {
+    "random_walk": "random_walk",
+    "trained_with_pheromone__eval_with_pheromone": "trained_pheremone_use_pheremone",
+    "trained_with_pheromone__eval_without_pheromone": "trained_pheremone_no_use_pheremone",
+    "trained_without_pheromone__eval_without_pheromone": "trained_without_pheremone"
+  },
   "episodes_per_agent": 1,
   "eval_steps": 600,
   "failures": [
