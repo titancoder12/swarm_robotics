@@ -1,0 +1,65 @@
+{
+  "source_summary_csv": "experiments/experiment_data/raw/pheromone_vs_random_summary.csv",
+  "conditions": [
+    {
+      "condition": "trained_with_pheromone__eval_with_pheromone",
+      "label": "Trained w/ pheromone, eval w/ pheromone",
+      "agent_counts": "1-15",
+      "episodes_per_agent_count": "1",
+      "mean_pickups_across_agent_counts": 1.8,
+      "max_pickups": 6.0,
+      "max_pickups_at_agents": 11,
+      "mean_coverage_across_agent_counts": 0.1849527657032013,
+      "mean_collisions_across_agent_counts": 2099.866666666667,
+      "mean_total_reward_across_agent_counts": -1808.2118438720704,
+      "mean_food_delivered_across_agent_counts": 0.0,
+      "mean_time_to_first_pickup_on_successes": 103.9,
+      "successful_pickup_agent_counts": 10
+    },
+    {
+      "condition": "trained_without_pheromone__eval_without_pheromone",
+      "label": "Trained w/o pheromone, eval w/o pheromone",
+      "agent_counts": "1-15",
+      "episodes_per_agent_count": "1",
+      "mean_pickups_across_agent_counts": 1.6666666666666667,
+      "max_pickups": 6.0,
+      "max_pickups_at_agents": 9,
+      "mean_coverage_across_agent_counts": 0.15506072924472392,
+      "mean_collisions_across_agent_counts": 6172.2,
+      "mean_total_reward_across_agent_counts": -2619.054497273763,
+      "mean_food_delivered_across_agent_counts": 0.0,
+      "mean_time_to_first_pickup_on_successes": 168.08333333333334,
+      "successful_pickup_agent_counts": 12
+    },
+    {
+      "condition": "trained_with_pheromone__eval_without_pheromone",
+      "label": "Trained w/ pheromone, eval w/o pheromone",
+      "agent_counts": "1-15",
+      "episodes_per_agent_count": "1",
+      "mean_pickups_across_agent_counts": 1.2666666666666666,
+      "max_pickups": 4.0,
+      "max_pickups_at_agents": 12,
+      "mean_coverage_across_agent_counts": 0.17044534211357434,
+      "mean_collisions_across_agent_counts": 1541.6,
+      "mean_total_reward_across_agent_counts": -1741.8411529541015,
+      "mean_food_delivered_across_agent_counts": 0.0,
+      "mean_time_to_first_pickup_on_successes": 155.125,
+      "successful_pickup_agent_counts": 8
+    },
+    {
+      "condition": "random_walk",
+      "label": "Random walk baseline",
+      "agent_counts": "1-15",
+      "episodes_per_agent_count": "1",
+      "mean_pickups_across_agent_counts": 0.6666666666666666,
+      "max_pickups": 2.0,
+      "max_pickups_at_agents": 8,
+      "mean_coverage_across_agent_counts": 0.15796221295992532,
+      "mean_collisions_across_agent_counts": 14089.733333333334,
+      "mean_total_reward_across_agent_counts": -4248.25629679362,
+      "mean_food_delivered_across_agent_counts": 0.0,
+      "mean_time_to_first_pickup_on_successes": 394.2857142857143,
+      "successful_pickup_agent_counts": 7
+    }
+  ]
+}

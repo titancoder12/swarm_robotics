@@ -1,0 +1,5 @@
+condition,label,agent_counts,episodes_per_agent_count,mean_pickups_across_agent_counts,max_pickups,max_pickups_at_agents,mean_coverage_across_agent_counts,mean_collisions_across_agent_counts,mean_total_reward_across_agent_counts,mean_food_delivered_across_agent_counts,mean_time_to_first_pickup_on_successes,successful_pickup_agent_counts
+trained_with_pheromone__eval_with_pheromone,"Trained w/ pheromone, eval w/ pheromone",1-15,1,1.8,6.0,11,0.1849527657032013,2099.866666666667,-1808.2118438720704,0.0,103.9,10
+trained_without_pheromone__eval_without_pheromone,"Trained w/o pheromone, eval w/o pheromone",1-15,1,1.6666666666666667,6.0,9,0.15506072924472392,6172.2,-2619.054497273763,0.0,168.08333333333334,12
+trained_with_pheromone__eval_without_pheromone,"Trained w/ pheromone, eval w/o pheromone",1-15,1,1.2666666666666666,4.0,12,0.17044534211357434,1541.6,-1741.8411529541015,0.0,155.125,8
+random_walk,Random walk baseline,1-15,1,0.6666666666666666,2.0,8,0.15796221295992532,14089.733333333334,-4248.25629679362,0.0,394.2857142857143,7
