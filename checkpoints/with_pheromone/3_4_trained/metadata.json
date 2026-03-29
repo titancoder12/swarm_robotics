@@ -1,0 +1,9 @@
+{
+  "experiment_name": "with_pheremone",
+  "filename": "with_pheremone",
+  "folder_name": "with_pheremone",
+  "obs_dim": 69,
+  "shared_policy": true,
+  "step": 22500,
+  "use_pheromone": true
+}

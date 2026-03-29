@@ -1,0 +1,8 @@
+{
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/with_pheremone",
+  "experiment_name": "with_pheremone",
+  "filename": "with_pheremone",
+  "folder_name": "with_pheremone",
+  "shared_policy": true,
+  "use_pheromone": true
+}

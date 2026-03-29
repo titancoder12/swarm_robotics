@@ -606,8 +606,12 @@ class SwarmEnv(ParallelEnv):
 
             prev_dist = float(self._prev_detectable_food_distances[i])
             curr_dist = float(current_distances[i])
-            if np.isfinite(prev_dist) and np.isfinite(curr_dist) and curr_dist < prev_dist:
-                progress = min((prev_dist - curr_dist) / max(self.cfg.food_detection_radius, 1e-6), 1.0)
+            if np.isfinite(prev_dist) and np.isfinite(curr_dist) and curr_dist != prev_dist:
+                progress = np.clip(
+                    (prev_dist - curr_dist) / max(self.cfg.food_detection_radius, 1e-6),
+                    -1.0,
+                    1.0,
+                )
                 reward = float(self.cfg.reward_food_approach) * progress
                 rewards[i] += reward
                 approach_total += reward
