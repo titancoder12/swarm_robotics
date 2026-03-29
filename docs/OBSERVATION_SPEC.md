@@ -116,8 +116,8 @@ Applied at the end of `_get_obs()`:
 | 6 | `lidar_6` | Ray distance sample 6 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
 | 7 | `lidar_7` | Ray distance sample 7 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
 | 8 | `lidar_8` | Ray distance sample 8 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
-| 9 | `target_dx_body_norm` | nearest target x component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | nearest remaining target globally; zero if no targets |
-| 10 | `target_dy_body_norm` | nearest target y component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction | same | same |
+| 9 | `target_dx_body_norm` | nearest detectable target x component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | zero if no targets or nearest target is outside `cfg.food_detection_radius` |
+| 10 | `target_dy_body_norm` | nearest detectable target y component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction | same | zero if no targets or nearest target is outside `cfg.food_detection_radius` |
 | 11 | `nest_dx_body_norm` | nest x component in body frame | `_nest_direction()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | zero if nest disabled; omitted if `obs_include_nest_direction=False` |
 | 12 | `nest_dy_body_norm` | nest y component in body frame | `_nest_direction()` | `[-1, 1]` | fraction | same | same |
 | 13 | `neighbor_dx_body_norm` | nearest-agent x component in body frame | `_nearest_agent_vector()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | nearest other agent only; zero when `n_agents <= 1` |
@@ -125,7 +125,7 @@ Applied at the end of `_get_obs()`:
 | 15 | `heading_sin` | `sin(theta)` | `_get_obs()` | `[-1, 1]` | unitless | direct transform | `theta` is in radians |
 | 16 | `heading_cos` | `cos(theta)` | `_get_obs()` | `[-1, 1]` | unitless | direct transform | raw `theta` is not included |
 | 17 | `speed_norm` | normalized forward speed | `_get_obs()` | `[-1, 1]` | fraction of `max_speed` | `clip(agent.v / cfg.max_speed, -1, 1)` | forward speed only; ignores `v_lat` |
-| 18 | `food_presence` | binary local food cue | `_food_presence()` | `{0, 1}` | binary | `1.0` if nearest target distance `<= cfg.food_presence_radius` | zero if no targets; omitted if `obs_include_food_presence=False` |
+| 18 | `food_presence` | binary local target-visibility cue | `_food_presence()` | `{0, 1}` | binary | `1.0` if nearest target distance `<= cfg.food_detection_radius` | zero if no targets; omitted if `obs_include_food_presence=False` |
 | 19 | `carrying_food` | whether agent carries food | `_carrying_food()` | `{0, 1}` | binary | `1.0 if agent.carrying_food else 0.0` | omitted if `obs_include_carrying=False` |
 | 20 | `pheromone_sample_0` | first forward pheromone sample | `_pheromone_samples()` | `[0, 1]` when enabled, else `0.0` | local relative grid intensity | raw sample vector divided by its own max if positive | not global-max normalized |
 | 21 | `pheromone_sample_1` | second forward pheromone sample | `_pheromone_samples()` | `[0, 1]` when enabled, else `0.0` | same | same | same |
@@ -235,7 +235,7 @@ Source: `_food_presence()`
 Representation:
 
 - binary
-- `1.0` if any remaining target is within `cfg.food_presence_radius`
+- `1.0` if any remaining target is within `cfg.food_detection_radius`
 
 ### Carrying Food
 

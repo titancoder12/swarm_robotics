@@ -770,7 +770,7 @@ class SwarmEnv(ParallelEnv):
 
     def _nearest_target_vector(self, agent: AgentState) -> np.ndarray:
         """Return nearest target vector in agent-local coordinates."""
-        # Vector from agent to nearest target, in agent-local coordinates.
+        # Expose target direction only when the nearest target is locally detectable.
         if not self.targets:
             return np.zeros(2, dtype=np.float32)
         targets = np.array(self.targets)
@@ -778,6 +778,8 @@ class SwarmEnv(ParallelEnv):
         dy = targets[:, 1] - agent.y
         dists = np.hypot(dx, dy)
         idx = int(np.argmin(dists))
+        if float(dists[idx]) > float(self.cfg.food_detection_radius):
+            return np.zeros(2, dtype=np.float32)
         rel = np.array([dx[idx], dy[idx]], dtype=np.float32)
         rel = self._to_agent_frame(rel, agent.theta)
         return np.clip(rel / self.cfg.lidar_max_range, -1.0, 1.0)
