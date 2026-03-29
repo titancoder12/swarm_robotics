@@ -28,7 +28,7 @@ The environment now returns a short sliding window of observation frames. With
 the default `observation_history_steps = 3`, the agent receives the last 3
 frames concatenated oldest-to-newest.
 
-One frame still has shape `(23,)`.
+One frame now has shape `(23,)`.
 
 Formula:
 
@@ -63,7 +63,7 @@ Total:
 Observation assembly order for one frame in `_get_obs_frame()` is:
 
 1. lidar rays
-2. nearest target vector
+2. nearest detectable target distance and angle
 3. nest direction vector, if enabled
 4. nearest neighbor vector
 5. heading as `sin(theta), cos(theta)`
@@ -116,8 +116,8 @@ Applied at the end of `_get_obs()`:
 | 6 | `lidar_6` | Ray distance sample 6 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
 | 7 | `lidar_7` | Ray distance sample 7 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
 | 8 | `lidar_8` | Ray distance sample 8 | `_lidar_scan()` | `[0, 1]` | fraction | same | same |
-| 9 | `target_dx_body_norm` | nearest detectable target x component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | zero if no targets or nearest target is outside `cfg.food_detection_radius` |
-| 10 | `target_dy_body_norm` | nearest detectable target y component in body frame | `_nearest_target_vector()` | `[-1, 1]` | fraction | same | zero if no targets or nearest target is outside `cfg.food_detection_radius` |
+| 9 | `target_distance_norm` | nearest detectable target distance | `_nearest_target_features()` | `[0, 1]` | fraction of `lidar_max_range` | `distance / cfg.lidar_max_range` | zero when no target is within lidar range, inside the front-facing 180 degrees, and in line of sight |
+| 10 | `target_angle_norm` | nearest detectable target relative bearing | `_nearest_target_features()` | `[-1, 1]` | fraction of `pi` radians | `angle / pi` | angle is in the agent/body frame; zero when no target is within lidar range, inside the front-facing 180 degrees, and in line of sight |
 | 11 | `nest_dx_body_norm` | nest x component in body frame | `_nest_direction()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | zero if nest disabled; omitted if `obs_include_nest_direction=False` |
 | 12 | `nest_dy_body_norm` | nest y component in body frame | `_nest_direction()` | `[-1, 1]` | fraction | same | same |
 | 13 | `neighbor_dx_body_norm` | nearest-agent x component in body frame | `_nearest_agent_vector()` | `[-1, 1]` | fraction of `lidar_max_range` | rotated world delta divided by `cfg.lidar_max_range`, clipped | nearest other agent only; zero when `n_agents <= 1` |
@@ -125,7 +125,7 @@ Applied at the end of `_get_obs()`:
 | 15 | `heading_sin` | `sin(theta)` | `_get_obs()` | `[-1, 1]` | unitless | direct transform | `theta` is in radians |
 | 16 | `heading_cos` | `cos(theta)` | `_get_obs()` | `[-1, 1]` | unitless | direct transform | raw `theta` is not included |
 | 17 | `speed_norm` | normalized forward speed | `_get_obs()` | `[-1, 1]` | fraction of `max_speed` | `clip(agent.v / cfg.max_speed, -1, 1)` | forward speed only; ignores `v_lat` |
-| 18 | `food_presence` | binary local target-visibility cue | `_food_presence()` | `{0, 1}` | binary | `1.0` if nearest target distance `<= cfg.food_detection_radius` | zero if no targets; omitted if `obs_include_food_presence=False` |
+| 18 | `food_presence` | binary local target-visibility cue | `_food_presence()` | `{0, 1}` | binary | `1.0` if a target is within lidar range, inside the front-facing 180 degrees, and in line of sight | zero if no detectable target; omitted if `obs_include_food_presence=False` |
 | 19 | `carrying_food` | whether agent carries food | `_carrying_food()` | `{0, 1}` | binary | `1.0 if agent.carrying_food else 0.0` | omitted if `obs_include_carrying=False` |
 | 20 | `pheromone_sample_0` | first forward pheromone sample | `_pheromone_samples()` | `[0, 1]` when enabled, else `0.0` | local relative grid intensity | raw sample vector divided by its own max if positive | not global-max normalized |
 | 21 | `pheromone_sample_1` | second forward pheromone sample | `_pheromone_samples()` | `[0, 1]` when enabled, else `0.0` | same | same | same |
@@ -171,17 +171,17 @@ Unavailable case:
 
 ### Target Vector
 
-Source: `_nearest_target_vector()`
+Source: `_nearest_target_features()`
 
 Representation:
 
-- `dx, dy` in body frame
-- nearest target by Euclidean distance over all remaining targets
-- not line-of-sight limited
+- normalized distance
+- normalized relative angle
+- nearest target by Euclidean distance among targets that are within `cfg.lidar_max_range`, inside the agent's front-facing 180 degrees, and not blocked by obstacles
 
 Unavailable case:
 
-- `[0.0, 0.0]` when no targets remain
+- both target features are `0.0` when no target is detectable
 
 ### Nest Vector
 
@@ -235,7 +235,7 @@ Source: `_food_presence()`
 Representation:
 
 - binary
-- `1.0` if any remaining target is within `cfg.food_detection_radius`
+- `1.0` if any remaining target is within `cfg.lidar_max_range`, inside the front-facing 180 degrees, and not blocked by obstacles
 
 ### Carrying Food
 
@@ -277,7 +277,7 @@ Unavailable case:
 
 ## Important Notes
 
-- The current default observation is 23-D, not the older 19-D layout described in some earlier docs.
+- The current default observation is 23-D per frame and 69-D after 3-frame stacking.
 - Pheromone samples are normalized locally by the sample vector maximum, not globally by the grid maximum.
 - Pheromone sensing is bounded by the derived awareness radius rather than being treated as globally visible.
 - Failed agents observe all zeros.

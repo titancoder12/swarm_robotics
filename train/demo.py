@@ -23,7 +23,7 @@ from train.experiment_utils import add_env_config_args, make_swarm_config
 def parse_args(argv=None):
     # 1) Parse CLI args (checkpoint location, backend, shared policy flag, agent count, seed).
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", choices=["custom", "sb3", "rllib"], default="custom")
+    parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "random"], default="custom")
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--sb3-model", type=str, default="checkpoints/sb3_dqn.zip")
     parser.add_argument("--rllib-checkpoint", type=str, default="checkpoints/rllib_dqn")
@@ -36,6 +36,7 @@ def parse_args(argv=None):
     parser.add_argument("--shared-policy", action="store_true")
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--headless", action="store_true")
     parser.add_argument("--max-steps", type=int, default=0, help="Exit after N steps (0 = run until window closed)")
     parser.add_argument(
         "--demo-epsilon",
@@ -85,9 +86,10 @@ def _custom_demo(env, obs, agent_ids, args):
     running = True
     steps = 0
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
         for i in range(env.cfg.n_agents):
@@ -128,7 +130,8 @@ def _custom_demo(env, obs, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -154,9 +157,10 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     running = True
     steps = 0
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         action_dict = {}
         for i, agent in enumerate(agent_ids):
@@ -198,7 +202,8 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -245,7 +250,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
 
     def env_creator(_):
         cfg = make_swarm_config(args)
-        return ParallelPettingZooEnv(SwarmEnv(cfg, headless=False))
+        return ParallelPettingZooEnv(SwarmEnv(cfg, headless=args.headless))
 
     register_env("swarm_pz", env_creator)
     checkpoint_path = args.rllib_checkpoint
@@ -263,9 +268,10 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     prev_rewards = None
     prev_done = None
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         action_dict = {}
         for i, agent in enumerate(agent_ids):
@@ -301,7 +307,8 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -314,16 +321,75 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
+def _random_demo(env, obs_dict, agent_ids, args):
+    rng = np.random.default_rng(args.seed)
+    next_reset_seed = args.seed + 1
+    debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
+    prev_rewards = None
+    prev_done = None
+
+    running = True
+    steps = 0
+    while running:
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        action_dict = {}
+        for i, agent in enumerate(agent_ids):
+            action = int(rng.integers(0, env.cfg.num_actions))
+            action_dict[agent] = action
+            if should_debug_policy(debug_cfg, steps, i, agent):
+                print_policy_debug(
+                    step=steps,
+                    agent_index=i,
+                    agent_id=agent,
+                    policy_label="random",
+                    epsilon=None,
+                    mode="random",
+                    output_name=None,
+                    output_values=None,
+                    action=action,
+                    num_actions=env.cfg.num_actions,
+                    prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                    prev_done=None if prev_done is None else bool(prev_done[i]),
+                )
+
+        obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
+        prev_done = np.array(
+            [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
+            dtype=np.bool_,
+        )
+        terminated = any(terminations.values())
+        truncated = any(truncations.values())
+
+        if not args.headless:
+            env.render(fps=60)
+        steps += 1
+        if args.max_steps and steps >= args.max_steps:
+            running = False
+        if terminated or truncated:
+            obs_dict, _ = env.reset(seed=next_reset_seed)
+            next_reset_seed += 1
+
+    return obs_dict
+
+
 def main():
     args = parse_args()
 
     # 2) Build config + environment, then reset to get initial observations.
     cfg = make_swarm_config(args)
-    env = SwarmEnv(cfg, headless=False)
+    env = SwarmEnv(cfg, headless=args.headless)
     obs_dict, _ = env.reset(seed=args.seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
-    env.render(fps=60) # render first frame
+    if args.headless and args.max_steps <= 0:
+        args.max_steps = int(cfg.max_steps)
+    if not args.headless:
+        env.render(fps=60) # render first frame
 
     if args.backend == "custom":
         _custom_demo(env, obs, agent_ids, args)
@@ -331,6 +397,8 @@ def main():
         _sb3_demo(env, obs_dict, agent_ids, args)
     elif args.backend == "rllib":
         _rllib_demo(env, obs_dict, agent_ids, args)
+    elif args.backend == "random":
+        _random_demo(env, obs_dict, agent_ids, args)
     else:
         raise ValueError(f"Unsupported backend: {args.backend}")
 
