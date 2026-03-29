@@ -182,7 +182,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--eval-steps", type=int, default=600)
     parser.add_argument("--active-targets", type=int, default=4)
-    parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
 
 
 def make_swarm_config(args) -> SwarmConfig:

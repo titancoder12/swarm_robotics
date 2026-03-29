@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 import sys
 
 import numpy as np
@@ -36,6 +37,12 @@ def parse_args(argv=None):
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-steps", type=int, default=0, help="Exit after N steps (0 = run until window closed)")
+    parser.add_argument(
+        "--demo-epsilon",
+        type=float,
+        default=0.0,
+        help="Probability of taking a random action during demo to mimic exploratory behavior.",
+    )
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
     parser.add_argument("--debug-policy-max-steps", type=int, default=0)
@@ -66,6 +73,8 @@ def _custom_demo(env, obs, agent_ids, args):
     obs_dim = obs.shape[1]
     action_dim = env.cfg.num_actions
     device = torch.device("cpu")
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     next_reset_seed = args.seed + 1
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
@@ -85,15 +94,21 @@ def _custom_demo(env, obs, agent_ids, args):
             with torch.no_grad():
                 obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
                 q_vals = nets[i](obs_tensor)
-                actions[i] = int(torch.argmax(q_vals, dim=1).item())
+                greedy_action = int(torch.argmax(q_vals, dim=1).item())
+            if random.random() < args.demo_epsilon:
+                actions[i] = np.random.randint(0, action_dim)
+                mode = "explore"
+            else:
+                actions[i] = greedy_action
+                mode = "greedy"
             if should_debug_policy(debug_cfg, steps, i, agent_ids[i]):
                 print_policy_debug(
                     step=steps,
                     agent_index=i,
                     agent_id=agent_ids[i],
                     policy_label="shared" if args.shared_policy else f"agent_{i}",
-                    epsilon=None,
-                    mode="greedy",
+                    epsilon=args.demo_epsilon,
+                    mode=mode,
                     output_name="q_values",
                     output_values=q_vals.detach().cpu().numpy(),
                     action=int(actions[i]),
@@ -129,6 +144,8 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     from stable_baselines3 import DQN
 
     model = DQN.load(args.sb3_model, device="cpu")
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     next_reset_seed = args.seed + 1
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
@@ -149,17 +166,24 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
                 with torch.no_grad():
                     q_values = model.q_net(obs_tensor).detach().cpu().numpy()
             action, _ = model.predict(obs_dict[agent], deterministic=True)
-            action_dict[agent] = int(action)
+            greedy_action = int(action)
+            if random.random() < args.demo_epsilon:
+                action_dict[agent] = int(np.random.randint(0, env.cfg.num_actions))
+                mode = "explore"
+            else:
+                action_dict[agent] = greedy_action
+                mode = "greedy"
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
                     agent_index=i,
                     agent_id=agent,
                     policy_label="shared",
-                    mode="greedy",
+                    epsilon=args.demo_epsilon,
+                    mode=mode,
                     output_name="q_values",
                     output_values=q_values,
-                    action=int(action),
+                    action=int(action_dict[agent]),
                     num_actions=env.cfg.num_actions,
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=None if prev_done is None else bool(prev_done[i]),
@@ -232,6 +256,8 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
 
     running = True
     steps = 0
+    random.seed(args.seed)
+    np.random.seed(args.seed)
     next_reset_seed = args.seed + 1
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
@@ -243,18 +269,24 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
 
         action_dict = {}
         for i, agent in enumerate(agent_ids):
-            action = algo.compute_single_action(obs_dict[agent], policy_id="shared_policy")
-            action_dict[agent] = int(action)
+            action = int(algo.compute_single_action(obs_dict[agent], policy_id="shared_policy"))
+            if random.random() < args.demo_epsilon:
+                action_dict[agent] = int(np.random.randint(0, env.cfg.num_actions))
+                mode = "explore"
+            else:
+                action_dict[agent] = action
+                mode = "greedy"
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
                     agent_index=i,
                     agent_id=agent,
                     policy_label="shared_policy",
-                    mode="greedy",
+                    epsilon=args.demo_epsilon,
+                    mode=mode,
                     output_name=None,
                     output_values=None,
-                    action=int(action),
+                    action=int(action_dict[agent]),
                     num_actions=env.cfg.num_actions,
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=None if prev_done is None else bool(prev_done[i]),

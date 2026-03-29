@@ -1,0 +1,9 @@
+{
+  "experiment_name": "with_pheromone_200k",
+  "filename": "with_pheromone_200k",
+  "folder_name": "with_pheromone_200k",
+  "obs_dim": 69,
+  "shared_policy": true,
+  "step": 150000,
+  "use_pheromone": true
+}

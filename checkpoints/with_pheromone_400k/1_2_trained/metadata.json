@@ -4,6 +4,6 @@
   "folder_name": "with_pheromone_400k",
   "obs_dim": 69,
   "shared_policy": true,
-  "step": 200000,
+  "step": 50000,
   "use_pheromone": true
 }

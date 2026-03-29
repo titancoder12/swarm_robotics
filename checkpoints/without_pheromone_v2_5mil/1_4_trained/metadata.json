@@ -1,0 +1,9 @@
+{
+  "experiment_name": "without_pheromone_v2_5mil",
+  "filename": "without_pheromone_v2_5mil",
+  "folder_name": "without_pheromone_v2_5mil",
+  "obs_dim": 69,
+  "shared_policy": true,
+  "step": 1250000,
+  "use_pheromone": false
+}

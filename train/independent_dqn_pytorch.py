@@ -9,6 +9,7 @@ import copy
 import os  # Filesystem paths.
 import random  # Epsilon-greedy randomness.
 import sys  # Path tweaks for local imports.
+import time
 from dataclasses import dataclass  # Simple config container.
 from typing import List  # Type hints.
 
@@ -105,6 +106,14 @@ def linear_schedule(start: float, end: float, step: int, decay_steps: int) -> fl
         return end
     frac = step / decay_steps  # Progress ratio.
     return start + frac * (end - start)  # Linear interpolation.
+
+
+def _format_duration(seconds: float) -> str:
+    """Format a wall-clock duration as H:MM:SS."""
+    total_seconds = max(0, int(seconds))
+    hours, rem = divmod(total_seconds, 3600)
+    minutes, secs = divmod(rem, 60)
+    return f"{hours}:{minutes:02d}:{secs:02d}"
 
 
 def _batch_to_device(batch, device):
@@ -386,6 +395,7 @@ def train(args):
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
+    train_start_time = time.time()
 
     # 4) Main training loop.
     try:
@@ -581,7 +591,9 @@ def train(args):
                     f"episode {episode} step {global_step} reward {episode_row['mean_episode_reward']:.2f} "
                     f"food_found {episode_food_discovered} food_delivered {episode_food_retrieved} "
                     f"coverage {episode_exploration_coverage:.3f} "
-                    f"pheromone {pheromone_usage_mean:.3f} epsilon {epsilon:.2f}"
+                    f"pheromone {pheromone_usage_mean:.3f} epsilon {epsilon:.2f} "
+                    f"elapsed {_format_duration(time.time() - train_start_time)} "
+                    f"eta {_format_duration(((time.time() - train_start_time) / max(global_step, 1)) * max(args.total_steps - global_step, 0))}"
                 )
                 obs_dict, _ = env.reset(seed=next_reset_seed)  # Reset environment.
                 obs = _dict_to_array(obs_dict, agent_ids, dtype=np.float32)  # Dict -> array.

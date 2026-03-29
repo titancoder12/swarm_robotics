@@ -1,0 +1,8 @@
+{
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/without_pheromone_v2_5mil",
+  "experiment_name": "without_pheromone_v2_5mil",
+  "filename": "without_pheromone_v2_5mil",
+  "folder_name": "without_pheromone_v2_5mil",
+  "shared_policy": true,
+  "use_pheromone": false
+}

@@ -73,22 +73,22 @@ class SwarmConfig:
    # reward_pheromone_deposit_cost: float = -0.2 #-0.02
     #pheromone_follow_min_gradient: float = 0.05
 
-    reward_target: float = 2.0              # only if this means detection/discovery
-    reward_pickup: float = 10.0             # actual interaction matters
-    reward_nest_delivery: float = 25.0      # final task completion matters most
+    reward_target: float = 2.0              # fallback only when pickup/delivery is disabled
+    reward_pickup: float = 30.0              # meaningful event, but smaller than final completion
+    reward_nest_delivery: float = 0.0 #30.0 #0.0      # main task completion reward
 
-    reward_step: float = -0.01
-    reward_collision: float = -1.0
+    reward_step: float = -0.01              # gentle time pressure
+    reward_collision: float = -1.5          # collisions should clearly hurt, but not dominate
 
-    reward_exploration: float = 0.0         # disable if redundant
-    reward_new_cell: float = 0.03 #to 0.05
+    reward_exploration: float = 0.0         # currently unused in env step path
+    reward_new_cell: float = 0.02           # small exploration bonus
 
-    reward_food_approach: float = 0.2 #signed small progress term
-    reward_food_detected: float = 0.5 #to 1.0
+    reward_food_approach: float = 0.05      # small signed shaping only
+    reward_food_detected: float = 0.2       # one-time local cue, kept modest
 
-    reward_pheromone_following: float = 0.0
-    reward_pheromone_follow: float = 0.01
-    reward_pheromone_deposit_cost: float = -0.005 #to -0.01
+    reward_pheromone_following: float = 0.0 # keep global usage reward off by default
+    reward_pheromone_follow: float = 0.01   # light local gradient preference
+    reward_pheromone_deposit_cost: float = -0.002  # discourage spam without suppressing use
     pheromone_follow_min_gradient: float = 0.05
 
     # Task
