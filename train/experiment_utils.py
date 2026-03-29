@@ -179,7 +179,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-pheromone-follow", type=float, default=0.03)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.02)
-    parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--eval-steps", type=int, default=600)
     parser.add_argument("--active-targets", type=int, default=4)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=False)

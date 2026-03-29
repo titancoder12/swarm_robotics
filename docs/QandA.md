@@ -505,3 +505,6 @@ A: In the current repo configuration, it is more likely an **RL training / rewar
 
 ## Q: What does `episode_logger` do?
 A: `episode_logger` is a `CSVLogger` that writes one row per completed training episode to `episode_metrics.csv` in the current run directory. It is initialized with the output schema (episode index, epsilon, reward totals, food/coverage/collision metrics, and reward-breakdown components), receives data at episode end via `episode_logger.log(episode_row)`, and is closed in the `finally` block to flush and release the file handle.
+
+## Q: Why does using `--no-pheromone` in `train/demo.py` make pheromones look more prominent?
+A: Because `train/demo.py` does **not** actually define a `--no-pheromone` flag. Through [train/experiment_utils.py](../train/experiment_utils.py), the real flags are `--no-use-pheromone` and `--no-pheromone-requires-food`. Python `argparse` allows long-option prefix matching by default, so `--no-pheromone` is likely being interpreted as `--no-pheromone-requires-food`, not as “disable pheromone.” That changes the behavior in the opposite direction: it turns off the food-carrying gate for deposition, so agents can lay pheromone during ordinary exploration, which makes the pheromone heatmap appear much more prominent. If you actually want pheromone disabled in demo, use `--no-use-pheromone` or `--pheromone-disabled`.

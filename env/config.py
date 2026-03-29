@@ -73,22 +73,22 @@ class SwarmConfig:
    # reward_pheromone_deposit_cost: float = -0.2 #-0.02
     #pheromone_follow_min_gradient: float = 0.05
 
-    reward_target: float = 10.0          # if this means “food discovered”
-    reward_pickup: float = 5.0           # only if distinct from target
-    reward_nest_delivery: float = 25.0   # make actual task completion matter most
+    reward_target: float = 2.0              # only if this means detection/discovery
+    reward_pickup: float = 10.0             # actual interaction matters
+    reward_nest_delivery: float = 25.0      # final task completion matters most
 
-    reward_step: float = -0.01           # much gentler
-    reward_collision: float = -1.0       # still bad, but not terrifying
+    reward_step: float = -0.01
+    reward_collision: float = -1.0
 
-    reward_exploration: float = 0.02
-    reward_new_cell: float = 0.05
+    reward_exploration: float = 0.0         # disable if redundant
+    reward_new_cell: float = 0.03 #to 0.05
 
-    reward_food_approach: float = 0.05
-    reward_food_detected: float = 0.5
+    reward_food_approach: float = 0.2 #signed small progress term
+    reward_food_detected: float = 0.5 #to 1.0
 
-    reward_pheromone_follow: float = 0.01  # or 0.02
-    reward_pheromone_following: float = 0.0  # pick one name, not both
-    reward_pheromone_deposit_cost: float = -0.01  # or 0.0 initially
+    reward_pheromone_following: float = 0.0
+    reward_pheromone_follow: float = 0.01
+    reward_pheromone_deposit_cost: float = -0.005 #to -0.01
     pheromone_follow_min_gradient: float = 0.05
 
     # Task
