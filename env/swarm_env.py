@@ -240,7 +240,7 @@ class SwarmEnv(ParallelEnv):
             if i in self.failed_agent_indices:
                 continue
             action_id = int(actions[i])
-            throttle, turn, deposit = self.action_table[action_id]
+            throttle, turn, deposit_requested = self.action_table[action_id]
             # Propose next state from dynamics, then check collisions.
             proposed = self.driver.apply(agent, (throttle, turn), self.cfg.dt, self.cfg, self.rng)
 
@@ -251,10 +251,6 @@ class SwarmEnv(ParallelEnv):
                 reward_breakdown["collision"] += float(self.cfg.reward_collision)
             else:
                 self.agent_states[i] = proposed
-
-            if deposit:
-                rewards[i] += self.cfg.reward_pheromone_deposit_cost
-                reward_breakdown["pheromone_deposit"] += float(self.cfg.reward_pheromone_deposit_cost)
 
         # Handle target collection and pheromone updates.
         picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
@@ -273,9 +269,11 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["pheromone_follow"] += float(pheromone_follow_reward)
 
         if self.cfg.pheromone_enabled:
-            pheromone_deposit_events = self._update_pheromone(actions)
+            pheromone_deposit_events, pheromone_deposit_cost = self._update_pheromone(actions, rewards)
         else:
             pheromone_deposit_events = 0
+            pheromone_deposit_cost = 0.0
+        reward_breakdown["pheromone_deposit"] += float(pheromone_deposit_cost)
 
         # Episode end conditions.
         self.step_count += 1
@@ -653,7 +651,7 @@ class SwarmEnv(ParallelEnv):
             follow_reward_total += reward
         return usage_reward_total, follow_reward_total, usage
 
-    def _update_pheromone(self, actions: np.ndarray) -> int:
+    def _update_pheromone(self, actions: np.ndarray, rewards: np.ndarray) -> tuple[int, float]:
         """Deposit, decay, and diffuse pheromone values."""
         # Deposit pheromone only for agents whose action explicitly requested it,
         # then decay/diffuse the grid globally. When pheromone_requires_food is
@@ -661,19 +659,24 @@ class SwarmEnv(ParallelEnv):
         grid = self.pheromone_grid
         cell = self.cfg.pheromone_cell_size
         deposit_events = 0
+        deposit_cost_total = 0.0
         for i, agent in enumerate(self.agent_states):
-            _, _, deposit = self.action_table[int(actions[i])]
-            if not deposit:
+            if i in self.failed_agent_indices:
+                continue
+            _, _, deposit_requested = self.action_table[int(actions[i])]
+            if not deposit_requested:
                 continue
             if self.cfg.pheromone_requires_food and not agent.carrying_food:
                 continue
             gx = int(agent.x // cell)
             gy = int(agent.y // cell)
             if 0 <= gy < grid.shape[0] and 0 <= gx < grid.shape[1]:
-                deposit = self.cfg.pheromone_deposit
+                deposit_amount = self.cfg.pheromone_deposit
                 if agent.carrying_food:
-                    deposit *= self.cfg.pheromone_deposit_carrying_scale
-                grid[gy, gx] += deposit
+                    deposit_amount *= self.cfg.pheromone_deposit_carrying_scale
+                grid[gy, gx] += deposit_amount
+                rewards[i] += self.cfg.reward_pheromone_deposit_cost
+                deposit_cost_total += float(self.cfg.reward_pheromone_deposit_cost)
                 deposit_events += 1
 
         grid *= self.cfg.pheromone_decay
@@ -691,7 +694,7 @@ class SwarmEnv(ParallelEnv):
         min_value = float(self.cfg.pheromone_min_value)
         if min_value > 0:
             grid[grid < min_value] = 0.0
-        return deposit_events
+        return deposit_events, deposit_cost_total
 
     def _get_obs(self, reset_history: bool = False):
         """Assemble per-agent observations and flatten the recent history window."""

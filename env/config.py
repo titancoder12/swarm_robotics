@@ -59,18 +59,36 @@ class SwarmConfig:
     pheromone_requires_food: bool = False
 
     # Rewards
-    reward_target: float = 8.0
-    reward_step: float = -0.1 #-0.01 
-    reward_collision: float = -2.0 #-0.2
-    reward_pickup: float = 15.0
-    reward_nest_delivery: float = 0.0 #10.0
-    reward_exploration: float = 0.8 #0.2 #0.05
-    reward_new_cell: float = 0.02
-    reward_pheromone_following: float = 0.2
-    reward_food_approach: float = 0.5 #0.5 #reward_food_approach: float = 0.2
-    reward_food_detected: float = 0.2 #reward_food_detected: float = 0.05
-    reward_pheromone_follow: float = 0.03
-    reward_pheromone_deposit_cost: float = -0.02
+    #reward_target: float = 30.0
+    #reward_step: float = -0.01 #-0.01 
+    #reward_collision: float = -2.0 #-0.2
+    #reward_pickup: float = 30.0
+    #reward_nest_delivery: float = 0.0 #10.0
+    #reward_exploration: float = 0.0 #0.2 #0.05
+    #reward_new_cell: float = 0.00
+    #reward_pheromone_following: float = 0.0 #0.2
+    #reward_food_approach: float = 0.0 #0.5 #reward_food_approach: float = 0.2
+    #reward_food_detected: float = 0.0 #reward_food_detected: float = 0.05
+    #reward_pheromone_follow: float = 0.0 # 0.03
+   # reward_pheromone_deposit_cost: float = -0.2 #-0.02
+    #pheromone_follow_min_gradient: float = 0.05
+
+    reward_target: float = 10.0          # if this means “food discovered”
+    reward_pickup: float = 5.0           # only if distinct from target
+    reward_nest_delivery: float = 25.0   # make actual task completion matter most
+
+    reward_step: float = -0.01           # much gentler
+    reward_collision: float = -1.0       # still bad, but not terrifying
+
+    reward_exploration: float = 0.02
+    reward_new_cell: float = 0.05
+
+    reward_food_approach: float = 0.05
+    reward_food_detected: float = 0.5
+
+    reward_pheromone_follow: float = 0.01  # or 0.02
+    reward_pheromone_following: float = 0.0  # pick one name, not both
+    reward_pheromone_deposit_cost: float = -0.01  # or 0.0 initially
     pheromone_follow_min_gradient: float = 0.05
 
     # Task
