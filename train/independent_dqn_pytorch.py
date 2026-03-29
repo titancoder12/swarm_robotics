@@ -77,14 +77,14 @@ class ReplayBuffer:
         self.size = min(self.size + 1, self.capacity)  # Track current size.
 
     def sample(self, batch_size: int):
-        """Sample a random minibatch and return as torch tensors."""
+        """Sample a random minibatch and return NumPy arrays."""
         idx = np.random.randint(0, self.size, size=batch_size)  # Random indices.
         return (
-            torch.tensor(self.obs[idx]),  # Batch of states.
-            torch.tensor(self.actions[idx]),  # Batch of actions.
-            torch.tensor(self.rewards[idx]),  # Batch of rewards.
-            torch.tensor(self.next_obs[idx]),  # Batch of next states.
-            torch.tensor(self.dones[idx]),  # Batch of done flags.
+            self.obs[idx],  # Batch of states.
+            self.actions[idx],  # Batch of actions.
+            self.rewards[idx],  # Batch of rewards.
+            self.next_obs[idx],  # Batch of next states.
+            self.dones[idx],  # Batch of done flags.
         )
 
 
@@ -107,6 +107,32 @@ def linear_schedule(start: float, end: float, step: int, decay_steps: int) -> fl
     return start + frac * (end - start)  # Linear interpolation.
 
 
+def _batch_to_device(batch, device):
+    """Convert a sampled batch of NumPy arrays to tensors on the target device."""
+    obs, actions, rewards, next_obs, dones = batch
+    return (
+        torch.as_tensor(obs, dtype=torch.float32, device=device),
+        torch.as_tensor(actions, dtype=torch.int64, device=device),
+        torch.as_tensor(rewards, dtype=torch.float32, device=device),
+        torch.as_tensor(next_obs, dtype=torch.float32, device=device),
+        torch.as_tensor(dones, dtype=torch.float32, device=device),
+    )
+
+
+def _select_actions_shared(q_net: QNetwork, obs: np.ndarray, epsilon: float, action_dim: int, device):
+    """Select actions for all agents with one shared-network forward pass."""
+    with torch.no_grad():
+        obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
+        q_vals = q_net(obs_tensor)
+        greedy_actions = torch.argmax(q_vals, dim=1).detach().cpu().numpy().astype(np.int64, copy=False)
+
+    actions = greedy_actions.copy()
+    explore_mask = np.random.random(size=actions.shape[0]) < epsilon
+    if np.any(explore_mask):
+        actions[explore_mask] = np.random.randint(0, action_dim, size=int(explore_mask.sum()), dtype=np.int64)
+    return actions, q_vals.detach().cpu().numpy(), explore_mask
+
+
 def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, device, episodes: int, base_seed: int):
     """Run deterministic evaluation episodes with the current policy."""
     eval_cfg = copy.deepcopy(cfg)
@@ -125,12 +151,18 @@ def _evaluate_policy(cfg: SwarmConfig, q_nets: List[QNetwork], shared: bool, dev
             episode_length = 0
 
             while True:
-                actions = np.zeros(eval_cfg.n_agents, dtype=np.int64)
-                for i in range(eval_cfg.n_agents):
+                if shared:
                     with torch.no_grad():
-                        obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
-                        q_vals = q_nets[i](obs_tensor)
-                        actions[i] = int(torch.argmax(q_vals, dim=1).item())
+                        obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
+                        q_vals = q_nets[0](obs_tensor)
+                        actions = torch.argmax(q_vals, dim=1).detach().cpu().numpy().astype(np.int64, copy=False)
+                else:
+                    actions = np.zeros(eval_cfg.n_agents, dtype=np.int64)
+                    for i in range(eval_cfg.n_agents):
+                        with torch.no_grad():
+                            obs_tensor = torch.as_tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
+                            q_vals = q_nets[i](obs_tensor)
+                            actions[i] = int(torch.argmax(q_vals, dim=1).item())
 
                 action_dict = _array_to_dict(actions, agent_ids)
                 next_obs_dict, rewards_dict, terminations, truncations, info_dict = env.step(action_dict)
@@ -360,37 +392,55 @@ def train(args):
         while global_step < args.total_steps:
             # Epsilon-greedy exploration schedule.
             epsilon = linear_schedule(dqn_cfg.epsilon_start, dqn_cfg.epsilon_final, global_step, dqn_cfg.epsilon_decay_steps)  # Exploration rate.
-            actions = np.zeros(cfg.n_agents, dtype=np.int64)  # Action array.
+            if args.shared_policy:
+                actions, q_values_debug, explore_mask = _select_actions_shared(q_nets[0], obs, epsilon, action_dim, device)
+                for i in range(cfg.n_agents):
+                    if should_debug_policy(debug_cfg, global_step, i, agent_ids[i]):
+                        print_policy_debug(
+                            step=global_step,
+                            agent_index=i,
+                            agent_id=agent_ids[i],
+                            policy_label="shared",
+                            epsilon=epsilon,
+                            mode="explore" if bool(explore_mask[i]) else "greedy",
+                            output_name="q_values",
+                            output_values=q_values_debug[i],
+                            action=int(actions[i]),
+                            num_actions=action_dim,
+                            prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                            prev_done=None if prev_done is None else bool(prev_done[i]),
+                        )
+            else:
+                actions = np.zeros(cfg.n_agents, dtype=np.int64)  # Action array.
+                # Select actions for each agent (random with prob epsilon, else greedy).
+                for i in range(cfg.n_agents):
+                    with torch.no_grad():
+                        obs_tensor = torch.as_tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)  # Batch-1 obs.
+                        q_vals = q_nets[i](obs_tensor)  # Q-values.
+                        greedy_action = int(torch.argmax(q_vals, dim=1).item())  # Greedy action.
 
-            # Select actions for each agent (random with prob epsilon, else greedy).
-            for i in range(cfg.n_agents):
-                with torch.no_grad():
-                    obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)  # Batch-1 obs.
-                    q_vals = q_nets[i](obs_tensor)  # Q-values.
-                    greedy_action = int(torch.argmax(q_vals, dim=1).item())  # Greedy action.
+                    if random.random() < epsilon:
+                        actions[i] = np.random.randint(0, action_dim)  # Explore.
+                        mode = "explore"
+                    else:
+                        actions[i] = greedy_action
+                        mode = "greedy"
 
-                if random.random() < epsilon:
-                    actions[i] = np.random.randint(0, action_dim)  # Explore.
-                    mode = "explore"
-                else:
-                    actions[i] = greedy_action
-                    mode = "greedy"
-
-                if should_debug_policy(debug_cfg, global_step, i, agent_ids[i]):
-                    print_policy_debug(
-                        step=global_step,
-                        agent_index=i,
-                        agent_id=agent_ids[i],
-                        policy_label="shared" if args.shared_policy else f"agent_{i}",
-                        epsilon=epsilon,
-                        mode=mode,
-                        output_name="q_values",
-                        output_values=q_vals.detach().cpu().numpy(),
-                        action=int(actions[i]),
-                        num_actions=action_dim,
-                        prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
-                        prev_done=None if prev_done is None else bool(prev_done[i]),
-                    )
+                    if should_debug_policy(debug_cfg, global_step, i, agent_ids[i]):
+                        print_policy_debug(
+                            step=global_step,
+                            agent_index=i,
+                            agent_id=agent_ids[i],
+                            policy_label=f"agent_{i}",
+                            epsilon=epsilon,
+                            mode=mode,
+                            output_name="q_values",
+                            output_values=q_vals.detach().cpu().numpy(),
+                            action=int(actions[i]),
+                            num_actions=action_dim,
+                            prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                            prev_done=None if prev_done is None else bool(prev_done[i]),
+                        )
 
             # Agent sees observation, picks action, gets reward, environment changes.
             action_dict = _array_to_dict(actions, agent_ids)  # Array -> dict (PettingZoo).
@@ -430,22 +480,39 @@ def train(args):
 
             # 5) Start learning after warmup (collecting initial experience).
             if global_step > dqn_cfg.warmup_steps:
-                for i in range(cfg.n_agents):
-                    if buffers[i].size < dqn_cfg.batch_size:
-                        continue
-                    batch = buffers[i].sample(dqn_cfg.batch_size)
-                    batch = [b.to(device) for b in batch]
-                    b_obs, b_actions, b_rewards, b_next_obs, b_dones = batch
+                if args.shared_policy:
+                    ready_batches = [buffers[i].sample(dqn_cfg.batch_size) for i in range(cfg.n_agents) if buffers[i].size >= dqn_cfg.batch_size]
+                    if ready_batches:
+                        merged_batch = tuple(np.concatenate([batch[field_idx] for batch in ready_batches], axis=0) for field_idx in range(5))
+                        b_obs, b_actions, b_rewards, b_next_obs, b_dones = _batch_to_device(merged_batch, device)
 
-                    q_vals = q_nets[i](b_obs).gather(1, b_actions.unsqueeze(1)).squeeze(1)  # Q(s,a).
-                    with torch.no_grad():
-                        max_next = target_nets[i](b_next_obs).max(dim=1)[0]  # max_a' Q_target(s',a')
-                        target = b_rewards + dqn_cfg.gamma * (1.0 - b_dones) * max_next  # Bellman target.
+                        q_vals = q_nets[0](b_obs).gather(1, b_actions.unsqueeze(1)).squeeze(1)  # Q(s,a).
+                        with torch.no_grad():
+                            max_next = target_nets[0](b_next_obs).max(dim=1)[0]  # max_a' Q_target(s',a')
+                            target = b_rewards + dqn_cfg.gamma * (1.0 - b_dones) * max_next  # Bellman target.
 
-                    loss = nn.functional.smooth_l1_loss(q_vals, target)  # Huber loss.
-                    optimizers[i].zero_grad()  # Clear gradients.
-                    loss.backward()  # Backprop.
-                    optimizers[i].step()  # Update weights.
+                        loss = nn.functional.smooth_l1_loss(q_vals, target)  # Huber loss.
+                        optimizers[0].zero_grad()  # Clear gradients.
+                        loss.backward()  # Backprop.
+                        optimizers[0].step()  # Update weights.
+                else:
+                    for i in range(cfg.n_agents):
+                        if buffers[i].size < dqn_cfg.batch_size:
+                            continue
+                        b_obs, b_actions, b_rewards, b_next_obs, b_dones = _batch_to_device(
+                            buffers[i].sample(dqn_cfg.batch_size),
+                            device,
+                        )
+
+                        q_vals = q_nets[i](b_obs).gather(1, b_actions.unsqueeze(1)).squeeze(1)  # Q(s,a).
+                        with torch.no_grad():
+                            max_next = target_nets[i](b_next_obs).max(dim=1)[0]  # max_a' Q_target(s',a')
+                            target = b_rewards + dqn_cfg.gamma * (1.0 - b_dones) * max_next  # Bellman target.
+
+                        loss = nn.functional.smooth_l1_loss(q_vals, target)  # Huber loss.
+                        optimizers[i].zero_grad()  # Clear gradients.
+                        loss.backward()  # Backprop.
+                        optimizers[i].step()  # Update weights.
 
             # 6) Periodically sync target networks.
             if global_step % dqn_cfg.target_update == 0:
