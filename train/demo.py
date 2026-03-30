@@ -24,11 +24,7 @@ from train.experiment_utils import add_env_config_args, make_swarm_config
 def parse_args(argv=None):
     # 1) Parse CLI args (checkpoint location, backend, shared policy flag, agent count, seed).
     parser = argparse.ArgumentParser()
-<<<<<<< HEAD
     parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "mappo"], default="custom")
-=======
-    parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "random"], default="custom")
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--sb3-model", type=str, default="checkpoints/sb3_dqn.zip")
     parser.add_argument("--rllib-checkpoint", type=str, default="checkpoints/rllib_dqn")
@@ -326,7 +322,6 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
-<<<<<<< HEAD
 def _mappo_demo(env, obs_dict, agent_ids, args):
     obs_dim = env.observation_space(agent_ids[0]).shape[0]
     action_dim = env.cfg.num_actions
@@ -338,14 +333,6 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
     prev_rewards = None
     prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
     hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
-=======
-def _random_demo(env, obs_dict, agent_ids, args):
-    rng = np.random.default_rng(args.seed)
-    next_reset_seed = args.seed + 1
-    debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
-    prev_rewards = None
-    prev_done = None
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
 
     running = True
     steps = 0
@@ -355,7 +342,6 @@ def _random_demo(env, obs_dict, agent_ids, args):
                 if event.type == pygame.QUIT:
                     running = False
 
-<<<<<<< HEAD
         obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
         done_mask = torch.as_tensor(1.0 - prev_done, dtype=torch.float32, device=device)
@@ -371,18 +357,11 @@ def _random_demo(env, obs_dict, agent_ids, args):
             else:
                 action_dict[agent] = int(greedy_actions[i])
                 mode = "greedy"
-=======
-        action_dict = {}
-        for i, agent in enumerate(agent_ids):
-            action = int(rng.integers(0, env.cfg.num_actions))
-            action_dict[agent] = action
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
                     agent_index=i,
                     agent_id=agent,
-<<<<<<< HEAD
                     policy_label="mappo_gru",
                     epsilon=args.demo_epsilon,
                     mode=mode,
@@ -392,29 +371,13 @@ def _random_demo(env, obs_dict, agent_ids, args):
                     num_actions=env.cfg.num_actions,
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=bool(prev_done[i]),
-=======
-                    policy_label="random",
-                    epsilon=None,
-                    mode="random",
-                    output_name=None,
-                    output_values=None,
-                    action=action,
-                    num_actions=env.cfg.num_actions,
-                    prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
-                    prev_done=None if prev_done is None else bool(prev_done[i]),
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
                 )
 
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
         prev_done = np.array(
-<<<<<<< HEAD
             [float(terminations[agent] or truncations[agent]) for agent in agent_ids],
             dtype=np.float32,
-=======
-            [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
-            dtype=np.bool_,
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
         )
         terminated = any(terminations.values())
         truncated = any(truncations.values())
@@ -427,11 +390,8 @@ def _random_demo(env, obs_dict, agent_ids, args):
         if terminated or truncated:
             obs_dict, _ = env.reset(seed=next_reset_seed)
             next_reset_seed += 1
-<<<<<<< HEAD
             hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
             prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
-=======
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
 
     return obs_dict
 
@@ -456,13 +416,8 @@ def main():
         _sb3_demo(env, obs_dict, agent_ids, args)
     elif args.backend == "rllib":
         _rllib_demo(env, obs_dict, agent_ids, args)
-<<<<<<< HEAD
     elif args.backend == "mappo":
         _mappo_demo(env, obs_dict, agent_ids, args)
-=======
-    elif args.backend == "random":
-        _random_demo(env, obs_dict, agent_ids, args)
->>>>>>> ebb131ea0db81180e7d64b561264919780d28f4e
     else:
         raise ValueError(f"Unsupported backend: {args.backend}")
 
