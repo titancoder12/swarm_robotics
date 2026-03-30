@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import os
+import subprocess
 import sys
 from collections import defaultdict
 
@@ -124,32 +125,17 @@ def _build_cfg(args, n_agents: int, eval_with_pheromone: bool):
     return cfg
 
 
-def _save_exploration_visual(path_png: str, path_pdf: str, env: SwarmEnv, title: str) -> None:
-    import matplotlib.pyplot as plt
-
+def _save_exploration_snapshot(path_npz: str, env: SwarmEnv, title: str) -> None:
+    os.makedirs(os.path.dirname(path_npz), exist_ok=True)
     grid = env.coverage_grid.astype(np.float32) if env.coverage_grid is not None else np.zeros((1, 1), dtype=np.float32)
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    ax.imshow(grid, cmap="magma", origin="lower", interpolation="nearest")
-    if env.cfg.nest_enabled and env.coverage_grid is not None:
-        cell = max(env.cfg.coverage_cell_size, 1)
-        ax.scatter(
-            [env.nest_position[0] / cell],
-            [env.nest_position[1] / cell],
-            c="cyan",
-            s=70,
-            marker="o",
-            edgecolors="black",
-            linewidths=0.5,
-            label="Nest",
-        )
-        ax.legend(loc="upper right")
-    ax.set_title(title)
-    ax.set_xlabel("Coverage Grid X")
-    ax.set_ylabel("Coverage Grid Y")
-    fig.tight_layout()
-    fig.savefig(path_png)
-    fig.savefig(path_pdf)
-    plt.close(fig)
+    np.savez_compressed(
+        path_npz,
+        grid=grid,
+        nest_position=np.asarray(env.nest_position, dtype=np.float32),
+        coverage_cell_size=np.asarray([max(env.cfg.coverage_cell_size, 1)], dtype=np.float32),
+        nest_enabled=np.asarray([1 if env.cfg.nest_enabled else 0], dtype=np.int32),
+        title=np.asarray([title]),
+    )
 
 
 def _progress_interval(max_steps: int) -> int:
@@ -359,17 +345,52 @@ def _save_comparison_plot(
     plt.close(fig)
 
 
+def _run_plot_subprocess(args, summary_path: str, exploration_data_dir: str, exploration_png_dir: str, exploration_pdf_dir: str, graph_png_dir: str, graph_pdf_dir: str) -> bool:
+    script_path = os.path.join(ROOT, "analysis", "plot_evaluate_comparison.py")
+    env = os.environ.copy()
+    env.setdefault("MPLBACKEND", "Agg")
+    env.setdefault("MPLCONFIGDIR", "/tmp/cwsf2026_mplconfig")
+    env.setdefault("XDG_CACHE_HOME", "/tmp/cwsf2026_xdg_cache")
+    os.makedirs(env["MPLCONFIGDIR"], exist_ok=True)
+    os.makedirs(env["XDG_CACHE_HOME"], exist_ok=True)
+    cmd = [
+        sys.executable,
+        script_path,
+        "--summary-csv",
+        summary_path,
+        "--exploration-data-dir",
+        exploration_data_dir,
+        "--exploration-png-dir",
+        exploration_png_dir,
+        "--exploration-pdf-dir",
+        exploration_pdf_dir,
+        "--graph-png-dir",
+        graph_png_dir,
+        "--graph-pdf-dir",
+        graph_pdf_dir,
+        "--filename",
+        resolve_filename(args, fallback="pheromone_comparison"),
+    ]
+    completed = subprocess.run(cmd, env=env, check=False)
+    if completed.returncode != 0:
+        print(f"[compare] warning plotting subprocess failed with exit code {completed.returncode}")
+        return False
+    return True
+
+
 def run(args):
     args.output_dir = resolve_repo_path(args.output_dir)
     args.checkpoint_with_pheromone = resolve_repo_path(args.checkpoint_with_pheromone)
     args.checkpoint_without_pheromone = resolve_repo_path(args.checkpoint_without_pheromone)
     filename = resolve_filename(args, fallback="pheromone_comparison")
     raw_dir = os.path.join(args.output_dir, "raw")
+    exploration_data_dir = os.path.join(args.output_dir, "exploration_graphs", "DATA")
     exploration_png_dir = os.path.join(args.output_dir, "exploration_graphs", "PNG")
     exploration_pdf_dir = os.path.join(args.output_dir, "exploration_graphs", "PDF")
     graph_png_dir = os.path.join(args.output_dir, "graphs", "PNG")
     graph_pdf_dir = os.path.join(args.output_dir, "graphs", "PDF")
     os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(exploration_data_dir, exist_ok=True)
     os.makedirs(exploration_png_dir, exist_ok=True)
     os.makedirs(exploration_pdf_dir, exist_ok=True)
     os.makedirs(graph_png_dir, exist_ok=True)
@@ -465,11 +486,9 @@ def run(args):
                     marker = (condition["comparison_label"], n_agents)
                     if n_agents in representative_sizes and episode_index == 0 and marker not in saved_exploration:
                         slug = sanitize_filename(condition["comparison_label"])
-                        png_path = os.path.join(exploration_png_dir, f"{filename}_{slug}_agents_{n_agents}.png")
-                        pdf_path = os.path.join(exploration_pdf_dir, f"{filename}_{slug}_agents_{n_agents}.pdf")
-                        _save_exploration_visual(
-                            png_path,
-                            pdf_path,
+                        npz_path = os.path.join(exploration_data_dir, f"{filename}_{slug}_agents_{n_agents}.npz")
+                        _save_exploration_snapshot(
+                            npz_path,
                             env,
                             title=f"{condition['comparison_label']} | agents={n_agents}",
                         )
@@ -543,12 +562,17 @@ def run(args):
     if summary_rows:
         _write_csv(summary_path, list(summary_rows[0].keys()), summary_rows)
 
-    _save_comparison_plot(summary_rows, "targets_collected", "Mean Targets Collected", "Agents vs Targets Collected in Time", f"{filename}_agents_vs_targets_collected", graph_png_dir, graph_pdf_dir)
-    _save_comparison_plot(summary_rows, "coverage_efficiency", "Mean Coverage Efficiency", "Coverage Efficiency vs Agents", f"{filename}_coverage_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
-    _save_comparison_plot(summary_rows, "efficiency", "Mean Efficiency", "Efficiency vs Agents", f"{filename}_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
-    _save_comparison_plot(summary_rows, "time_to_first_discovery", "Mean Time to First Discovery", "Time to First Discovery vs Agents", f"{filename}_time_to_first_discovery_vs_agents", graph_png_dir, graph_pdf_dir)
-    _save_comparison_plot(summary_rows, "stuck_event_count", "Mean Stuck Events", "Stuck Events vs Agents", f"{filename}_stuck_events_vs_agents", graph_png_dir, graph_pdf_dir)
-    _save_comparison_plot(summary_rows, "successful_escape_count", "Mean Successful Escapes", "Successful Escapes vs Agents", f"{filename}_successful_escapes_vs_agents", graph_png_dir, graph_pdf_dir)
+    plotting_succeeded = False
+    if summary_rows:
+        plotting_succeeded = _run_plot_subprocess(
+            args,
+            summary_path=summary_path,
+            exploration_data_dir=exploration_data_dir,
+            exploration_png_dir=exploration_png_dir,
+            exploration_pdf_dir=exploration_pdf_dir,
+            graph_png_dir=graph_png_dir,
+            graph_pdf_dir=graph_pdf_dir,
+        )
 
     write_json(
         os.path.join(args.output_dir, f"{filename}_metadata.json"),
@@ -571,6 +595,7 @@ def run(args):
             "failures": failures,
             "raw_csv": os.path.relpath(master_raw_path, args.output_dir),
             "summary_csv": os.path.relpath(summary_path, args.output_dir) if summary_rows else "",
+            "plotting_succeeded": bool(plotting_succeeded),
         },
     )
     print(
