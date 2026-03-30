@@ -1,18 +1,19 @@
 {
   "active_targets": 4,
   "agent_range": {
-    "max": 15,
+    "max": 10,
     "min": 1,
     "step": 1
   },
   "checkpoints": {
-    "checkpoint_with_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/with_pheromone_v2_5mil/full_policy",
-    "checkpoint_without_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/without_pheromone_v2_5mil/full_policy"
+    "checkpoint_with_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/mappo_gru_pheromone/latest",
+    "checkpoint_without_pheromone": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/mappo_gru_no_pheromone/latest"
   },
-  "episodes_per_agent": 1,
+  "episodes_per_agent": 2,
   "eval_steps": 600,
   "failures": [],
   "filename": "pheromone_vs_random",
+  "policy_kind": "mappo_gru",
   "raw_csv": "raw/pheromone_vs_random_all_conditions_raw.csv",
   "summary_csv": "raw/pheromone_vs_random_summary.csv",
   "targets_collected_definition": "pickup_events_not_delivery"
