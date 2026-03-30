@@ -664,3 +664,7 @@ A: That popup appears when the Python interpreter does not exit through a normal
 ## Q: Was the comparison plotting crash actually fixed?
 
 A: Yes for the tested comparison path. [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py) no longer renders Matplotlib plots inside the same process that imports the env/PyGame stack. It now writes raw comparison data first and then launches a separate plotting helper, [analysis/plot_evaluate_comparison.py](../analysis/plot_evaluate_comparison.py), in a fresh subprocess using the non-interactive `Agg` backend plus writable cache directories under `/tmp`. Re-running the same MAPPO comparison smoke command after that refactor completed with exit code `0` and successfully wrote the raw CSVs, summary CSV, metadata JSON, and PNG/PDF plot files under `/tmp/mappo_recovery_compare4/`.
+
+## Q: Are the earlier verification notes still accurate?
+
+A: Only partly. The earlier note saying the comparison runner still exited uncleanly is now stale for the tested smoke path: after the plotting refactor, the current comparison smoke run completes cleanly and writes raw CSVs, summary CSV, metadata JSON, and PNG/PDF graphs under `/tmp/mappo_recovery_compare4/`. The second note is still true: the smoke training checkpoint directory [checkpoints/mappo_recovery_verify](../checkpoints/mappo_recovery_verify) still exists and currently contains both stage directories plus `latest/` with `actor.pt`, `critic.pt`, `trainer.pt`, and `metadata.json`.
