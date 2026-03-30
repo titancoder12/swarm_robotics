@@ -15,6 +15,7 @@ class CurriculumStage:
     max_steps: int
     active_targets: int
     target_respawn: bool
+    pheromone_enabled: bool
 
 
 def _split_stage_steps(total_steps: int, weights: list[int]) -> list[int]:
@@ -44,6 +45,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=120,
             active_targets=2,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
         CurriculumStage(
             name="stage1b_single_agent_obstacles",
@@ -56,6 +58,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=220,
             active_targets=2,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
         CurriculumStage(
             name="stage2a_small_swarm_medium",
@@ -68,6 +71,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=360,
             active_targets=2,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
         CurriculumStage(
             name="stage2b_small_swarm_large",
@@ -80,6 +84,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=500,
             active_targets=3,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
         CurriculumStage(
             name="stage3a_full_swarm_large",
@@ -92,6 +97,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=500,
             active_targets=3,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
         CurriculumStage(
             name="stage3b_full_swarm_final",
@@ -104,6 +110,7 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
             max_steps=720,
             active_targets=4,
             target_respawn=True,
+            pheromone_enabled=True,
         ),
     ]
 
