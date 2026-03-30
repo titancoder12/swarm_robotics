@@ -384,6 +384,17 @@ class SwarmEnv(ParallelEnv):
                 rewards[i] += self.cfg.reward_collision
                 collisions += 1
                 reward_breakdown["collision"] += float(self.cfg.reward_collision)
+                # Keep orientation updates on contact so agents can turn away,
+                # but zero translational velocity to avoid repeated wall-sticking.
+                self.agent_states[i] = AgentState(
+                    x=agent.x,
+                    y=agent.y,
+                    theta=proposed.theta,
+                    v=0.0,
+                    omega=proposed.omega,
+                    v_lat=0.0,
+                    carrying_food=agent.carrying_food,
+                )
             else:
                 self.agent_states[i] = proposed
 
