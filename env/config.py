@@ -74,7 +74,7 @@ class SwarmConfig:
    # reward_pheromone_deposit_cost: float = -0.2 #-0.02
     #pheromone_follow_min_gradient: float = 0.05
 
-    reward_target: float = 2.0              # fallback only when pickup/delivery is disabled
+    reward_target: float = 30.0              # fallback only when pickup/delivery is disabled
     reward_pickup: float = 30.0              # meaningful event, but smaller than final completion
     reward_nest_delivery: float = 0.0 #30.0 #0.0      # main task completion reward
 

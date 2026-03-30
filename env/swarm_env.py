@@ -384,17 +384,11 @@ class SwarmEnv(ParallelEnv):
                 rewards[i] += self.cfg.reward_collision
                 collisions += 1
                 reward_breakdown["collision"] += float(self.cfg.reward_collision)
-                # Keep orientation updates on contact so agents can turn away,
-                # but zero translational velocity to avoid repeated wall-sticking.
-                self.agent_states[i] = AgentState(
-                    x=agent.x,
-                    y=agent.y,
-                    theta=proposed.theta,
-                    v=0.0,
-                    omega=proposed.omega,
-                    v_lat=0.0,
-                    carrying_food=agent.carrying_food,
-                )
+                # Clear action hold on impact and apply a Newton-style contact
+                # response so the agent can separate from the collider.
+                self._hold_remaining[i] = 0
+                self._held_actions[i] = 0
+                self.agent_states[i] = self._resolve_collision_state(agent, proposed)
             else:
                 self.agent_states[i] = proposed
 
@@ -644,6 +638,99 @@ class SwarmEnv(ParallelEnv):
             int(self.cfg.agent_radius * 2),
         )
         return any(agent_rect.colliderect(o) for o in self.obstacles)
+
+    def _collision_normal(self, proposed: AgentState) -> np.ndarray | None:
+        """Estimate a contact normal for boundary or obstacle collisions."""
+        normals: list[np.ndarray] = []
+        radius = float(self.cfg.agent_radius)
+
+        if proposed.x < radius:
+            normals.append(np.array([1.0, 0.0], dtype=np.float32))
+        elif proposed.x > float(self.width) - radius:
+            normals.append(np.array([-1.0, 0.0], dtype=np.float32))
+        if proposed.y < radius:
+            normals.append(np.array([0.0, 1.0], dtype=np.float32))
+        elif proposed.y > float(self.height) - radius:
+            normals.append(np.array([0.0, -1.0], dtype=np.float32))
+
+        cx = float(proposed.x)
+        cy = float(proposed.y)
+        for rect in self.obstacles:
+            nearest_x = float(np.clip(cx, rect.left, rect.right))
+            nearest_y = float(np.clip(cy, rect.top, rect.bottom))
+            dx = cx - nearest_x
+            dy = cy - nearest_y
+            dist_sq = dx * dx + dy * dy
+            if dist_sq > radius * radius:
+                continue
+            if dist_sq > 1e-8:
+                inv_dist = 1.0 / math.sqrt(dist_sq)
+                normals.append(np.array([dx * inv_dist, dy * inv_dist], dtype=np.float32))
+            else:
+                left_gap = abs(cx - rect.left)
+                right_gap = abs(rect.right - cx)
+                top_gap = abs(cy - rect.top)
+                bottom_gap = abs(rect.bottom - cy)
+                min_gap = min(left_gap, right_gap, top_gap, bottom_gap)
+                if min_gap == left_gap:
+                    normals.append(np.array([-1.0, 0.0], dtype=np.float32))
+                elif min_gap == right_gap:
+                    normals.append(np.array([1.0, 0.0], dtype=np.float32))
+                elif min_gap == top_gap:
+                    normals.append(np.array([0.0, -1.0], dtype=np.float32))
+                else:
+                    normals.append(np.array([0.0, 1.0], dtype=np.float32))
+
+        if not normals:
+            return None
+        normal = np.sum(normals, axis=0)
+        norm = float(np.linalg.norm(normal))
+        if norm <= 1e-8:
+            return np.array([0.0, -1.0], dtype=np.float32)
+        return (normal / norm).astype(np.float32)
+
+    def _resolve_collision_state(self, agent: AgentState, proposed: AgentState) -> AgentState:
+        """Apply a normal impulse and separation step after collision."""
+        normal = self._collision_normal(proposed)
+        if normal is None:
+            normal = np.array([-math.cos(proposed.theta), -math.sin(proposed.theta)], dtype=np.float32)
+
+        forward = np.array([math.cos(proposed.theta), math.sin(proposed.theta)], dtype=np.float32)
+        right = np.array([math.cos(proposed.theta + math.pi / 2.0), math.sin(proposed.theta + math.pi / 2.0)], dtype=np.float32)
+
+        vel_world = forward * float(proposed.v) + right * float(proposed.v_lat)
+        vn = float(np.dot(vel_world, normal))
+        restitution = 0.2
+        if vn < 0.0:
+            vel_world = vel_world - (1.0 + restitution) * vn * normal
+        vel_world = vel_world + normal * (0.05 * float(self.cfg.max_speed))
+
+        next_v = float(np.clip(np.dot(vel_world, forward), -self.cfg.max_speed, self.cfg.max_speed))
+        next_v_lat = float(np.clip(np.dot(vel_world, right), -self.cfg.max_speed, self.cfg.max_speed))
+
+        for step_scale in (0.6, 1.0, 1.4):
+            sep = max(1.0, float(self.cfg.agent_radius) * step_scale)
+            cand = AgentState(
+                x=float(np.clip(agent.x + normal[0] * sep, self.cfg.agent_radius + 1.0, self.width - self.cfg.agent_radius - 1.0)),
+                y=float(np.clip(agent.y + normal[1] * sep, self.cfg.agent_radius + 1.0, self.height - self.cfg.agent_radius - 1.0)),
+                theta=proposed.theta,
+                v=next_v * 0.35,
+                omega=proposed.omega,
+                v_lat=next_v_lat * 0.35,
+                carrying_food=agent.carrying_food,
+            )
+            if not self._handle_collisions(cand):
+                return cand
+
+        return AgentState(
+            x=float(np.clip(agent.x, self.cfg.agent_radius + 1.0, self.width - self.cfg.agent_radius - 1.0)),
+            y=float(np.clip(agent.y, self.cfg.agent_radius + 1.0, self.height - self.cfg.agent_radius - 1.0)),
+            theta=proposed.theta,
+            v=0.0,
+            omega=proposed.omega,
+            v_lat=0.0,
+            carrying_food=agent.carrying_food,
+        )
 
     def _handle_targets(self, rewards: np.ndarray) -> tuple[int, int, float, float]:
         """Handle food pickup and optional nest delivery."""
