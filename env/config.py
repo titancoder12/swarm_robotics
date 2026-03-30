@@ -57,8 +57,8 @@ class SwarmConfig:
     pheromone_diffuse_rate: float = 0.25
     pheromone_min_value: float = 1e-3
     pheromone_deposit_carrying_scale: float = 1.5
-    pheromone_requires_food: bool = False
-    pheromone_deposit_requires_nest_progress: bool = False
+    pheromone_requires_food: bool = True
+    pheromone_deposit_requires_nest_progress: bool = True
 
     # Rewards
     #reward_target: float = 30.0
@@ -76,7 +76,7 @@ class SwarmConfig:
     #pheromone_follow_min_gradient: float = 0.05
 
     reward_target: float = 2.0               # fallback only when pickup/delivery is disabled
-    reward_pickup: float = 8.0               # meaningful event, but smaller than final completion
+    reward_pickup: float = 15.0               # meaningful event, but smaller than final completion
     reward_nest_delivery: float = 30.0       # main task completion reward
     reward_nest_approach: float = 0.08       # carrying-food progress toward nest
 
