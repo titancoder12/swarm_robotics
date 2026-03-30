@@ -168,6 +168,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--n-obstacles", type=int, default=6)
     parser.add_argument("--max-steps-per-episode", type=int, default=600)
     parser.add_argument("--dynamics-mode", choices=["tank", "hover", "mixed"], default="tank")
+    parser.add_argument("--action-repeat-steps", type=int, default=2)
     parser.add_argument("--use-pheromone", dest="use_pheromone", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-disabled", action="store_true")
     parser.add_argument("--failed-agent-count", type=int, default=0)
@@ -177,6 +178,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-food-approach", type=float, default=0.2)
     parser.add_argument("--reward-food-detected", type=float, default=0.05)
     parser.add_argument("--reward-pheromone-follow", type=float, default=0.03)
+    parser.add_argument("--reward-action-switch", type=float, default=-0.01)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.02)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=False)
@@ -196,6 +198,7 @@ def make_swarm_config(args) -> SwarmConfig:
         n_obstacles=getattr(args, "n_obstacles", 6),
         max_steps=getattr(args, "max_steps_per_episode", 600),
         dynamics_mode=getattr(args, "dynamics_mode", "tank"),
+        action_repeat_steps=max(1, int(getattr(args, "action_repeat_steps", 2))),
         pheromone_enabled=pheromone_enabled,
         render_pheromone=pheromone_enabled,
         obs_include_pheromone=True,
@@ -208,6 +211,7 @@ def make_swarm_config(args) -> SwarmConfig:
         reward_food_approach=getattr(args, "reward_food_approach", 0.2),
         reward_food_detected=getattr(args, "reward_food_detected", 0.05),
         reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.03),
+        reward_action_switch=getattr(args, "reward_action_switch", -0.01),
         pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
         active_targets=active_targets,
         target_respawn=target_respawn,

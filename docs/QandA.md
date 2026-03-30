@@ -560,3 +560,9 @@ A: `food_presence` is a 1-value binary observation feature in [env/swarm_env.py]
 
 ## Q: Can target distance/angle and `food_presence` be limited to the front-facing 180 degrees?
 A: Yes. [env/swarm_env.py](../env/swarm_env.py) now enforces that in `_target_visible()`. A target only counts as detectable if it is within `cfg.lidar_max_range`, within the agent’s front half-plane (relative bearing between `-pi/2` and `+pi/2`), and not blocked by obstacles. That same gate is shared by the target distance/angle observation, the `food_presence` bit, and the detectable-food shaping path.
+
+## Q: What is the current action space?
+A: The current per-agent action space is `gymnasium.spaces.Discrete(18)` in [env/swarm_env.py](../env/swarm_env.py), defined by `action_space()` and the lookup table from `_build_action_table()`. Each discrete action is one combination of `throttle in {-1.0, 0.0, 1.0}`, `turn in {-1.0, 0.0, 1.0}`, and `deposit in {0, 1}`. So each action simultaneously chooses backward/stop/forward motion, left/straight/right turning, and whether to request pheromone deposit, for `3 * 3 * 2 = 18` total actions.
+
+## Q: What anti-jitter controls are now built into the environment?
+A: [env/swarm_env.py](../env/swarm_env.py) now includes two default anti-jitter controls. First, action hold: `cfg.action_repeat_steps` defaults to `2`, so a newly chosen action is executed for two environment ticks before the next requested action can take effect. Second, action-switch penalty: `cfg.reward_action_switch` defaults to `-0.01`, so an agent pays a small cost when its executed discrete action changes from the previous executed action. Both settings are exposed through the shared CLI config in [train/experiment_utils.py](../train/experiment_utils.py) as `--action-repeat-steps` and `--reward-action-switch`.

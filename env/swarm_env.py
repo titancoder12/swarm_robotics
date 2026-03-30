@@ -110,6 +110,9 @@ class SwarmEnv(ParallelEnv):
         self.failed_agent_indices: set[int] = set()
         self._prev_detectable_food_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         self._prev_food_detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
+        self._held_actions = np.zeros((self.cfg.n_agents,), dtype=np.int64)
+        self._hold_remaining = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        self._prev_executed_actions = np.full((self.cfg.n_agents,), -1, dtype=np.int64)
 
         self.step_count = 0
         self.terminated = False
@@ -171,6 +174,9 @@ class SwarmEnv(ParallelEnv):
         self.terminated = False
         self.truncated = False
         self.agents = self.possible_agents[:]
+        self._held_actions.fill(0)
+        self._hold_remaining.fill(0)
+        self._prev_executed_actions.fill(-1)
 
         # Randomize dynamics driver if mixed mode is enabled.
         if self.cfg.dynamics_mode == "mixed":
@@ -218,7 +224,16 @@ class SwarmEnv(ParallelEnv):
                 raise ValueError(f"Missing action for agent {agent}.")
 
         # One environment tick: apply actions, move agents, compute rewards/obs.
-        actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        requested_actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        actions = np.empty_like(requested_actions)
+        for i in range(self.cfg.n_agents):
+            if self._hold_remaining[i] > 0:
+                actions[i] = self._held_actions[i]
+                self._hold_remaining[i] -= 1
+            else:
+                actions[i] = requested_actions[i]
+                self._held_actions[i] = actions[i]
+                self._hold_remaining[i] = max(int(self.cfg.action_repeat_steps) - 1, 0)
 
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
@@ -231,10 +246,20 @@ class SwarmEnv(ParallelEnv):
             "new_cell": 0.0,
             "food_approach": 0.0,
             "food_detected": 0.0,
+            "action_switch": 0.0,
             "pheromone_follow": 0.0,
             "pheromone_usage": 0.0,
             "pheromone_deposit": 0.0,
         }
+
+        for i, action_id in enumerate(actions):
+            if i in self.failed_agent_indices:
+                continue
+            prev_action = int(self._prev_executed_actions[i])
+            if prev_action >= 0 and int(action_id) != prev_action:
+                rewards[i] += float(self.cfg.reward_action_switch)
+                reward_breakdown["action_switch"] += float(self.cfg.reward_action_switch)
+            self._prev_executed_actions[i] = int(action_id)
 
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices:

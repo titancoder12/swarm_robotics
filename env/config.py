@@ -27,6 +27,7 @@ class SwarmConfig:
     accel: float = 300.0
     ang_accel: float = 8.0
     dynamics_mode: str = "tank"  # "tank", "hover", or "mixed"
+    action_repeat_steps: int = 2
 
     # Hovercraft dynamics
     hover_lat_damping: float = 0.85
@@ -89,6 +90,7 @@ class SwarmConfig:
     reward_pheromone_following: float = 0.0 # keep global usage reward off by default
     reward_pheromone_follow: float = 0.01   # light local gradient preference
     reward_pheromone_deposit_cost: float = -0.002  # discourage spam without suppressing use
+    reward_action_switch: float = -0.01
     pheromone_follow_min_gradient: float = 0.05
 
     # Task
