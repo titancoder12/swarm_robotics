@@ -23,7 +23,6 @@ from train.experiment_utils import add_env_config_args, make_swarm_config
 
 
 def parse_args(argv=None):
-    argv = sys.argv[1:] if argv is None else list(argv)
     # 1) Parse CLI args (checkpoint location, backend, shared policy flag, agent count, seed).
     parser = argparse.ArgumentParser()
     parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "mappo", "random"], default="custom")
@@ -50,13 +49,9 @@ def parse_args(argv=None):
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
     parser.add_argument("--debug-policy-max-steps", type=int, default=0)
-    parser.add_argument("--width", type=int, default=0, help="Override environment width for demo.")
-    parser.add_argument("--height", type=int, default=0, help="Override environment height for demo.")
     add_env_config_args(parser)
     parser.set_defaults(n_obstacles=18)
-    args = parser.parse_args(argv)
-    args._explicit_cli_flags = {token.split("=", 1)[0] for token in argv if token.startswith("--")}
-    return args
+    return parser.parse_args(argv)
 
 
 def load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: int, shared: bool, device):
@@ -91,33 +86,17 @@ def _build_demo_env(args):
     if args.backend == "mappo":
         metadata = _load_checkpoint_metadata(args.checkpoint_dir)
         if metadata:
-            explicit = getattr(args, "_explicit_cli_flags", set())
-            if "--n-agents" not in explicit:
-                args_copy.n_agents = int(metadata.get("n_agents", args_copy.n_agents))
-            if "--n-targets" not in explicit:
-                args_copy.n_targets = int(metadata.get("n_targets", getattr(args_copy, "n_targets", 4)))
-            if "--n-obstacles" not in explicit:
-                args_copy.n_obstacles = int(metadata.get("n_obstacles", getattr(args_copy, "n_obstacles", 6)))
-            if "--max-steps-per-episode" not in explicit and "--max-steps" not in explicit:
-                args_copy.max_steps_per_episode = int(metadata.get("max_steps", getattr(args_copy, "max_steps_per_episode", 600)))
-            if "--active-targets" not in explicit:
-                args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 4)))
-            if "--target-respawn" not in explicit and "--no-target-respawn" not in explicit:
-                args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", False)))
-
-    explicit = getattr(args, "_explicit_cli_flags", set())
-    if "--max-steps" in explicit and "--max-steps-per-episode" not in explicit and int(args.max_steps) > 0:
-        args_copy.max_steps_per_episode = int(args.max_steps)
+            args_copy.n_agents = int(metadata.get("n_agents", args_copy.n_agents))
+            args_copy.n_targets = int(metadata.get("n_targets", getattr(args_copy, "n_targets", 4)))
+            args_copy.n_obstacles = int(metadata.get("n_obstacles", getattr(args_copy, "n_obstacles", 6)))
+            args_copy.max_steps_per_episode = int(metadata.get("max_steps", getattr(args_copy, "max_steps_per_episode", 600)))
+            args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 4)))
+            args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", False)))
 
     cfg = make_swarm_config(args_copy)
-    if metadata and "--width" not in getattr(args, "_explicit_cli_flags", set()):
+    if metadata:
         cfg.width = int(metadata.get("width", cfg.width))
-    elif getattr(args_copy, "width", 0) > 0:
-        cfg.width = int(args_copy.width)
-    if metadata and "--height" not in getattr(args, "_explicit_cli_flags", set()):
         cfg.height = int(metadata.get("height", cfg.height))
-    elif getattr(args_copy, "height", 0) > 0:
-        cfg.height = int(args_copy.height)
     env = SwarmEnv(cfg, headless=args.headless)
     return args_copy, cfg, env, metadata
 
