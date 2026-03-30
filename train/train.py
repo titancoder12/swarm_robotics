@@ -17,7 +17,19 @@ def main():
         default="custom",
         help="Training backend (default: custom)",
     )
+    parser.add_argument(
+        "--use-pheromone",
+        dest="use_pheromone",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override pheromone usage at the top-level dispatcher.",
+    )
     args, remaining = parser.parse_known_args()
+
+    if args.use_pheromone is True:
+        remaining.append("--use-pheromone")
+    elif args.use_pheromone is False:
+        remaining.append("--no-use-pheromone")
 
     if args.backend == "custom":
         from train.independent_dqn_pytorch import parse_args, train
