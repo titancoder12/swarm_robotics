@@ -24,7 +24,7 @@ from train.experiment_utils import add_env_config_args, make_swarm_config
 def parse_args(argv=None):
     # 1) Parse CLI args (checkpoint location, backend, shared policy flag, agent count, seed).
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "mappo"], default="custom")
+    parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "mappo", "random"], default="custom")
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--sb3-model", type=str, default="checkpoints/sb3_dqn.zip")
     parser.add_argument("--rllib-checkpoint", type=str, default="checkpoints/rllib_dqn")
@@ -396,6 +396,36 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
+def _random_demo(env, obs_dict, agent_ids, args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    next_reset_seed = args.seed + 1
+
+    running = True
+    steps = 0
+    while running:
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        action_dict = {agent: int(np.random.randint(0, env.cfg.num_actions)) for agent in agent_ids}
+        obs_dict, _, terminations, truncations, _ = env.step(action_dict)
+        terminated = any(terminations.values())
+        truncated = any(truncations.values())
+
+        if not args.headless:
+            env.render(fps=60)
+        steps += 1
+        if args.max_steps and steps >= args.max_steps:
+            running = False
+        if terminated or truncated:
+            obs_dict, _ = env.reset(seed=next_reset_seed)
+            next_reset_seed += 1
+
+    return obs_dict
+
+
 def main():
     args = parse_args()
 
@@ -418,6 +448,8 @@ def main():
         _rllib_demo(env, obs_dict, agent_ids, args)
     elif args.backend == "mappo":
         _mappo_demo(env, obs_dict, agent_ids, args)
+    elif args.backend == "random":
+        _random_demo(env, obs_dict, agent_ids, args)
     else:
         raise ValueError(f"Unsupported backend: {args.backend}")
 
