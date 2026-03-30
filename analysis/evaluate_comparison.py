@@ -13,6 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+from algorithms.mappo.inference import load_actor
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
 from train.experiment_utils import add_env_config_args, make_swarm_config, resolve_filename, resolve_repo_path, sanitize_filename, write_json
@@ -51,6 +52,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-with-pheromone", type=str, required=True)
     parser.add_argument("--checkpoint-without-pheromone", type=str, required=True)
+    parser.add_argument("--policy-kind", choices=["dqn", "mappo_gru"], default="dqn")
     parser.add_argument("--shared-policy", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--agent-min", type=int, default=1)
     parser.add_argument("--agent-max", type=int, default=30)
@@ -163,6 +165,8 @@ def _run_episode(
     seed: int,
     random_policy: RandomPolicy | None = None,
     progress_label: str = "",
+    policy_kind: str = "dqn",
+    mappo_actor=None,
 ):
     obs_dict, _ = env.reset(seed=seed)
     agent_ids = env.possible_agents
@@ -179,13 +183,24 @@ def _run_episode(
     time_to_first_discovery = -1
     done_reason = ""
     progress_interval = _progress_interval(int(env.cfg.max_steps))
+    mappo_hidden = None
+    mappo_prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
+    if policy_kind == "mappo_gru" and mappo_actor is not None:
+        mappo_hidden = mappo_actor.initial_hidden(env.cfg.n_agents, device)
 
     while True:
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
-        for index in range(env.cfg.n_agents):
-            if random_policy is not None:
+        if random_policy is not None:
+            for index in range(env.cfg.n_agents):
                 actions[index] = random_policy.act(obs[index])
-            else:
+        elif policy_kind == "mappo_gru" and mappo_actor is not None:
+            obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
+            done_mask = torch.as_tensor(1.0 - mappo_prev_done, dtype=torch.float32, device=device)
+            with torch.no_grad():
+                logits, mappo_hidden = mappo_actor(obs_tensor, mappo_hidden, done_mask)
+                actions = torch.argmax(logits, dim=-1).detach().cpu().numpy().astype(np.int64, copy=False)
+        else:
+            for index in range(env.cfg.n_agents):
                 with torch.no_grad():
                     obs_tensor = torch.tensor(obs[index], dtype=torch.float32, device=device).unsqueeze(0)
                     q_vals = nets[index](obs_tensor)
@@ -195,6 +210,8 @@ def _run_episode(
         next_obs_dict, rewards_dict, terminations, truncations, info_dict = env.step(action_dict)
         obs = np.stack([next_obs_dict[agent] for agent in agent_ids], axis=0)
         rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
+        if policy_kind == "mappo_gru":
+            mappo_prev_done = np.array([float(terminations[a] or truncations[a]) for a in agent_ids], dtype=np.float32)
         info = info_dict[agent_ids[0]]
 
         episode_rewards += rewards
@@ -380,10 +397,13 @@ def run(args):
                 obs_dict, _ = env.reset(seed=args.seed + condition_index * 100_000 + n_agents * 1_000)
                 obs_dim = np.stack([obs_dict[agent] for agent in env.possible_agents], axis=0).shape[1]
                 nets = []
+                mappo_actor = None
                 device = torch.device("cpu")
                 random_policy = None
                 if condition.get("is_random_policy", False):
                     random_policy = RandomPolicy(cfg.num_actions, seed=args.seed + condition_index * 100_000 + n_agents)
+                elif args.policy_kind == "mappo_gru":
+                    mappo_actor, device = load_actor(checkpoint_path, obs_dim, cfg.num_actions, device="cpu")
                 else:
                     nets, device = _load_models(checkpoint_path, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
                 for episode_index in range(args.episodes_per_agent):
@@ -402,10 +422,13 @@ def run(args):
                             f"label={condition['comparison_label']} "
                             f"agents={n_agents} episode={episode_index + 1}/{args.episodes_per_agent}"
                         ),
+                        policy_kind=args.policy_kind,
+                        mappo_actor=mappo_actor,
                     )
                     row = {
                         "filename": filename,
                         "comparison_label": condition["comparison_label"],
+                        "policy_kind": args.policy_kind,
                         "checkpoint_path": checkpoint_path,
                         "trained_with_pheromone": bool(condition["trained_with_pheromone"]),
                         "eval_with_pheromone": bool(condition["eval_with_pheromone"]),
@@ -458,6 +481,7 @@ def run(args):
     fieldnames = [
         "filename",
         "comparison_label",
+        "policy_kind",
         "checkpoint_path",
         "trained_with_pheromone",
         "eval_with_pheromone",
@@ -510,6 +534,7 @@ def run(args):
         os.path.join(args.output_dir, f"{filename}_metadata.json"),
         {
             "filename": filename,
+            "policy_kind": args.policy_kind,
             "checkpoints": {
                 "checkpoint_with_pheromone": args.checkpoint_with_pheromone,
                 "checkpoint_without_pheromone": args.checkpoint_without_pheromone,

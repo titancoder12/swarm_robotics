@@ -11,6 +11,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
+from algorithms.mappo.inference import load_actor
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from models.q_network import QNetwork
@@ -29,7 +30,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--shared-policy", action="store_true")
-    parser.add_argument("--policy-kind", choices=["dqn", "rule_based"], default="dqn")
+    parser.add_argument("--policy-kind", choices=["dqn", "mappo_gru", "rule_based"], default="dqn")
     parser.add_argument("--episodes", type=int, default=10)
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
@@ -79,9 +80,12 @@ def run(args):
     filename = resolve_filename(args, fallback="eval")
     nets = []
     policies = []
+    mappo_actor = None
     device = torch.device("cpu")
     if args.policy_kind == "dqn":
         nets, device = _load_models(args.checkpoint_dir, obs_dim, cfg.num_actions, cfg.n_agents, args.shared_policy)
+    elif args.policy_kind == "mappo_gru":
+        mappo_actor, device = load_actor(args.checkpoint_dir, obs_dim, cfg.num_actions, device="cpu")
     else:
         policies = _build_rule_based_policies(cfg, args.seed)
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
@@ -142,12 +146,16 @@ def run(args):
             time_to_first_discovery = -1
             done_reason = ""
             prev_rewards = None
-            prev_done = None
+            prev_done_debug = None
+            mappo_prev_done = np.zeros((cfg.n_agents,), dtype=np.float32)
+            mappo_hidden = None
+            if args.policy_kind == "mappo_gru":
+                mappo_hidden = mappo_actor.initial_hidden(cfg.n_agents, device)
 
             while True:
                 actions = np.zeros(cfg.n_agents, dtype=np.int64)
-                for i in range(cfg.n_agents):
-                    if args.policy_kind == "dqn":
+                if args.policy_kind == "dqn":
+                    for i in range(cfg.n_agents):
                         with torch.no_grad():
                             obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
                             q_vals = nets[i](obs_tensor)
@@ -164,9 +172,32 @@ def run(args):
                                 action=int(actions[i]),
                                 num_actions=cfg.num_actions,
                                 prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
-                                prev_done=None if prev_done is None else bool(prev_done[i]),
+                                prev_done=None if prev_done_debug is None else bool(prev_done_debug[i]),
                             )
-                    else:
+                elif args.policy_kind == "mappo_gru":
+                    obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
+                    done_mask = torch.as_tensor(1.0 - mappo_prev_done, dtype=torch.float32, device=device)
+                    with torch.no_grad():
+                        logits, mappo_hidden = mappo_actor(obs_tensor, mappo_hidden, done_mask)
+                        greedy_actions = torch.argmax(logits, dim=-1).detach().cpu().numpy().astype(np.int64, copy=False)
+                    actions[:] = greedy_actions
+                    for i in range(cfg.n_agents):
+                        if should_debug_policy(debug_cfg, episode_length, i, agent_ids[i]):
+                            print_policy_debug(
+                                step=episode_length,
+                                agent_index=i,
+                                agent_id=agent_ids[i],
+                                policy_label="mappo_gru",
+                                mode="greedy",
+                                output_name="policy_logits",
+                                output_values=logits[i].detach().cpu().numpy(),
+                                action=int(actions[i]),
+                                num_actions=cfg.num_actions,
+                                prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                                prev_done=bool(mappo_prev_done[i]),
+                            )
+                else:
+                    for i in range(cfg.n_agents):
                         actions[i] = int(policies[i].act(obs[i]))
                         if should_debug_policy(debug_cfg, episode_length, i, agent_ids[i]):
                             print_policy_debug(
@@ -180,7 +211,7 @@ def run(args):
                                 action=int(actions[i]),
                                 num_actions=cfg.num_actions,
                                 prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
-                                prev_done=None if prev_done is None else bool(prev_done[i]),
+                                prev_done=None if prev_done_debug is None else bool(prev_done_debug[i]),
                             )
 
                 action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
@@ -188,10 +219,12 @@ def run(args):
                 obs = np.stack([next_obs_dict[agent] for agent in agent_ids], axis=0)
                 rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
                 prev_rewards = rewards
-                prev_done = np.array(
+                prev_done_debug = np.array(
                     [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
                     dtype=np.bool_,
                 )
+                if args.policy_kind == "mappo_gru":
+                    mappo_prev_done = prev_done_debug.astype(np.float32)
                 info = info_dict[agent_ids[0]]
 
                 episode_rewards += rewards
