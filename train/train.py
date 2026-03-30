@@ -13,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--backend",
-        choices=["custom", "sb3", "rllib"],
+        choices=["custom", "sb3", "rllib", "mappo"],
         default="custom",
         help="Training backend (default: custom)",
     )
@@ -35,6 +35,12 @@ def main():
         from train.rllib_dqn import parse_args, run
 
         run(parse_args(remaining))
+        return
+
+    if args.backend == "mappo":
+        from train.mappo_gru import parse_args, train
+
+        train(parse_args(remaining))
         return
 
     raise ValueError(f"Unsupported backend: {args.backend}")

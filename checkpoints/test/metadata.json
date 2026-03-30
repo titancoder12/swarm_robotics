@@ -1,0 +1,8 @@
+{
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/test",
+  "experiment_name": "test",
+  "filename": "test",
+  "folder_name": "test",
+  "shared_policy": true,
+  "use_pheromone": true
+}

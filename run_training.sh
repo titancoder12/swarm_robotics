@@ -1,3 +1,5 @@
+# RUN TRAINING FOR EXPERIMENTS
+# With pheromone
 ./.venv/bin/python train/independent_dqn_pytorch.py \
   --use-pheromone \
   --shared-policy \
@@ -12,6 +14,7 @@
   --warmup-steps 20000 \
   --seed 42
 
+# Without pheromone
 ./.venv/bin/python train/independent_dqn_pytorch.py \
   --no-use-pheromone \
   --shared-policy \

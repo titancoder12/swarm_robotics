@@ -15,6 +15,7 @@ if ROOT not in sys.path:
 
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
+from algorithms.mappo.inference import load_actor
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 from train.experiment_utils import add_env_config_args, make_swarm_config
@@ -23,7 +24,7 @@ from train.experiment_utils import add_env_config_args, make_swarm_config
 def parse_args(argv=None):
     # 1) Parse CLI args (checkpoint location, backend, shared policy flag, agent count, seed).
     parser = argparse.ArgumentParser()
-    parser.add_argument("--backend", choices=["custom", "sb3", "rllib"], default="custom")
+    parser.add_argument("--backend", choices=["custom", "sb3", "rllib", "mappo"], default="custom")
     parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
     parser.add_argument("--sb3-model", type=str, default="checkpoints/sb3_dqn.zip")
     parser.add_argument("--rllib-checkpoint", type=str, default="checkpoints/rllib_dqn")
@@ -36,6 +37,7 @@ def parse_args(argv=None):
     parser.add_argument("--shared-policy", action="store_true")
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--headless", action="store_true")
     parser.add_argument("--max-steps", type=int, default=0, help="Exit after N steps (0 = run until window closed)")
     parser.add_argument(
         "--demo-epsilon",
@@ -85,9 +87,10 @@ def _custom_demo(env, obs, agent_ids, args):
     running = True
     steps = 0
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
         for i in range(env.cfg.n_agents):
@@ -128,7 +131,8 @@ def _custom_demo(env, obs, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -154,9 +158,10 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     running = True
     steps = 0
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         action_dict = {}
         for i, agent in enumerate(agent_ids):
@@ -198,7 +203,8 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -245,7 +251,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
 
     def env_creator(_):
         cfg = make_swarm_config(args)
-        return ParallelPettingZooEnv(SwarmEnv(cfg, headless=False))
+        return ParallelPettingZooEnv(SwarmEnv(cfg, headless=args.headless))
 
     register_env("swarm_pz", env_creator)
     checkpoint_path = args.rllib_checkpoint
@@ -263,9 +269,10 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     prev_rewards = None
     prev_done = None
     while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
 
         action_dict = {}
         for i, agent in enumerate(agent_ids):
@@ -301,7 +308,8 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
-        env.render(fps=60)
+        if not args.headless:
+            env.render(fps=60)
         steps += 1
         if args.max_steps and steps >= args.max_steps:
             running = False
@@ -314,16 +322,93 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
+def _mappo_demo(env, obs_dict, agent_ids, args):
+    obs_dim = env.observation_space(agent_ids[0]).shape[0]
+    action_dim = env.cfg.num_actions
+    actor, device = load_actor(args.checkpoint_dir, obs_dim, action_dim, device="cpu")
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    next_reset_seed = args.seed + 1
+    debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
+    prev_rewards = None
+    prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
+    hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
+
+    running = True
+    steps = 0
+    while running:
+        if not args.headless:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+
+        obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
+        obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
+        done_mask = torch.as_tensor(1.0 - prev_done, dtype=torch.float32, device=device)
+        with torch.no_grad():
+            logits, hidden_state = actor(obs_tensor, hidden_state, done_mask)
+            greedy_actions = torch.argmax(logits, dim=-1).detach().cpu().numpy().astype(np.int64, copy=False)
+
+        action_dict = {}
+        for i, agent in enumerate(agent_ids):
+            if random.random() < args.demo_epsilon:
+                action_dict[agent] = int(np.random.randint(0, env.cfg.num_actions))
+                mode = "explore"
+            else:
+                action_dict[agent] = int(greedy_actions[i])
+                mode = "greedy"
+            if should_debug_policy(debug_cfg, steps, i, agent):
+                print_policy_debug(
+                    step=steps,
+                    agent_index=i,
+                    agent_id=agent,
+                    policy_label="mappo_gru",
+                    epsilon=args.demo_epsilon,
+                    mode=mode,
+                    output_name="policy_logits",
+                    output_values=logits[i].detach().cpu().numpy(),
+                    action=int(action_dict[agent]),
+                    num_actions=env.cfg.num_actions,
+                    prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
+                    prev_done=bool(prev_done[i]),
+                )
+
+        obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
+        prev_done = np.array(
+            [float(terminations[agent] or truncations[agent]) for agent in agent_ids],
+            dtype=np.float32,
+        )
+        terminated = any(terminations.values())
+        truncated = any(truncations.values())
+
+        if not args.headless:
+            env.render(fps=60)
+        steps += 1
+        if args.max_steps and steps >= args.max_steps:
+            running = False
+        if terminated or truncated:
+            obs_dict, _ = env.reset(seed=next_reset_seed)
+            next_reset_seed += 1
+            hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
+            prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
+
+    return obs_dict
+
+
 def main():
     args = parse_args()
 
     # 2) Build config + environment, then reset to get initial observations.
     cfg = make_swarm_config(args)
-    env = SwarmEnv(cfg, headless=False)
+    env = SwarmEnv(cfg, headless=args.headless)
     obs_dict, _ = env.reset(seed=args.seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
-    env.render(fps=60) # render first frame
+    if args.headless and args.max_steps <= 0:
+        args.max_steps = int(cfg.max_steps)
+    if not args.headless:
+        env.render(fps=60) # render first frame
 
     if args.backend == "custom":
         _custom_demo(env, obs, agent_ids, args)
@@ -331,6 +416,8 @@ def main():
         _sb3_demo(env, obs_dict, agent_ids, args)
     elif args.backend == "rllib":
         _rllib_demo(env, obs_dict, agent_ids, args)
+    elif args.backend == "mappo":
+        _mappo_demo(env, obs_dict, agent_ids, args)
     else:
         raise ValueError(f"Unsupported backend: {args.backend}")
 

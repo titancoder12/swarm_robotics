@@ -110,6 +110,9 @@ class SwarmEnv(ParallelEnv):
         self.failed_agent_indices: set[int] = set()
         self._prev_detectable_food_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         self._prev_food_detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
+        self._held_actions = np.zeros((self.cfg.n_agents,), dtype=np.int64)
+        self._hold_remaining = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        self._prev_executed_actions = np.full((self.cfg.n_agents,), -1, dtype=np.int64)
 
         self.step_count = 0
         self.terminated = False
@@ -135,6 +138,8 @@ class SwarmEnv(ParallelEnv):
             agent: spaces.Discrete(self.cfg.num_actions)
             for agent in self.possible_agents
         }
+        self._state_dim = self._compute_state_dim()
+        self._state_space = spaces.Box(low=-1.0, high=1.0, shape=(self._state_dim,), dtype=np.float32)
 
     def observation_space(self, agent: str):
         """Return the observation space for a given agent."""
@@ -144,11 +149,19 @@ class SwarmEnv(ParallelEnv):
         """Return the action space for a given agent."""
         return self._action_spaces[agent]
 
+    def state_space(self):
+        """Return the centralized training-time state space for CTDE algorithms."""
+        return self._state_space
+
+    def state(self) -> np.ndarray:
+        """Return a fixed-layout centralized training-time state vector."""
+        return self._get_global_state()
+
     def _compute_single_obs_dim(self) -> int:
         """Return the length of one per-agent observation frame."""
         return (
             self.cfg.lidar_rays
-            + 2  # target vector
+            + 2  # detectable target distance/angle
             + (2 if self.cfg.obs_include_nest_direction else 0)
             + 2  # neighbor vector
             + 2  # heading (sin, cos)
@@ -162,6 +175,106 @@ class SwarmEnv(ParallelEnv):
         """Return the flattened length of the per-agent observation history."""
         return self._single_obs_dim * self.cfg.observation_history_steps
 
+    def _compute_state_dim(self) -> int:
+        """Return the centralized training-state dimension for CTDE algorithms."""
+        target_slots = max(int(self.cfg.n_targets), int(self.cfg.active_targets))
+        return (
+            self.cfg.n_agents * 7
+            + target_slots * 3
+            + self.cfg.n_obstacles * 4
+            + 2
+            + 5
+        )
+
+    def _get_global_state(self) -> np.ndarray:
+        """Encode the centralized training-time state."""
+        parts: list[np.ndarray] = []
+        width = max(float(self.width), 1.0)
+        height = max(float(self.height), 1.0)
+        max_speed = max(float(self.cfg.max_speed), 1e-6)
+        target_slots = max(int(self.cfg.n_targets), int(self.cfg.active_targets))
+        max_targets = max(float(target_slots), 1.0)
+
+        for i in range(self.cfg.n_agents):
+            if i < len(self.agent_states):
+                agent = self.agent_states[i]
+                parts.append(
+                    np.array(
+                        [
+                            np.clip((float(agent.x) / width) * 2.0 - 1.0, -1.0, 1.0),
+                            np.clip((float(agent.y) / height) * 2.0 - 1.0, -1.0, 1.0),
+                            math.sin(float(agent.theta)),
+                            math.cos(float(agent.theta)),
+                            np.clip(float(agent.v) / max_speed, -1.0, 1.0),
+                            1.0 if agent.carrying_food else -1.0,
+                            1.0 if i in self.failed_agent_indices else -1.0,
+                        ],
+                        dtype=np.float32,
+                    )
+                )
+            else:
+                parts.append(np.full((7,), -1.0, dtype=np.float32))
+
+        for idx in range(target_slots):
+            if idx < len(self.targets):
+                tx, ty = self.targets[idx]
+                parts.append(
+                    np.array(
+                        [
+                            np.clip((float(tx) / width) * 2.0 - 1.0, -1.0, 1.0),
+                            np.clip((float(ty) / height) * 2.0 - 1.0, -1.0, 1.0),
+                            1.0,
+                        ],
+                        dtype=np.float32,
+                    )
+                )
+            else:
+                parts.append(np.array([-1.0, -1.0, -1.0], dtype=np.float32))
+
+        for idx in range(self.cfg.n_obstacles):
+            if idx < len(self.obstacles):
+                obstacle = self.obstacles[idx]
+                parts.append(
+                    np.array(
+                        [
+                            np.clip((float(obstacle.x) / width) * 2.0 - 1.0, -1.0, 1.0),
+                            np.clip((float(obstacle.y) / height) * 2.0 - 1.0, -1.0, 1.0),
+                            np.clip(float(obstacle.width) / width, 0.0, 1.0),
+                            np.clip(float(obstacle.height) / height, 0.0, 1.0),
+                        ],
+                        dtype=np.float32,
+                    )
+                )
+            else:
+                parts.append(np.array([-1.0, -1.0, 0.0, 0.0], dtype=np.float32))
+
+        parts.append(
+            np.array(
+                [
+                    np.clip((float(self.nest_position[0]) / width) * 2.0 - 1.0, -1.0, 1.0),
+                    np.clip((float(self.nest_position[1]) / height) * 2.0 - 1.0, -1.0, 1.0),
+                ],
+                dtype=np.float32,
+            )
+        )
+        parts.append(
+            np.array(
+                [
+                    np.clip(float(self.step_count) / max(float(self.cfg.max_steps), 1.0), 0.0, 1.0),
+                    np.clip(float(self.food_delivered) / max_targets, 0.0, 1.0),
+                    np.clip(float(self._coverage_ratio()), 0.0, 1.0),
+                    np.clip(float(self._mean_pheromone_usage()), 0.0, 1.0),
+                    np.clip(float(len(self.targets)) / max_targets, 0.0, 1.0),
+                ],
+                dtype=np.float32,
+            )
+        )
+
+        state = np.concatenate(parts).astype(np.float32)
+        if state.shape != (self._state_dim,):
+            raise RuntimeError(f"Centralized state shape mismatch: expected {(self._state_dim,)}, got {state.shape}")
+        return state
+
     def reset(self, seed: int | None = None, options: dict | None = None):
         """Reset the environment and return initial observations and info."""
         # (Re)initialize RNG and episode state, then spawn a fresh world.
@@ -171,6 +284,9 @@ class SwarmEnv(ParallelEnv):
         self.terminated = False
         self.truncated = False
         self.agents = self.possible_agents[:]
+        self._held_actions.fill(0)
+        self._hold_remaining.fill(0)
+        self._prev_executed_actions.fill(-1)
 
         # Randomize dynamics driver if mixed mode is enabled.
         if self.cfg.dynamics_mode == "mixed":
@@ -218,7 +334,16 @@ class SwarmEnv(ParallelEnv):
                 raise ValueError(f"Missing action for agent {agent}.")
 
         # One environment tick: apply actions, move agents, compute rewards/obs.
-        actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        requested_actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        actions = np.empty_like(requested_actions)
+        for i in range(self.cfg.n_agents):
+            if self._hold_remaining[i] > 0:
+                actions[i] = self._held_actions[i]
+                self._hold_remaining[i] -= 1
+            else:
+                actions[i] = requested_actions[i]
+                self._held_actions[i] = actions[i]
+                self._hold_remaining[i] = max(int(self.cfg.action_repeat_steps) - 1, 0)
 
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
@@ -231,10 +356,20 @@ class SwarmEnv(ParallelEnv):
             "new_cell": 0.0,
             "food_approach": 0.0,
             "food_detected": 0.0,
+            "action_switch": 0.0,
             "pheromone_follow": 0.0,
             "pheromone_usage": 0.0,
             "pheromone_deposit": 0.0,
         }
+
+        for i, action_id in enumerate(actions):
+            if i in self.failed_agent_indices:
+                continue
+            prev_action = int(self._prev_executed_actions[i])
+            if prev_action >= 0 and int(action_id) != prev_action:
+                rewards[i] += float(self.cfg.reward_action_switch)
+                reward_breakdown["action_switch"] += float(self.cfg.reward_action_switch)
+            self._prev_executed_actions[i] = int(action_id)
 
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices:
@@ -606,7 +741,7 @@ class SwarmEnv(ParallelEnv):
             curr_dist = float(current_distances[i])
             if np.isfinite(prev_dist) and np.isfinite(curr_dist) and curr_dist != prev_dist:
                 progress = np.clip(
-                    (prev_dist - curr_dist) / max(self.cfg.food_detection_radius, 1e-6),
+                    (prev_dist - curr_dist) / max(self.cfg.lidar_max_range, 1e-6),
                     -1.0,
                     1.0,
                 )
@@ -711,7 +846,7 @@ class SwarmEnv(ParallelEnv):
         obs_list = []
         for idx, agent in enumerate(self.agent_states):
             lidar = self._lidar_scan(agent)
-            target_vec = self._nearest_target_vector(agent)
+            target_features = self._nearest_target_features(agent)
             nest_vec = self._nest_direction(agent)
             neighbor_vec = self._nearest_agent_vector(agent, idx)
             heading = np.array([math.sin(agent.theta), math.cos(agent.theta)], dtype=np.float32)
@@ -720,7 +855,7 @@ class SwarmEnv(ParallelEnv):
             carrying = self._carrying_food(agent)
             pheromone = self._pheromone_samples(agent)
 
-            parts = [lidar, target_vec]
+            parts = [lidar, target_features]
             if self.cfg.obs_include_nest_direction:
                 parts.append(nest_vec)
             parts.extend([neighbor_vec, heading, speed])
@@ -769,36 +904,73 @@ class SwarmEnv(ParallelEnv):
         return max_range
 
     def _nearest_target_vector(self, agent: AgentState) -> np.ndarray:
-        """Return nearest target vector in agent-local coordinates."""
-        # Expose target direction only when the nearest target is locally detectable.
+        """Return nearest target vector in agent-local coordinates when detectable."""
+        target_state = self._nearest_detectable_target(agent)
+        if target_state is None:
+            return np.zeros(2, dtype=np.float32)
+        rel_body, _, _ = target_state
+        return np.clip(rel_body / self.cfg.lidar_max_range, -1.0, 1.0)
+
+    def _nearest_target_features(self, agent: AgentState) -> np.ndarray:
+        """Return detectable target distance and relative angle."""
+        target_state = self._nearest_detectable_target(agent)
+        if target_state is None:
+            return np.zeros(2, dtype=np.float32)
+        _, dist, angle = target_state
+        dist_norm = np.array([np.clip(dist / self.cfg.lidar_max_range, 0.0, 1.0)], dtype=np.float32)
+        angle_norm = np.array([np.clip(angle / math.pi, -1.0, 1.0)], dtype=np.float32)
+        return np.concatenate([dist_norm, angle_norm]).astype(np.float32)
+
+    def _nearest_detectable_target(self, agent: AgentState) -> tuple[np.ndarray, float, float] | None:
+        """Return the nearest target body-frame vector, distance, and angle if detectable."""
         if not self.targets:
-            return np.zeros(2, dtype=np.float32)
-        targets = np.array(self.targets)
-        dx = targets[:, 0] - agent.x
-        dy = targets[:, 1] - agent.y
+            return None
+
+        targets = np.array(self.targets, dtype=np.float32)
+        dx = targets[:, 0] - float(agent.x)
+        dy = targets[:, 1] - float(agent.y)
         dists = np.hypot(dx, dy)
-        idx = int(np.argmin(dists))
-        if float(dists[idx]) > float(self.cfg.food_detection_radius):
-            return np.zeros(2, dtype=np.float32)
-        rel = np.array([dx[idx], dy[idx]], dtype=np.float32)
-        rel = self._to_agent_frame(rel, agent.theta)
-        return np.clip(rel / self.cfg.lidar_max_range, -1.0, 1.0)
+        visible: list[tuple[float, np.ndarray, float]] = []
+        max_range = float(self.cfg.lidar_max_range)
+
+        for idx, dist in enumerate(dists):
+            dist = float(dist)
+            if dist > max_range:
+                continue
+            world_angle = math.atan2(float(dy[idx]), float(dx[idx]))
+            if not self._target_visible(agent, dist, world_angle):
+                continue
+            rel_world = np.array([dx[idx], dy[idx]], dtype=np.float32)
+            rel_body = self._to_agent_frame(rel_world, agent.theta)
+            angle = float(math.atan2(float(rel_body[1]), float(rel_body[0])))
+            visible.append((dist, rel_body, angle))
+
+        if not visible:
+            return None
+
+        dist, rel_body, angle = min(visible, key=lambda item: item[0])
+        return rel_body, dist, angle
+
+    def _target_visible(self, agent: AgentState, target_dist: float, world_angle: float) -> bool:
+        """Return whether a target is within the front 180 degrees and unobstructed."""
+        relative_angle = math.atan2(
+            math.sin(world_angle - float(agent.theta)),
+            math.cos(world_angle - float(agent.theta)),
+        )
+        if abs(relative_angle) > (math.pi / 2.0):
+            return False
+        obstacle_dist = self._ray_distance(float(agent.x), float(agent.y), world_angle)
+        return obstacle_dist + float(self.cfg.target_radius) >= target_dist
 
     def _compute_detectable_food_state(self) -> tuple[np.ndarray, np.ndarray]:
         """Return per-agent nearest detectable-food distances and detection flags."""
         distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
-        if not self.targets:
-            return distances, detected
-
-        targets = np.array(self.targets, dtype=np.float32)
-        radius = float(self.cfg.food_detection_radius)
         for i, agent in enumerate(self.agent_states):
-            dx = targets[:, 0] - float(agent.x)
-            dy = targets[:, 1] - float(agent.y)
-            nearest = float(np.min(np.hypot(dx, dy)))
-            if nearest <= radius:
-                distances[i] = nearest
+            target_state = self._nearest_detectable_target(agent)
+            if target_state is not None:
+                _, nearest, _ = target_state
+                distances[i] = float(nearest)
                 detected[i] = True
         return distances, detected
 
@@ -869,10 +1041,9 @@ class SwarmEnv(ParallelEnv):
 
     def _food_presence(self, agent: AgentState) -> np.ndarray:
         """Return a binary local food-presence cue."""
-        if not self.cfg.obs_include_food_presence or not self.targets:
+        if not self.cfg.obs_include_food_presence:
             return np.zeros(1, dtype=np.float32)
-        nearest = min(math.hypot(tx - agent.x, ty - agent.y) for tx, ty in self.targets)
-        value = 1.0 if nearest <= self.cfg.food_detection_radius else 0.0
+        value = 1.0 if self._nearest_detectable_target(agent) is not None else 0.0
         return np.array([value], dtype=np.float32)
 
     def _carrying_food(self, agent: AgentState) -> np.ndarray:
