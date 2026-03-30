@@ -90,6 +90,8 @@ def _build_env(args, stage):
     args_copy.max_steps_per_episode = int(stage.max_steps)
     args_copy.active_targets = int(stage.active_targets)
     args_copy.target_respawn = bool(stage.target_respawn)
+    args_copy.use_pheromone = bool(stage.pheromone_enabled)
+    args_copy.pheromone_disabled = not bool(stage.pheromone_enabled)
     cfg = make_swarm_config(args_copy)
     cfg.width = int(stage.width)
     cfg.height = int(stage.height)
@@ -271,6 +273,7 @@ def train(args):
             "height",
             "n_targets",
             "n_obstacles",
+            "pheromone_enabled",
             "mean_episode_reward",
             "food_discovered",
             "food_picked_up",
@@ -294,6 +297,7 @@ def train(args):
             "height",
             "n_targets",
             "n_obstacles",
+            "pheromone_enabled",
             "mean_episode_reward",
             "food_discovered",
             "food_picked_up",
@@ -369,6 +373,7 @@ def train(args):
             f"[MAPPO] Stage {stage_index}/{len(curriculum)} {stage.name} | "
             f"agents={cfg.n_agents} | target_steps={stage.total_steps} | "
             f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
+            f"pheromone={'on' if cfg.pheromone_enabled else 'off'} | "
             f"obs_dim={spaces.obs_dim} | action_dim={spaces.action_dim} | state_dim={spaces.state_dim}"
         )
 
@@ -457,6 +462,7 @@ def train(args):
                             "height": cfg.height,
                             "n_targets": cfg.n_targets,
                             "n_obstacles": cfg.n_obstacles,
+                            "pheromone_enabled": bool(cfg.pheromone_enabled),
                             "mean_episode_reward": mean_episode_reward,
                             "food_discovered": float(episode_food_picked_up),
                             "food_picked_up": float(episode_food_picked_up),
@@ -594,6 +600,7 @@ def train(args):
                             "height": cfg.height,
                             "n_targets": cfg.n_targets,
                             "n_obstacles": cfg.n_obstacles,
+                            "pheromone_enabled": bool(cfg.pheromone_enabled),
                             "food_discovered": eval_metrics["food_discovered"],
                             **eval_metrics,
                         }
@@ -629,6 +636,7 @@ def train(args):
                 "max_steps": cfg.max_steps,
                 "active_targets": cfg.active_targets,
                 "target_respawn": bool(cfg.target_respawn),
+                "pheromone_enabled": bool(cfg.pheromone_enabled),
                 "obs_dim": spaces.obs_dim,
                 "action_dim": spaces.action_dim,
                 "state_dim": spaces.state_dim,

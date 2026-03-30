@@ -57,8 +57,8 @@ class SwarmConfig:
     pheromone_diffuse_rate: float = 0.25
     pheromone_min_value: float = 1e-3
     pheromone_deposit_carrying_scale: float = 1.5
-    pheromone_requires_food: bool = True
-    pheromone_deposit_requires_nest_progress: bool = True
+    pheromone_requires_food: bool = False
+    pheromone_deposit_requires_nest_progress: bool = False
 
     # Rewards
     #reward_target: float = 30.0
