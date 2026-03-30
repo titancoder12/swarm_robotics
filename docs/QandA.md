@@ -616,3 +616,7 @@ A: In the current environment path in [env/swarm_env.py](../env/swarm_env.py), p
 ## Q: What is the current main evaluation entrypoint?
 
 A: The current main evaluator lives at [analysis/evaluate.py](../analysis/evaluate.py). A compatibility wrapper still exists at [train/evaluate.py](../train/evaluate.py), but the docs and new commands should treat `analysis/evaluate.py` as the primary evaluation path. That evaluator supports `--policy-kind dqn`, `--policy-kind mappo_gru`, and `--policy-kind rule_based`, while [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py) is the main multi-condition comparison runner.
+
+## Q: Was the `git restore` to revision `4cc4eec` before or after running `25_build_trail_prompt.md`?
+
+A: After. The commit that recorded running the trail prompt is `c93c366` (`Ran 25_build_trail_prompt.md. Implemented the trail-building prompt end to end.`). The later commit `4cc4eec` is `Added more obstacles.`, and the current branch head `6a0e27a` is `restore to state of 4cc4eec`. So in the visible commit order, the restore-to-`4cc4eec` step happened after the prompt-25 implementation commit, not before it.

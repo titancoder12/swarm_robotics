@@ -1,0 +1,20 @@
+{
+  "action_dim": 18,
+  "active_targets": 2,
+  "algorithm": "recurrent_mappo_gru",
+  "critic_reset_reason": "centralized_state_dim_changes_with_stage",
+  "curriculum_actor_transfer": true,
+  "decentralized_execution": true,
+  "global_step": 85714,
+  "height": 500,
+  "hidden_size": 128,
+  "max_steps": 360,
+  "n_agents": 3,
+  "n_obstacles": 4,
+  "n_targets": 2,
+  "obs_dim": 69,
+  "stage": "stage2a_small_swarm_medium",
+  "state_dim": 50,
+  "target_respawn": false,
+  "width": 700
+}
