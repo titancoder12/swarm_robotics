@@ -50,6 +50,7 @@ def parse_args(argv=None):
     parser.add_argument("--debug-policy-agents", type=str, default="")
     parser.add_argument("--debug-policy-max-steps", type=int, default=0)
     add_env_config_args(parser)
+    parser.set_defaults(n_obstacles=18)
     return parser.parse_args(argv)
 
 
