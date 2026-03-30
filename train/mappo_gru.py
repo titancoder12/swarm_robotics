@@ -82,10 +82,17 @@ def _set_seed(seed: int):
     torch.manual_seed(seed)
 
 
-def _build_env(args, n_agents: int):
+def _build_env(args, stage):
     args_copy = argparse.Namespace(**vars(args))
-    args_copy.n_agents = int(n_agents)
+    args_copy.n_agents = int(stage.n_agents)
+    args_copy.n_targets = int(stage.n_targets)
+    args_copy.n_obstacles = int(stage.n_obstacles)
+    args_copy.max_steps_per_episode = int(stage.max_steps)
+    args_copy.active_targets = int(stage.active_targets)
+    args_copy.target_respawn = bool(stage.target_respawn)
     cfg = make_swarm_config(args_copy)
+    cfg.width = int(stage.width)
+    cfg.height = int(stage.height)
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
 
@@ -158,6 +165,10 @@ def _save_checkpoint(path, actor, critic, actor_opt, critic_opt, cfg, stage_name
             "stage_name": stage_name,
             "global_step": global_step,
             "n_agents": cfg.n_agents,
+            "width": cfg.width,
+            "height": cfg.height,
+            "n_targets": cfg.n_targets,
+            "n_obstacles": cfg.n_obstacles,
             "obs_dim": actor.obs_encoder[0].in_features,
             "action_dim": actor.policy_head[-1].out_features,
             "state_dim": critic.state_encoder[0].in_features,
@@ -240,6 +251,10 @@ def train(args):
             "global_step",
             "episode",
             "n_agents",
+            "width",
+            "height",
+            "n_targets",
+            "n_obstacles",
             "mean_episode_reward",
             "food_discovered",
             "food_picked_up",
@@ -255,6 +270,10 @@ def train(args):
         [
             "stage",
             "global_step",
+            "width",
+            "height",
+            "n_targets",
+            "n_obstacles",
             "mean_episode_reward",
             "food_discovered",
             "food_picked_up",
@@ -290,7 +309,7 @@ def train(args):
     for stage_index, stage in enumerate(curriculum, start=1):
         stage_start_step = global_step
         stage_start_time = time.time()
-        cfg, env = _build_env(args, stage.n_agents)
+        cfg, env = _build_env(args, stage)
         obs_dict, _ = env.reset(seed=args.seed + stage_index - 1)
         spaces = extract_env_spaces(env)
         actor = SharedGRUActor(spaces.obs_dim, spaces.action_dim, hidden_size=mappo_cfg.hidden_size).to(device)
@@ -322,6 +341,7 @@ def train(args):
         print(
             f"[MAPPO] Stage {stage_index}/{len(curriculum)} {stage.name} | "
             f"agents={cfg.n_agents} | target_steps={stage.total_steps} | "
+            f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
             f"obs_dim={spaces.obs_dim} | action_dim={spaces.action_dim} | state_dim={spaces.state_dim}"
         )
 
@@ -401,6 +421,10 @@ def train(args):
                             "global_step": global_step,
                             "episode": completed_episodes,
                             "n_agents": cfg.n_agents,
+                            "width": cfg.width,
+                            "height": cfg.height,
+                            "n_targets": cfg.n_targets,
+                            "n_obstacles": cfg.n_obstacles,
                             "mean_episode_reward": mean_episode_reward,
                             "food_discovered": float(episode_food_picked_up),
                             "food_picked_up": float(episode_food_picked_up),
@@ -521,6 +545,10 @@ def train(args):
                         {
                             "stage": stage.name,
                             "global_step": global_step,
+                            "width": cfg.width,
+                            "height": cfg.height,
+                            "n_targets": cfg.n_targets,
+                            "n_obstacles": cfg.n_obstacles,
                             "food_discovered": eval_metrics["food_discovered"],
                             **eval_metrics,
                         }
@@ -546,6 +574,13 @@ def train(args):
                 "stage": stage.name,
                 "global_step": global_step,
                 "n_agents": cfg.n_agents,
+                "width": cfg.width,
+                "height": cfg.height,
+                "n_targets": cfg.n_targets,
+                "n_obstacles": cfg.n_obstacles,
+                "max_steps": cfg.max_steps,
+                "active_targets": cfg.active_targets,
+                "target_respawn": bool(cfg.target_respawn),
                 "obs_dim": spaces.obs_dim,
                 "action_dim": spaces.action_dim,
                 "state_dim": spaces.state_dim,

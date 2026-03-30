@@ -279,15 +279,17 @@ It is not a general-purpose training abstraction shared by all backends.
 
 The schedule definition is in [algorithms/mappo/curriculum.py](/Users/christopherlin/dev/cwsf2026/sim/algorithms/mappo/curriculum.py#L13).
 
-The key design choice is that the curriculum currently changes only one task variable:
-
-- swarm size
+The key design choice is that the curriculum now changes both swarm size and
+environment difficulty.
 
 The three stages are:
 
-1. `stage1_single_agent`
-2. `stage2_small_swarm`
-3. `stage3_full_marl`
+1. `stage1a_single_agent_tiny`
+2. `stage1b_single_agent_obstacles`
+3. `stage2a_small_swarm_medium`
+4. `stage2b_small_swarm_large`
+5. `stage3a_full_swarm_large`
+6. `stage3b_full_swarm_final`
 
 ## 7. Curriculum Schedule Code
 
@@ -299,11 +301,25 @@ The `CurriculumStage` dataclass in [curriculum.py](/Users/christopherlin/dev/cws
 
 `default_curriculum(total_steps, full_agents)` in [curriculum.py](/Users/christopherlin/dev/cwsf2026/sim/algorithms/mappo/curriculum.py#L13) does this:
 
-- ensures `total_steps >= 3`
-- splits the total roughly into thirds
-- sets stage 1 to 1 agent
-- sets stage 2 to a capped small swarm
-- sets stage 3 to the requested full swarm
+- ensures `total_steps >= 6`
+- splits the total across six stages with extra weight on the final stage
+- sets stage 1A to 1 agent in a tiny obstacle-free world
+- sets stage 1B to 1 agent in a larger world with some obstacles
+- sets stage 2A and 2B to a capped small swarm with medium then large environments
+- sets stage 3A and 3B to the requested full swarm with large then final hard environments
+
+Each stage carries:
+
+- `name`
+- `n_agents`
+- `total_steps`
+- `width`
+- `height`
+- `n_targets`
+- `n_obstacles`
+- `max_steps`
+- `active_targets`
+- `target_respawn`
 
 For example, with:
 
@@ -312,15 +328,18 @@ For example, with:
 
 the resulting curriculum is approximately:
 
-- stage 1: `1` agent, `40000` steps
-- stage 2: `3` agents, `40000` steps
-- stage 3: `6` agents, `40000` steps
+- Stage 1A: 1 agent, tiny world, single target, no obstacles
+- Stage 1B: 1 agent, larger world, a few obstacles
+- Stage 2A: 3-agent swarm, medium world
+- Stage 2B: 3-agent swarm, large but not final world
+- Stage 3A: 6-agent swarm, same large but not final world
+- Stage 3B: 6-agent swarm, final very large obstacle-heavy world
 
 Then `select_curriculum()` in [curriculum.py](/Users/christopherlin/dev/cwsf2026/sim/algorithms/mappo/curriculum.py#L26) selects:
 
-- `stage1`
-- `stage1_to_2`
-- `full`
+- `stage1` -> first two single-agent stages
+- `stage1_to_2` -> first four stages through the small-swarm curriculum
+- `full` -> all six stages
 
 ## 8. Curriculum Training Flow In Code
 
@@ -346,7 +365,7 @@ For each stage, it does the following.
 
 That helper in [train/mappo_gru.py](/Users/christopherlin/dev/cwsf2026/sim/train/mappo_gru.py#L85) copies the CLI args, overrides `n_agents`, rebuilds `SwarmConfig`, and constructs a new `SwarmEnv`.
 
-So curriculum is not simulated inside one fixed env. Each stage gets a fresh env configured specifically for that stage’s swarm size.
+So curriculum is not simulated inside one fixed env. Each stage gets a fresh env configured specifically for that stage’s swarm size and environment profile.
 
 ### 8.2 Rebuild The Models For The Stage
 
@@ -490,26 +509,30 @@ python train/train.py --backend mappo --headless --curriculum full --n-agents 6 
 
 the code will approximately do this:
 
-1. build a three-stage curriculum
-2. train stage 1 with `1` agent for about `40000` steps
-3. save `stage1_single_agent/`
-4. rebuild the env for a small swarm
-5. load the stage 1 actor weights into a fresh stage 2 actor
-6. train stage 2 for about `40000` steps
-7. save `stage2_small_swarm/`
-8. rebuild the env for `6` agents
-9. load the stage 2 actor weights into a fresh stage 3 actor
-10. train stage 3 for about `40000` steps
-11. save `stage3_full_marl/` and `latest/`
+1. build a six-stage curriculum
+2. train Stage 1A with `1` agent in a tiny easy world
+3. save `stage1a_single_agent_tiny/`
+4. rebuild the env for Stage 1B with `1` agent and some obstacles
+5. load Stage 1A actor weights into a fresh Stage 1B actor
+6. train Stage 1B and save `stage1b_single_agent_obstacles/`
+7. rebuild the env for Stage 2A with a small swarm in a medium world
+8. carry the actor forward and train Stage 2A
+9. rebuild the env for Stage 2B with the same small swarm in a larger world
+10. carry the actor forward and train Stage 2B
+11. rebuild the env for Stage 3A with the full swarm in the large-but-not-final world
+12. carry the actor forward and train Stage 3A
+13. rebuild the env for Stage 3B with the full swarm in the final hard world
+14. carry the actor forward and train Stage 3B
+15. save `stage3b_full_swarm_final/` and `latest/`
 
 ## 13. Current Limits
 
 The current curriculum implementation is useful, but it is still narrow:
 
 - only MAPPO uses it
-- only swarm size is staged
+- stage progression is still hand-authored rather than adaptive
 - critic transfer is limited by centralized-state shape changes
-- stage step allocation is a simple equal split
+- stage step allocation is still a simple fixed schedule
 - there is no learned or metric-triggered stage advancement
 
 So this is a straightforward staged curriculum, not an adaptive one.

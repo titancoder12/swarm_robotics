@@ -30,23 +30,49 @@ Inference remains decentralized:
 
 ## Curriculum
 
-The first implementation supports three curriculum modes:
+The current implementation supports three curriculum modes:
 
 - `stage1`
 - `stage1_to_2`
 - `full`
 
+These modes now expand into explicit environment-difficulty stages instead of
+only changing swarm size.
+
 The default `full` schedule is:
 
-1. `stage1_single_agent`
-2. `stage2_small_swarm`
-3. `stage3_full_marl`
+1. `stage1a_single_agent_tiny`
+2. `stage1b_single_agent_obstacles`
+3. `stage2a_small_swarm_medium`
+4. `stage2b_small_swarm_large`
+5. `stage3a_full_swarm_large`
+6. `stage3b_full_swarm_final`
 
-The essential curriculum variable is swarm size:
+The current curriculum stages the following environment variables:
 
-- stage 1 uses `n_agents = 1`
-- stage 2 uses a small swarm between `2` and `5`
-- stage 3 uses the requested full swarm size
+- `n_agents`
+- `width`
+- `height`
+- `n_targets`
+- `n_obstacles`
+- `max_steps`
+- `active_targets`
+- `target_respawn`
+
+Intended teaching progression:
+
+- Stage 1A: one agent, tiny easy world, single target, no obstacles
+- Stage 1B: one agent, larger world, some obstacles
+- Stage 2A: small swarm, medium environment
+- Stage 2B: small swarm, large but not final environment
+- Stage 3A: full swarm, same large but not final environment
+- Stage 3B: full swarm, final large obstacle-heavy environment
+
+Mode semantics:
+
+- `stage1` runs the two single-agent stages
+- `stage1_to_2` runs the two single-agent stages plus the two small-swarm stages
+- `full` runs all six stages
 
 Actor weights are carried across stages.
 
