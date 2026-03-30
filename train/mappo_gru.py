@@ -96,6 +96,9 @@ def _build_env(args, stage):
     cfg = make_swarm_config(args_copy)
     cfg.width = int(stage.width)
     cfg.height = int(stage.height)
+    cfg.target_prefer_edges = bool(getattr(stage, "target_prefer_edges", False))
+    cfg.target_prefer_obstacles = bool(getattr(stage, "target_prefer_obstacles", False))
+    cfg.agent_spawn_cluster_radius = float(getattr(stage, "agent_spawn_cluster_radius", 0.0))
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
 
@@ -122,6 +125,12 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
             pheromone_deposits = 0
             first_pickup_step = -1
             first_delivery_step = -1
+            low_displacement_fraction = 0.0
+            crowding_fraction = 0.0
+            stuck_event_count = 0
+            successful_escape_count = 0
+            mean_stuck_duration = 0.0
+            max_collision_streak = 0
             while True:
                 obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device)
                 mask_t = torch.as_tensor(1.0 - prev_done, dtype=torch.float32, device=device)
@@ -139,6 +148,12 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                 picked_up += int(info.get("targets_collected", 0))
                 delivered += int(info.get("food_delivered", 0))
                 pheromone_deposits += int(info.get("pheromone_deposit_events", 0))
+                low_displacement_fraction = float(info.get("low_displacement_fraction", low_displacement_fraction))
+                crowding_fraction = float(info.get("crowding_fraction", crowding_fraction))
+                stuck_event_count = int(info.get("episode_stuck_events", stuck_event_count))
+                successful_escape_count = int(info.get("episode_successful_escapes", successful_escape_count))
+                mean_stuck_duration = float(info.get("mean_stuck_duration", mean_stuck_duration))
+                max_collision_streak = max(max_collision_streak, int(info.get("episode_max_collision_streak", 0)))
                 if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
                     first_pickup_step = int(info.get("first_pickup_step", -1))
                 if first_delivery_step < 0 and int(info.get("first_delivery_step", -1)) >= 0:
@@ -155,6 +170,12 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                     "exploration_coverage": float(coverage),
                     "pheromone_usage": float(np.mean(pheromone)) if pheromone else 0.0,
                     "pheromone_deposit_events": float(pheromone_deposits),
+                    "low_displacement_fraction": float(low_displacement_fraction),
+                    "crowding_fraction": float(crowding_fraction),
+                    "stuck_event_count": float(stuck_event_count),
+                    "successful_escape_count": float(successful_escape_count),
+                    "mean_stuck_duration": float(mean_stuck_duration),
+                    "max_collision_streak": float(max_collision_streak),
                     "episode_length": float(length),
                     "first_pickup_step": float(first_pickup_step),
                     "first_delivery_step": float(first_delivery_step),
@@ -282,6 +303,12 @@ def train(args):
             "exploration_coverage",
             "pheromone_usage",
             "pheromone_deposit_events",
+            "low_displacement_fraction",
+            "crowding_fraction",
+            "stuck_event_count",
+            "successful_escape_count",
+            "mean_stuck_duration",
+            "max_collision_streak",
             "episode_length",
             "first_pickup_step",
             "first_delivery_step",
@@ -306,6 +333,12 @@ def train(args):
             "exploration_coverage",
             "pheromone_usage",
             "pheromone_deposit_events",
+            "low_displacement_fraction",
+            "crowding_fraction",
+            "stuck_event_count",
+            "successful_escape_count",
+            "mean_stuck_duration",
+            "max_collision_streak",
             "episode_length",
             "first_pickup_step",
             "first_delivery_step",
@@ -331,6 +364,14 @@ def train(args):
             "rollout_steps": args.rollout_steps,
             "update_epochs": args.update_epochs,
             "minibatch_size": args.minibatch_size,
+            "reward_stuck": args.reward_stuck,
+            "reward_escape": args.reward_escape,
+            "reward_crowding": args.reward_crowding,
+            "trap_min_displacement": args.trap_min_displacement,
+            "trap_escape_displacement": args.trap_escape_displacement,
+            "trap_stuck_steps": args.trap_stuck_steps,
+            "crowding_radius": args.crowding_radius,
+            "crowding_min_neighbors": args.crowding_min_neighbors,
             "domain_randomization_note": "Environment resets already randomize layout/configuration.",
         },
     )
@@ -366,6 +407,12 @@ def train(args):
         episode_food_picked_up = 0
         episode_food_delivered = 0
         episode_pheromone_deposit_events = 0
+        episode_low_displacement_fraction = 0.0
+        episode_crowding_fraction = 0.0
+        episode_stuck_event_count = 0
+        episode_successful_escapes = 0
+        episode_mean_stuck_duration = 0.0
+        episode_max_collision_streak = 0
         episode_length = 0
         first_pickup_step = -1
         first_delivery_step = -1
@@ -375,6 +422,8 @@ def train(args):
             f"agents={cfg.n_agents} | target_steps={stage.total_steps} | "
             f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
             f"pheromone={'on' if cfg.pheromone_enabled else 'off'} | "
+            f"target_bias=edge:{int(cfg.target_prefer_edges)} obstacle:{int(cfg.target_prefer_obstacles)} | "
+            f"spawn_cluster_radius={cfg.agent_spawn_cluster_radius:.1f} | "
             f"obs_dim={spaces.obs_dim} | action_dim={spaces.action_dim} | state_dim={spaces.state_dim}"
         )
 
@@ -440,6 +489,12 @@ def train(args):
                 episode_food_picked_up += int(info.get("targets_collected", 0))
                 episode_food_delivered += int(info.get("food_delivered", 0))
                 episode_pheromone_deposit_events += int(info.get("pheromone_deposit_events", 0))
+                episode_low_displacement_fraction = float(info.get("low_displacement_fraction", episode_low_displacement_fraction))
+                episode_crowding_fraction = float(info.get("crowding_fraction", episode_crowding_fraction))
+                episode_stuck_event_count = int(info.get("episode_stuck_events", episode_stuck_event_count))
+                episode_successful_escapes = int(info.get("episode_successful_escapes", episode_successful_escapes))
+                episode_mean_stuck_duration = float(info.get("mean_stuck_duration", episode_mean_stuck_duration))
+                episode_max_collision_streak = max(episode_max_collision_streak, int(info.get("episode_max_collision_streak", 0)))
                 episode_length = int(info.get("episode_length", episode_length + 1))
                 if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
                     first_pickup_step = int(info.get("first_pickup_step", -1))
@@ -471,6 +526,12 @@ def train(args):
                             "exploration_coverage": float(episode_coverage),
                             "pheromone_usage": pheromone_usage,
                             "pheromone_deposit_events": int(episode_pheromone_deposit_events),
+                            "low_displacement_fraction": float(episode_low_displacement_fraction),
+                            "crowding_fraction": float(episode_crowding_fraction),
+                            "stuck_event_count": int(episode_stuck_event_count),
+                            "successful_escape_count": int(episode_successful_escapes),
+                            "mean_stuck_duration": float(episode_mean_stuck_duration),
+                            "max_collision_streak": int(episode_max_collision_streak),
                             "episode_length": int(episode_length),
                             "first_pickup_step": int(first_pickup_step),
                             "first_delivery_step": int(first_delivery_step),
@@ -491,6 +552,7 @@ def train(args):
                         f"step={global_step}/{args.total_steps} reward={mean_episode_reward:.2f} "
                         f"picked_up={episode_food_picked_up} delivered={episode_food_delivered} "
                         f"deposits={episode_pheromone_deposit_events} "
+                        f"stuck={episode_stuck_event_count} escapes={episode_successful_escapes} "
                         f"first_pickup={first_pickup_step} first_delivery={first_delivery_step} "
                         f"coverage={episode_coverage:.3f} "
                         f"pheromone={pheromone_usage:.3f} len={episode_length} "
@@ -508,6 +570,12 @@ def train(args):
                     episode_food_picked_up = 0
                     episode_food_delivered = 0
                     episode_pheromone_deposit_events = 0
+                    episode_low_displacement_fraction = 0.0
+                    episode_crowding_fraction = 0.0
+                    episode_stuck_event_count = 0
+                    episode_successful_escapes = 0
+                    episode_mean_stuck_duration = 0.0
+                    episode_max_collision_streak = 0
                     episode_length = 0
                     first_pickup_step = -1
                     first_delivery_step = -1
@@ -612,6 +680,8 @@ def train(args):
                         f"picked_up={eval_metrics['food_picked_up']:.2f} "
                         f"delivered={eval_metrics['food_retrieved']:.2f} "
                         f"deposits={eval_metrics['pheromone_deposit_events']:.2f} "
+                        f"stuck={eval_metrics['stuck_event_count']:.2f} "
+                        f"escapes={eval_metrics['successful_escape_count']:.2f} "
                         f"first_pickup={eval_metrics['first_pickup_step']:.1f} "
                         f"first_delivery={eval_metrics['first_delivery_step']:.1f} "
                         f"coverage={eval_metrics['exploration_coverage']:.3f} "
@@ -637,6 +707,17 @@ def train(args):
             "active_targets": cfg.active_targets,
             "target_respawn": bool(cfg.target_respawn),
             "pheromone_enabled": bool(cfg.pheromone_enabled),
+            "target_prefer_edges": bool(cfg.target_prefer_edges),
+            "target_prefer_obstacles": bool(cfg.target_prefer_obstacles),
+            "agent_spawn_cluster_radius": float(cfg.agent_spawn_cluster_radius),
+            "reward_stuck": float(cfg.reward_stuck),
+            "reward_escape": float(cfg.reward_escape),
+            "reward_crowding": float(cfg.reward_crowding),
+            "trap_min_displacement": float(cfg.trap_min_displacement),
+            "trap_escape_displacement": float(cfg.trap_escape_displacement),
+            "trap_stuck_steps": int(cfg.trap_stuck_steps),
+            "crowding_radius": float(cfg.crowding_radius),
+            "crowding_min_neighbors": int(cfg.crowding_min_neighbors),
             "obs_dim": spaces.obs_dim,
             "action_dim": spaces.action_dim,
             "state_dim": spaces.state_dim,

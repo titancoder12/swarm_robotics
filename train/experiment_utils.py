@@ -218,10 +218,18 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-nest-approach", type=float, default=0.08)
     parser.add_argument("--reward-pheromone-deposit-cost", type=float, default=-0.001)
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
+    parser.add_argument("--reward-stuck", type=float, default=-0.02)
+    parser.add_argument("--reward-escape", type=float, default=0.03)
+    parser.add_argument("--reward-crowding", type=float, default=-0.005)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.02)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--trap-min-displacement", type=float, default=4.0)
+    parser.add_argument("--trap-escape-displacement", type=float, default=12.0)
+    parser.add_argument("--trap-stuck-steps", type=int, default=6)
+    parser.add_argument("--crowding-radius", type=float, default=28.0)
+    parser.add_argument("--crowding-min-neighbors", type=int, default=1)
     parser.add_argument("--eval-steps", type=int, default=600)
     parser.add_argument("--active-targets", type=int, default=4)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
@@ -258,9 +266,17 @@ def make_swarm_config(args) -> SwarmConfig:
         reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.02),
         reward_pheromone_deposit_cost=getattr(args, "reward_pheromone_deposit_cost", -0.001),
         reward_action_switch=getattr(args, "reward_action_switch", -0.01),
+        reward_stuck=getattr(args, "reward_stuck", -0.02),
+        reward_escape=getattr(args, "reward_escape", 0.03),
+        reward_crowding=getattr(args, "reward_crowding", -0.005),
         pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
         active_targets=active_targets,
         target_respawn=target_respawn,
+        trap_min_displacement=getattr(args, "trap_min_displacement", 4.0),
+        trap_escape_displacement=getattr(args, "trap_escape_displacement", 12.0),
+        trap_stuck_steps=max(1, int(getattr(args, "trap_stuck_steps", 6))),
+        crowding_radius=getattr(args, "crowding_radius", 28.0),
+        crowding_min_neighbors=max(1, int(getattr(args, "crowding_min_neighbors", 1))),
     )
 
 

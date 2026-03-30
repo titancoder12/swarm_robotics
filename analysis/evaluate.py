@@ -113,6 +113,12 @@ def run(args):
             "efficiency",
             "time_to_first_discovery",
             "pheromone_usage",
+            "low_displacement_fraction",
+            "crowding_fraction",
+            "stuck_event_count",
+            "successful_escape_count",
+            "mean_stuck_duration",
+            "max_collision_streak",
             "episode_length",
             "total_steps_taken",
             "collisions",
@@ -144,6 +150,12 @@ def run(args):
             collisions = 0
             new_cells_visited = 0
             time_to_first_discovery = -1
+            low_displacement_fraction = 0.0
+            crowding_fraction = 0.0
+            stuck_event_count = 0
+            successful_escape_count = 0
+            mean_stuck_duration = 0.0
+            max_collision_streak = 0
             done_reason = ""
             prev_rewards = None
             prev_done_debug = None
@@ -236,6 +248,12 @@ def run(args):
                 episode_length = int(info.get("episode_length", episode_length + 1))
                 collisions += int(info.get("collisions", 0))
                 new_cells_visited += int(info.get("new_cells_visited", 0))
+                low_displacement_fraction = float(info.get("low_displacement_fraction", low_displacement_fraction))
+                crowding_fraction = float(info.get("crowding_fraction", crowding_fraction))
+                stuck_event_count = int(info.get("episode_stuck_events", stuck_event_count))
+                successful_escape_count = int(info.get("episode_successful_escapes", successful_escape_count))
+                mean_stuck_duration = float(info.get("mean_stuck_duration", mean_stuck_duration))
+                max_collision_streak = max(max_collision_streak, int(info.get("episode_max_collision_streak", 0)))
                 if time_to_first_discovery < 0 and int(info.get("targets_collected", 0)) > 0:
                     time_to_first_discovery = episode_length
                 done_reason = str(info.get("episode_done_reason", done_reason))
@@ -273,6 +291,12 @@ def run(args):
                 "efficiency": float(food_discovered / max(cfg.n_agents, 1)),
                 "time_to_first_discovery": time_to_first_discovery,
                 "pheromone_usage": mean_pheromone,
+                "low_displacement_fraction": low_displacement_fraction,
+                "crowding_fraction": crowding_fraction,
+                "stuck_event_count": stuck_event_count,
+                "successful_escape_count": successful_escape_count,
+                "mean_stuck_duration": mean_stuck_duration,
+                "max_collision_streak": max_collision_streak,
                 "episode_length": episode_length,
                 "total_steps_taken": episode_length,
                 "collisions": collisions,
@@ -314,6 +338,12 @@ def run(args):
                 "mean_efficiency": float(np.mean([row["efficiency"] for row in summaries])) if summaries else 0.0,
                 "mean_time_to_first_discovery": float(np.mean(valid_discovery_times)) if valid_discovery_times else -1.0,
                 "mean_pheromone_usage": float(np.mean([row["pheromone_usage"] for row in summaries])) if summaries else 0.0,
+                "mean_low_displacement_fraction": float(np.mean([row["low_displacement_fraction"] for row in summaries])) if summaries else 0.0,
+                "mean_crowding_fraction": float(np.mean([row["crowding_fraction"] for row in summaries])) if summaries else 0.0,
+                "mean_stuck_event_count": float(np.mean([row["stuck_event_count"] for row in summaries])) if summaries else 0.0,
+                "mean_successful_escape_count": float(np.mean([row["successful_escape_count"] for row in summaries])) if summaries else 0.0,
+                "mean_stuck_duration": float(np.mean([row["mean_stuck_duration"] for row in summaries])) if summaries else 0.0,
+                "mean_max_collision_streak": float(np.mean([row["max_collision_streak"] for row in summaries])) if summaries else 0.0,
                 "mean_episode_length": float(np.mean([row["episode_length"] for row in summaries])) if summaries else 0.0,
             },
         },

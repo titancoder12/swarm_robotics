@@ -105,6 +105,46 @@ Pheromone comparison example:
 python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_trail_full/latest --checkpoint-without-pheromone checkpoints/mappo_trail_no_pher/latest --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
 ```
 
+## Quickstart: Trap Recovery and Jam Escape
+
+The current MAPPO path also includes trap-recovery shaping and harder late-stage
+curriculum worlds meant to teach agents to:
+
+- notice non-progress
+- escape local jams and obstacle pockets
+- avoid piling into dense clusters
+- resume the main target and nest-return task
+
+Main trap-recovery training run:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --trap-stuck-steps 6 --trap-min-displacement 4 --trap-escape-displacement 12 --reward-stuck -0.02 --reward-escape 0.03 --reward-crowding -0.005 --folder-name mappo_trap_recovery_full
+```
+
+Short trap-recovery smoke test:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum stage1_to_2 --n-agents 6 --total-steps 4800 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --trap-stuck-steps 6 --reward-stuck -0.02 --reward-escape 0.03 --reward-crowding -0.005 --folder-name mappo_trap_recovery_smoke
+```
+
+Render the trained trap-recovery policy:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trap_recovery_full/latest --n-agents 6 --max-steps 300
+```
+
+Headless trap-recovery evaluation:
+
+```bash
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trap_recovery_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trap_recovery_eval
+```
+
+Trap-recovery comparison run:
+
+```bash
+python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_trap_recovery_full/latest --checkpoint-without-pheromone checkpoints/mappo_trail_full/latest --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trap_recovery_compare
+```
+
 ## Quickstart: DQN Baseline
 
 Train headless and save checkpoints:

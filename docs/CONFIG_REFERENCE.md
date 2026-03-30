@@ -63,8 +63,8 @@ CLI-to-config mapping helpers:
 | `pheromone_diffuse_rate` | `float` | `0.25` | usually `[0, 1]` | interpolation weight for diffusion |
 | `pheromone_min_value` | `float` | `1e-3` | non-negative | values below this are zeroed after diffusion |
 | `pheromone_deposit_carrying_scale` | `float` | `1.5` | non-negative | carry-state pheromone multiplier |
-| `pheromone_requires_food` | `bool` | `True` | boolean | when true, only carrying agents may deposit pheromone |
-| `pheromone_deposit_requires_nest_progress` | `bool` | `True` | boolean | when true, deposition also requires moving closer to the nest |
+| `pheromone_requires_food` | `bool` | `False` | boolean | when true, only carrying agents may deposit pheromone |
+| `pheromone_deposit_requires_nest_progress` | `bool` | `False` | boolean | when true, deposition also requires moving closer to the nest |
 | `reward_target` | `float` | `2.0` | any float | immediate reward when targets do not require nest delivery |
 | `reward_step` | `float` | `-0.01` | any float | step cost added to every agent every step |
 | `reward_collision` | `float` | `-1.5` | any float | per-agent collision penalty |
@@ -78,6 +78,9 @@ CLI-to-config mapping helpers:
 | `reward_pheromone_follow` | `float` | `0.02` | any float | local forward-gradient pheromone shaping term |
 | `reward_pheromone_deposit_cost` | `float` | `-0.001` | any float | cost applied only when a pheromone deposit succeeds |
 | `reward_action_switch` | `float` | `-0.01` | any float | penalty when executed action changes |
+| `reward_stuck` | `float` | `-0.02` | any float | penalty applied to agents that remain stuck after repeated non-progress |
+| `reward_escape` | `float` | `0.03` | any float | small reward for escaping a recent stuck state |
+| `reward_crowding` | `float` | `-0.005` | any float | crowding penalty applied to jammed local clusters |
 | `reward_pheromone_following` | `float` | `0.0` | any float | multiplier for pheromone-usage shaping reward |
 | `pheromone_follow_min_gradient` | `float` | `0.05` | non-negative | minimum forward pheromone gradient for follow shaping |
 | `nest_enabled` | `bool` | `True` | boolean | enables nest spawn, render, and nest-direction observation |
@@ -87,6 +90,14 @@ CLI-to-config mapping helpers:
 | `coverage_cell_size` | `int` | `24` | positive integer | exploration-grid resolution |
 | `failed_agent_count` | `int` | `0` | non-negative integer | number of agents randomly disabled per episode |
 | `observation_noise_std` | `float` | `0.0` | non-negative | std of additive Gaussian observation noise |
+| `trap_min_displacement` | `float` | `4.0` | non-negative | displacement threshold below which local movement counts as low-progress |
+| `trap_escape_displacement` | `float` | `12.0` | non-negative | displacement threshold required to count as a successful escape |
+| `trap_stuck_steps` | `int` | `6` | positive integer | number of repeated no-progress steps before an agent is marked stuck |
+| `crowding_radius` | `float` | `28.0` | positive | local neighborhood radius for crowding/jam detection |
+| `crowding_min_neighbors` | `int` | `1` | non-negative integer | minimum nearby neighbors required before crowding penalties can apply |
+| `target_prefer_edges` | `bool` | `False` | boolean | if enabled, target sampling prefers harder edge/corner placements |
+| `target_prefer_obstacles` | `bool` | `False` | boolean | if enabled, target sampling prefers obstacle-adjacent placements |
+| `agent_spawn_cluster_radius` | `float` | `0.0` | non-negative | if positive, agents spawn around a local cluster center instead of independently |
 | `render_pheromone` | `bool` | `True` | boolean | controls pheromone heatmap drawing |
 | `render_scale` | `float` | `1.0` | currently unused | retained field, not used by the current renderer |
 | `seed` | `int \| None` | `None` | integer or `None` | constructor RNG seed for environment instance |
@@ -121,6 +132,31 @@ The current default is:
 - `pheromone_deposit_carrying_scale`
 - `pheromone_requires_food`
 - `pheromone_deposit_requires_nest_progress`
+
+### Fields used for trap recovery and congestion shaping
+
+- `reward_stuck`
+- `reward_escape`
+- `reward_crowding`
+- `trap_min_displacement`
+- `trap_escape_displacement`
+- `trap_stuck_steps`
+- `crowding_radius`
+- `crowding_min_neighbors`
+
+These drive the trap-recovery signals produced in
+[env/swarm_env.py](../env/swarm_env.py), including low-displacement detection,
+stuck-event counting, escape events, and crowding penalties.
+
+### Fields used by harder curriculum-stage world generation
+
+- `target_prefer_edges`
+- `target_prefer_obstacles`
+- `agent_spawn_cluster_radius`
+
+These are mainly exercised by the later recurrent MAPPO curriculum stages to
+produce harder jam-prone worlds without changing the robot-facing action or
+observation contract.
 
 ### Fields that change dynamics behavior
 
@@ -169,7 +205,15 @@ The shared CLI config layer is implemented in [train/experiment_utils.py](../tra
 - `--reward-pheromone-follow`
 - `--reward-pheromone-deposit-cost`
 - `--reward-action-switch`
+- `--reward-stuck`
+- `--reward-escape`
+- `--reward-crowding`
 - `--reward-new-cell`
+- `--trap-min-displacement`
+- `--trap-escape-displacement`
+- `--trap-stuck-steps`
+- `--crowding-radius`
+- `--crowding-min-neighbors`
 - `--pheromone-requires-food` / `--no-pheromone-requires-food`
 - `--pheromone-deposit-requires-nest-progress` / `--no-pheromone-deposit-requires-nest-progress`
 - `--active-targets`

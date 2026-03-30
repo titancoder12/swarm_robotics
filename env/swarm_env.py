@@ -111,6 +111,10 @@ class SwarmEnv(ParallelEnv):
         self._prev_detectable_food_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         self._prev_food_detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
         self._prev_nest_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
+        self._prev_positions = np.zeros((self.cfg.n_agents, 2), dtype=np.float32)
+        self._stuck_counts = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        self._stuck_active = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
+        self._collision_streaks = np.zeros((self.cfg.n_agents,), dtype=np.int32)
         self._held_actions = np.zeros((self.cfg.n_agents,), dtype=np.int64)
         self._hold_remaining = np.zeros((self.cfg.n_agents,), dtype=np.int32)
         self._prev_executed_actions = np.full((self.cfg.n_agents,), -1, dtype=np.int64)
@@ -118,6 +122,13 @@ class SwarmEnv(ParallelEnv):
         self.episode_pheromone_deposit_events = 0
         self.first_pickup_step: int | None = None
         self.first_delivery_step: int | None = None
+        self.episode_low_displacement_steps = 0
+        self.episode_stuck_events = 0
+        self.episode_successful_escapes = 0
+        self.episode_stuck_duration_total = 0
+        self.episode_crowding_steps = 0
+        self.episode_max_collision_streak = 0
+        self._agent_spawn_cluster_center: Tuple[float, float] | None = None
 
         self.step_count = 0
         self.terminated = False
@@ -309,11 +320,22 @@ class SwarmEnv(ParallelEnv):
         self.episode_pheromone_deposit_events = 0
         self.first_pickup_step = None
         self.first_delivery_step = None
+        self.episode_low_displacement_steps = 0
+        self.episode_stuck_events = 0
+        self.episode_successful_escapes = 0
+        self.episode_stuck_duration_total = 0
+        self.episode_crowding_steps = 0
+        self.episode_max_collision_streak = 0
+        self._stuck_counts.fill(0)
+        self._stuck_active.fill(False)
+        self._collision_streaks.fill(0)
+        self._agent_spawn_cluster_center = None
         self._init_coverage_grid()
         self._assign_failed_agents()
         self._update_coverage()
         self._reset_food_shaping_state()
         self._prev_nest_distances = self._compute_nest_distance_state()
+        self._prev_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -357,10 +379,12 @@ class SwarmEnv(ParallelEnv):
 
         current_step = self.step_count + 1
         prev_nest_distances = self._prev_nest_distances.copy()
+        prev_positions = self._prev_positions.copy()
 
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
         collisions = 0
+        collided_flags = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
         reward_breakdown = {
             "step": float(self.cfg.reward_step * self.cfg.n_agents),
             "pickup": 0.0,
@@ -371,6 +395,9 @@ class SwarmEnv(ParallelEnv):
             "food_approach": 0.0,
             "food_detected": 0.0,
             "action_switch": 0.0,
+            "stuck": 0.0,
+            "escape": 0.0,
+            "crowding": 0.0,
             "pheromone_follow": 0.0,
             "pheromone_usage": 0.0,
             "pheromone_deposit": 0.0,
@@ -395,6 +422,7 @@ class SwarmEnv(ParallelEnv):
 
             collided = self._handle_collisions(proposed)
             if collided:
+                collided_flags[i] = True
                 rewards[i] += self.cfg.reward_collision
                 collisions += 1
                 reward_breakdown["collision"] += float(self.cfg.reward_collision)
@@ -412,6 +440,14 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["delivery"] += float(delivery_reward)
         nest_approach_reward = self._apply_nest_return_shaping(rewards, prev_nest_distances)
         reward_breakdown["nest_approach"] += float(nest_approach_reward)
+        stuck_reward, escape_reward, crowding_reward, trap_metrics = self._apply_trap_recovery_shaping(
+            rewards,
+            prev_positions,
+            collided_flags,
+        )
+        reward_breakdown["stuck"] += float(stuck_reward)
+        reward_breakdown["escape"] += float(escape_reward)
+        reward_breakdown["crowding"] += float(crowding_reward)
 
         food_approach_reward, food_detect_reward = self._apply_food_shaping(rewards)
         reward_breakdown["food_approach"] += float(food_approach_reward)
@@ -435,6 +471,7 @@ class SwarmEnv(ParallelEnv):
             pheromone_deposit_cost = 0.0
         reward_breakdown["pheromone_deposit"] += float(pheromone_deposit_cost)
         self._prev_nest_distances = self._compute_nest_distance_state()
+        self._prev_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
         self.episode_targets_collected += int(picked_up)
         self.episode_pheromone_deposit_events += int(pheromone_deposit_events)
         if picked_up > 0 and self.first_pickup_step is None:
@@ -464,12 +501,35 @@ class SwarmEnv(ParallelEnv):
             "food_delivered": delivered,
             "episode_food_delivered": self.food_delivered,
             "collisions": collisions,
+            "stuck_agents": int(trap_metrics["stuck_agents"]),
+            "low_displacement_agents": int(trap_metrics["low_displacement_agents"]),
+            "crowded_agents": int(trap_metrics["crowded_agents"]),
+            "current_max_collision_streak": int(trap_metrics["current_max_collision_streak"]),
             "new_cells_visited": new_cells,
             "coverage_reward_total": coverage_reward_total,
             "exploration_coverage": self._coverage_ratio(),
             "pheromone_usage": pheromone_usage,
             "pheromone_deposit_events": pheromone_deposit_events,
             "episode_pheromone_deposit_events": self.episode_pheromone_deposit_events,
+            "episode_low_displacement_steps": self.episode_low_displacement_steps,
+            "episode_stuck_events": self.episode_stuck_events,
+            "episode_successful_escapes": self.episode_successful_escapes,
+            "episode_stuck_duration_total": self.episode_stuck_duration_total,
+            "episode_crowding_steps": self.episode_crowding_steps,
+            "episode_max_collision_streak": self.episode_max_collision_streak,
+            "low_displacement_fraction": (
+                float(self.episode_low_displacement_steps)
+                / max(float(max(self.step_count, 1) * max(self.cfg.n_agents, 1)), 1.0)
+            ),
+            "crowding_fraction": (
+                float(self.episode_crowding_steps)
+                / max(float(max(self.step_count, 1) * max(self.cfg.n_agents, 1)), 1.0)
+            ),
+            "mean_stuck_duration": (
+                float(self.episode_stuck_duration_total) / max(float(self.episode_stuck_events), 1.0)
+                if self.episode_stuck_events > 0
+                else 0.0
+            ),
             "first_pickup_step": self.first_pickup_step if self.first_pickup_step is not None else -1,
             "first_delivery_step": self.first_delivery_step if self.first_delivery_step is not None else -1,
             "pickup_to_delivery_latency": (
@@ -583,8 +643,10 @@ class SwarmEnv(ParallelEnv):
         """Randomly place agents in non-colliding free space."""
         # Randomly place agents in free space.
         self.agent_states = []
+        if self.cfg.agent_spawn_cluster_radius > 0:
+            self._agent_spawn_cluster_center = self._sample_free_position(self.cfg.agent_radius * 2.0)
         for _ in range(self.cfg.n_agents):
-            pos = self._sample_free_position(self.cfg.agent_radius)
+            pos = self._sample_agent_position()
             theta = self.rng.uniform(-math.pi, math.pi)
             self.agent_states.append(AgentState(pos[0], pos[1], theta))
 
@@ -657,10 +719,67 @@ class SwarmEnv(ParallelEnv):
         desired = self._target_spawn_count() if target_count is None else max(0, int(target_count))
         spawned = 0
         while len(self.targets) < desired:
-            pos = self._sample_free_position(self.cfg.target_radius)
+            pos = self._sample_target_position()
             self.targets.append(pos)
             spawned += 1
         return spawned
+
+    def _sample_agent_position(self) -> tuple[float, float]:
+        """Sample agent positions, optionally clustered for congestion training."""
+        if self.cfg.agent_spawn_cluster_radius <= 0 or self._agent_spawn_cluster_center is None:
+            return self._sample_free_position(self.cfg.agent_radius)
+        cx, cy = self._agent_spawn_cluster_center
+        for _ in range(120):
+            angle = self.rng.uniform(-math.pi, math.pi)
+            radius = self.rng.uniform(0.0, float(self.cfg.agent_spawn_cluster_radius))
+            x = float(np.clip(cx + math.cos(angle) * radius, self.cfg.agent_radius, self.width - self.cfg.agent_radius))
+            y = float(np.clip(cy + math.sin(angle) * radius, self.cfg.agent_radius, self.height - self.cfg.agent_radius))
+            circle = pygame.Rect(
+                int(x - self.cfg.agent_radius),
+                int(y - self.cfg.agent_radius),
+                int(self.cfg.agent_radius * 2),
+                int(self.cfg.agent_radius * 2),
+            )
+            if any(circle.colliderect(o) for o in self.obstacles):
+                continue
+            if self.cfg.nest_enabled:
+                nx, ny = self.nest_position
+                nest_clearance = self.cfg.agent_radius + self.cfg.nest_radius
+                if (nx - x) ** 2 + (ny - y) ** 2 < nest_clearance ** 2:
+                    continue
+            if any((ax - x) ** 2 + (ay - y) ** 2 < (self.cfg.agent_radius * 2) ** 2 for ax, ay in self.targets):
+                continue
+            if any((agent.x - x) ** 2 + (agent.y - y) ** 2 < (self.cfg.agent_radius * 2) ** 2 for agent in self.agent_states):
+                continue
+            return x, y
+        return self._sample_free_position(self.cfg.agent_radius)
+
+    def _sample_target_position(self) -> tuple[float, float]:
+        """Sample a target position, optionally biased toward harder geometry."""
+        if not (self.cfg.target_prefer_edges or self.cfg.target_prefer_obstacles):
+            return self._sample_free_position(self.cfg.target_radius)
+
+        candidates: list[tuple[float, float, float]] = []
+        for _ in range(32):
+            x, y = self._sample_free_position(self.cfg.target_radius)
+            score = 0.0
+            if self.cfg.target_prefer_edges:
+                edge_dist = min(x, y, self.width - x, self.height - y)
+                score += float(max(0.0, self.cfg.lidar_max_range - edge_dist))
+            if self.cfg.target_prefer_obstacles and self.obstacles:
+                obstacle_gap = min(
+                    math.hypot(
+                        x - float(np.clip(x, rect.left, rect.right)),
+                        y - float(np.clip(y, rect.top, rect.bottom)),
+                    )
+                    for rect in self.obstacles
+                )
+                score += float(max(0.0, self.cfg.lidar_max_range - obstacle_gap))
+            candidates.append((score, x, y))
+        best = max(candidates, key=lambda item: item[0], default=None)
+        if best is None:
+            return self._sample_free_position(self.cfg.target_radius)
+        return float(best[1]), float(best[2])
 
     def _handle_collisions(self, proposed: AgentState) -> bool:
         """Return True if the proposed state collides with bounds/obstacles."""
@@ -860,6 +979,100 @@ class SwarmEnv(ParallelEnv):
         if reward_total != 0.0 and self.cfg.n_agents > 0:
             rewards += reward_total / self.cfg.n_agents
         return reward_total, new_cells
+
+    def _crowding_counts(self) -> np.ndarray:
+        """Return the number of nearby neighbors for each agent."""
+        counts = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        radius_sq = float(self.cfg.crowding_radius) ** 2
+        if radius_sq <= 0.0:
+            return counts
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices:
+                continue
+            for j, other in enumerate(self.agent_states):
+                if i == j or j in self.failed_agent_indices:
+                    continue
+                if (agent.x - other.x) ** 2 + (agent.y - other.y) ** 2 <= radius_sq:
+                    counts[i] += 1
+        return counts
+
+    def _task_unfinished(self) -> bool:
+        """Return whether the episode is still pursuing an unfinished task."""
+        return bool(self.cfg.target_respawn or len(self.targets) > 0 or any(agent.carrying_food for agent in self.agent_states))
+
+    def _apply_trap_recovery_shaping(
+        self,
+        rewards: np.ndarray,
+        prev_positions: np.ndarray,
+        collided_flags: np.ndarray,
+    ) -> tuple[float, float, float, dict[str, int]]:
+        """Apply lightweight stagnation, escape, and crowding shaping."""
+        current_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
+        displacements = np.linalg.norm(current_positions - prev_positions, axis=1)
+        crowding_counts = self._crowding_counts()
+        stuck_reward_total = 0.0
+        escape_reward_total = 0.0
+        crowding_reward_total = 0.0
+        low_displacement_agents = 0
+        stuck_agents = 0
+        crowded_agents = 0
+        task_unfinished = self._task_unfinished()
+
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices:
+                self._collision_streaks[i] = 0
+                self._stuck_counts[i] = 0
+                self._stuck_active[i] = False
+                continue
+
+            if bool(collided_flags[i]):
+                self._collision_streaks[i] += 1
+            else:
+                self._collision_streaks[i] = 0
+            self.episode_max_collision_streak = max(self.episode_max_collision_streak, int(self._collision_streaks[i]))
+
+            low_disp = bool(displacements[i] <= float(self.cfg.trap_min_displacement))
+            if low_disp:
+                low_displacement_agents += 1
+                self.episode_low_displacement_steps += 1
+
+            crowded = bool(crowding_counts[i] >= int(self.cfg.crowding_min_neighbors))
+            if crowded:
+                crowded_agents += 1
+
+            no_progress = task_unfinished and (low_disp or self._collision_streaks[i] >= 2)
+            if no_progress:
+                self._stuck_counts[i] += 1
+            else:
+                if self._stuck_active[i] and displacements[i] >= float(self.cfg.trap_escape_displacement):
+                    rewards[i] += float(self.cfg.reward_escape)
+                    escape_reward_total += float(self.cfg.reward_escape)
+                    self.episode_successful_escapes += 1
+                if self._stuck_active[i]:
+                    self.episode_stuck_duration_total += int(self._stuck_counts[i])
+                self._stuck_counts[i] = 0
+                self._stuck_active[i] = False
+
+            if self._stuck_counts[i] >= int(self.cfg.trap_stuck_steps):
+                stuck_agents += 1
+                if not self._stuck_active[i]:
+                    self._stuck_active[i] = True
+                    self.episode_stuck_events += 1
+                rewards[i] += float(self.cfg.reward_stuck)
+                stuck_reward_total += float(self.cfg.reward_stuck)
+                if crowded:
+                    penalty = float(self.cfg.reward_crowding) * float(max(1, crowding_counts[i]))
+                    rewards[i] += penalty
+                    crowding_reward_total += penalty
+                    self.episode_crowding_steps += 1
+
+        metrics = {
+            "stuck_agents": int(stuck_agents),
+            "low_displacement_agents": int(low_displacement_agents),
+            "crowded_agents": int(crowded_agents),
+            "current_max_collision_streak": int(self._collision_streaks.max()) if self._collision_streaks.size else 0,
+        }
+        return stuck_reward_total, escape_reward_total, crowding_reward_total, metrics
 
     def _apply_food_shaping(self, rewards: np.ndarray) -> tuple[float, float]:
         """Apply local food-detection shaping without changing the observation contract."""

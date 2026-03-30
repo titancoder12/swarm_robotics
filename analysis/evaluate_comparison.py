@@ -253,6 +253,12 @@ def _run_episode(
         "efficiency": float(targets_collected / max(env.cfg.n_agents, 1)),
         "time_to_first_discovery": int(time_to_first_discovery),
         "pheromone_usage": float(np.mean(pheromone_usage_values)) if pheromone_usage_values else 0.0,
+        "low_displacement_fraction": float(info.get("low_displacement_fraction", 0.0)),
+        "crowding_fraction": float(info.get("crowding_fraction", 0.0)),
+        "stuck_event_count": float(info.get("episode_stuck_events", 0)),
+        "successful_escape_count": float(info.get("episode_successful_escapes", 0)),
+        "mean_stuck_duration": float(info.get("mean_stuck_duration", 0.0)),
+        "max_collision_streak": float(info.get("episode_max_collision_streak", 0)),
         "collisions": int(collisions),
         "new_cells_visited": int(new_cells_visited),
         "episode_length": int(episode_length),
@@ -291,6 +297,12 @@ def _aggregate_rows(rows: list[dict]) -> list[dict]:
         "time_to_first_discovery",
         "total_reward",
         "pheromone_usage",
+        "low_displacement_fraction",
+        "crowding_fraction",
+        "stuck_event_count",
+        "successful_escape_count",
+        "mean_stuck_duration",
+        "max_collision_streak",
         "collisions",
         "coverage",
         "food_delivered",
@@ -502,6 +514,12 @@ def run(args):
         "total_reward",
         "mean_episode_reward",
         "pheromone_usage",
+        "low_displacement_fraction",
+        "crowding_fraction",
+        "stuck_event_count",
+        "successful_escape_count",
+        "mean_stuck_duration",
+        "max_collision_streak",
         "collisions",
         "new_cells_visited",
         "food_discovered",
@@ -529,6 +547,8 @@ def run(args):
     _save_comparison_plot(summary_rows, "coverage_efficiency", "Mean Coverage Efficiency", "Coverage Efficiency vs Agents", f"{filename}_coverage_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
     _save_comparison_plot(summary_rows, "efficiency", "Mean Efficiency", "Efficiency vs Agents", f"{filename}_efficiency_vs_agents", graph_png_dir, graph_pdf_dir)
     _save_comparison_plot(summary_rows, "time_to_first_discovery", "Mean Time to First Discovery", "Time to First Discovery vs Agents", f"{filename}_time_to_first_discovery_vs_agents", graph_png_dir, graph_pdf_dir)
+    _save_comparison_plot(summary_rows, "stuck_event_count", "Mean Stuck Events", "Stuck Events vs Agents", f"{filename}_stuck_events_vs_agents", graph_png_dir, graph_pdf_dir)
+    _save_comparison_plot(summary_rows, "successful_escape_count", "Mean Successful Escapes", "Successful Escapes vs Agents", f"{filename}_successful_escapes_vs_agents", graph_png_dir, graph_pdf_dir)
 
     write_json(
         os.path.join(args.output_dir, f"{filename}_metadata.json"),

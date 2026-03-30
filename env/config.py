@@ -93,6 +93,9 @@ class SwarmConfig:
     reward_pheromone_follow: float = 0.02   # light local gradient preference
     reward_pheromone_deposit_cost: float = -0.001  # discourage spam without suppressing use
     reward_action_switch: float = -0.01
+    reward_stuck: float = -0.02            # discourage repeated non-progress
+    reward_escape: float = 0.03            # small recovery reward after escape
+    reward_crowding: float = -0.005        # discourage jammed clusters
     pheromone_follow_min_gradient: float = 0.05
 
     # Task
@@ -103,6 +106,14 @@ class SwarmConfig:
     coverage_cell_size: int = 24
     failed_agent_count: int = 0
     observation_noise_std: float = 0.0
+    trap_min_displacement: float = 4.0
+    trap_escape_displacement: float = 12.0
+    trap_stuck_steps: int = 6
+    crowding_radius: float = 28.0
+    crowding_min_neighbors: int = 1
+    target_prefer_edges: bool = False
+    target_prefer_obstacles: bool = False
+    agent_spawn_cluster_radius: float = 0.0
 
     # Rendering
     render_pheromone: bool = True

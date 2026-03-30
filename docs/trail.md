@@ -345,3 +345,68 @@ closely than before:
 That does not guarantee strong trail formation from a short run, but it means
 the code is now aligned with the intended `discover -> return -> deposit ->
 exploit` story rather than fighting it.
+
+## 12. Trap Recovery and Route Robustness
+
+For trail formation to remain useful in harder environments, the swarm also
+needs to avoid getting trapped in local pockets, wall jams, or dense clusters
+near a target.
+
+That means a good trail-learning system is not only:
+
+- discover a route
+- reinforce the route
+
+It is also:
+
+- notice when the local route is failing
+- break out of the local trap
+- avoid piling more agents into the same jam
+- resume the larger target-return-trail loop
+
+### 12.1 Why This Matters For Trail Formation
+
+If agents cannot recover from local traps, pheromone can become counterproductive:
+
+- one early success may create a strong attractor
+- later agents follow into the same bad local geometry
+- congestion grows near the target or obstacle pocket
+- the trail stops functioning as a useful route memory
+
+So trap recovery is part of making stigmergic route learning robust, not a
+separate concern.
+
+### 12.2 Training Implications
+
+The intended training behavior should now support:
+
+1. small penalty for prolonged non-progress
+2. small reward for escaping a recent stuck state
+3. small penalty for local crowding when the agent is jammed
+4. harder later-stage worlds with more crowding and awkward geometry
+5. recurrent policies that can use recent history to detect repeated failure
+
+The key design constraint is:
+
+- trap recovery should help the main task
+- it should not replace pickup, delivery, and trail formation as the real goal
+
+### 12.3 What To Measure
+
+To know whether the system is improving, it is useful to track:
+
+1. low-displacement fraction
+2. stuck-event count
+3. successful escape count
+4. mean stuck duration
+5. collision streaks
+6. crowding fraction
+7. pickup and delivery under harder trap-heavy stages
+
+That lets the project distinguish:
+
+- easier environments
+
+from:
+
+- genuinely more capable agents
