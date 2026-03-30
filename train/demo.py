@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import random
 import sys
@@ -68,6 +69,35 @@ def load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: in
     for net in nets:
         net.eval()
     return nets
+
+
+def _load_checkpoint_metadata(checkpoint_dir: str) -> dict | None:
+    metadata_path = os.path.join(checkpoint_dir, "metadata.json")
+    if not os.path.exists(metadata_path):
+        return None
+    with open(metadata_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _build_demo_env(args):
+    metadata = None
+    args_copy = argparse.Namespace(**vars(args))
+    if args.backend == "mappo":
+        metadata = _load_checkpoint_metadata(args.checkpoint_dir)
+        if metadata:
+            args_copy.n_agents = int(metadata.get("n_agents", args_copy.n_agents))
+            args_copy.n_targets = int(metadata.get("n_targets", getattr(args_copy, "n_targets", 4)))
+            args_copy.n_obstacles = int(metadata.get("n_obstacles", getattr(args_copy, "n_obstacles", 6)))
+            args_copy.max_steps_per_episode = int(metadata.get("max_steps", getattr(args_copy, "max_steps_per_episode", 600)))
+            args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 4)))
+            args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", False)))
+
+    cfg = make_swarm_config(args_copy)
+    if metadata:
+        cfg.width = int(metadata.get("width", cfg.width))
+        cfg.height = int(metadata.get("height", cfg.height))
+    env = SwarmEnv(cfg, headless=args.headless)
+    return args_copy, cfg, env, metadata
 
 
 def _custom_demo(env, obs, agent_ids, args):
@@ -430,28 +460,34 @@ def main():
     args = parse_args()
 
     # 2) Build config + environment, then reset to get initial observations.
-    cfg = make_swarm_config(args)
-    env = SwarmEnv(cfg, headless=args.headless)
+    demo_args, cfg, env, metadata = _build_demo_env(args)
+    if metadata:
+        print(
+            f"[demo] Loaded MAPPO stage metadata from {args.checkpoint_dir}: "
+            f"agents={cfg.n_agents} size={cfg.width}x{cfg.height} "
+            f"targets={cfg.n_targets} obstacles={cfg.n_obstacles} "
+            f"max_steps={cfg.max_steps}"
+        )
     obs_dict, _ = env.reset(seed=args.seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
-    if args.headless and args.max_steps <= 0:
-        args.max_steps = int(cfg.max_steps)
-    if not args.headless:
+    if demo_args.headless and demo_args.max_steps <= 0:
+        demo_args.max_steps = int(cfg.max_steps)
+    if not demo_args.headless:
         env.render(fps=60) # render first frame
 
-    if args.backend == "custom":
-        _custom_demo(env, obs, agent_ids, args)
-    elif args.backend == "sb3":
-        _sb3_demo(env, obs_dict, agent_ids, args)
-    elif args.backend == "rllib":
-        _rllib_demo(env, obs_dict, agent_ids, args)
-    elif args.backend == "mappo":
-        _mappo_demo(env, obs_dict, agent_ids, args)
-    elif args.backend == "random":
-        _random_demo(env, obs_dict, agent_ids, args)
+    if demo_args.backend == "custom":
+        _custom_demo(env, obs, agent_ids, demo_args)
+    elif demo_args.backend == "sb3":
+        _sb3_demo(env, obs_dict, agent_ids, demo_args)
+    elif demo_args.backend == "rllib":
+        _rllib_demo(env, obs_dict, agent_ids, demo_args)
+    elif demo_args.backend == "mappo":
+        _mappo_demo(env, obs_dict, agent_ids, demo_args)
+    elif demo_args.backend == "random":
+        _random_demo(env, obs_dict, agent_ids, demo_args)
     else:
-        raise ValueError(f"Unsupported backend: {args.backend}")
+        raise ValueError(f"Unsupported backend: {demo_args.backend}")
 
     env.close()
 
