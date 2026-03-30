@@ -90,8 +90,9 @@ def _build_env(args, stage):
     args_copy.max_steps_per_episode = int(stage.max_steps)
     args_copy.active_targets = int(stage.active_targets)
     args_copy.target_respawn = bool(stage.target_respawn)
-    args_copy.use_pheromone = bool(stage.pheromone_enabled)
-    args_copy.pheromone_disabled = not bool(stage.pheromone_enabled)
+    pheromone_enabled = bool(getattr(stage, "pheromone_enabled", stage.n_agents > 1))
+    args_copy.use_pheromone = pheromone_enabled
+    args_copy.pheromone_disabled = not pheromone_enabled
     cfg = make_swarm_config(args_copy)
     cfg.width = int(stage.width)
     cfg.height = int(stage.height)
@@ -619,33 +620,33 @@ def train(args):
                     )
 
         stage_ckpt_dir = os.path.join(checkpoint_root, stage.name)
+        latest_ckpt_dir = os.path.join(checkpoint_root, "latest")
         _save_checkpoint(stage_ckpt_dir, actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
-        _save_checkpoint(os.path.join(checkpoint_root, "latest"), actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
+        _save_checkpoint(latest_ckpt_dir, actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
         carried_actor_state = actor.state_dict()
-        write_json(
-            os.path.join(stage_ckpt_dir, "metadata.json"),
-            {
-                "algorithm": "recurrent_mappo_gru",
-                "stage": stage.name,
-                "global_step": global_step,
-                "n_agents": cfg.n_agents,
-                "width": cfg.width,
-                "height": cfg.height,
-                "n_targets": cfg.n_targets,
-                "n_obstacles": cfg.n_obstacles,
-                "max_steps": cfg.max_steps,
-                "active_targets": cfg.active_targets,
-                "target_respawn": bool(cfg.target_respawn),
-                "pheromone_enabled": bool(cfg.pheromone_enabled),
-                "obs_dim": spaces.obs_dim,
-                "action_dim": spaces.action_dim,
-                "state_dim": spaces.state_dim,
-                "hidden_size": mappo_cfg.hidden_size,
-                "decentralized_execution": True,
-                "curriculum_actor_transfer": True,
-                "critic_reset_reason": "centralized_state_dim_changes_with_stage" if stage_index < len(curriculum) else "",
-            },
-        )
+        metadata = {
+            "algorithm": "recurrent_mappo_gru",
+            "stage": stage.name,
+            "global_step": global_step,
+            "n_agents": cfg.n_agents,
+            "width": cfg.width,
+            "height": cfg.height,
+            "n_targets": cfg.n_targets,
+            "n_obstacles": cfg.n_obstacles,
+            "max_steps": cfg.max_steps,
+            "active_targets": cfg.active_targets,
+            "target_respawn": bool(cfg.target_respawn),
+            "pheromone_enabled": bool(cfg.pheromone_enabled),
+            "obs_dim": spaces.obs_dim,
+            "action_dim": spaces.action_dim,
+            "state_dim": spaces.state_dim,
+            "hidden_size": mappo_cfg.hidden_size,
+            "decentralized_execution": True,
+            "curriculum_actor_transfer": True,
+            "critic_reset_reason": "centralized_state_dim_changes_with_stage" if stage_index < len(curriculum) else "",
+        }
+        write_json(os.path.join(stage_ckpt_dir, "metadata.json"), metadata)
+        write_json(os.path.join(latest_ckpt_dir, "metadata.json"), metadata)
         stage_elapsed = time.time() - stage_start_time
         print(
             f"[MAPPO] Completed {stage.name} | "
