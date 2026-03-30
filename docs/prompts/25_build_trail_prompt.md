@@ -267,6 +267,9 @@ PART 10 — DOCUMENTATION REQUIREMENTS
 
 Update documentation as part of the implementation.
 
+Do not treat documentation updates as a narrow afterthought.
+Review the repo’s current docs and make sure they reflect the actual current system rather than older assumptions.
+
 Required doc updates:
 
 1. explain how the repo now trains for:
@@ -282,10 +285,34 @@ Required doc updates:
 
 6. explain the role of exploration early and exploitation later
 
+7. update `README.md`
+   - include a short explanation of the trail-formation objective
+   - include copy-paste-ready commands for training
+   - include copy-paste-ready commands for demo / evaluation runs
+
+8. include example commands that a user can later run directly
+   - at least one training command for the main trail-learning path
+   - at least one shorter smoke-test training command
+   - at least one demo command for the resulting policy
+   - if applicable, one comparison/evaluation command for pheromone-on vs pheromone-off or related trail validation
+
+9. review existing docs for staleness
+   - check the major docs that describe training, evaluation, environment behavior, observation/action spaces, curriculum flow, and deployment-facing usage
+   - update outdated statements so they match the current implementation
+   - remove or correct stale claims rather than leaving contradictions in place
+   - make the docs reflect the best current understanding of the system after the trail changes are implemented
+
 Also update:
 
+- `README.md`
 - `docs/PROJECT_LOG.md`
 - `docs/QandA.md` when user-facing codebase questions are naturally answered by the work
+
+Expected documentation standard:
+
+- after the implementation, the docs should read as a coherent description of the current system
+- major docs should not contradict current code behavior
+- stale references to older behavior should be updated wherever they materially affect understanding of training, demo, evaluation, pheromone logic, or curriculum
 
 --------------------------------------------------
 PART 11 — IMPLEMENTATION PRIORITIES
@@ -350,7 +377,12 @@ After implementation, provide:
 4. how the curriculum supports trail formation
 5. what new metrics/evaluation support was added
 6. exact verification commands run
-7. remaining limitations or deferred work
+7. a small set of copy-paste-ready commands for:
+   - main training
+   - shorter smoke-test training
+   - demo playback
+   - any trail-relevant evaluation/comparison path that was added
+8. remaining limitations or deferred work
 
 --------------------------------------------------
 IMPORTANT
