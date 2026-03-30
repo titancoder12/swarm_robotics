@@ -28,12 +28,12 @@ CLI-to-config mapping helpers:
 | `n_agents` | `int` | `6` | non-negative integer | number of agents, `possible_agents`, observation batch shape, number of Q-networks in independent mode |
 | `n_targets` | `int` | `4` | non-negative integer | number of food targets spawned in `reset()` |
 | `n_obstacles` | `int` | `6` | non-negative integer | number of random rectangular obstacles |
-| `agent_radius` | `float` | `10.0` | positive | collision bounds, render radius, pheromone sampling spacing, target pickup reach, nest delivery reach |
-| `target_radius` | `float` | `10.0` | positive | target render radius and pickup reach |
+| `agent_radius` | `float` | `7.0` | positive | collision bounds, render radius, pheromone sampling spacing, target pickup reach, nest delivery reach |
+| `target_radius` | `float` | `5.0` | positive | target render radius and pickup reach |
 | `nest_radius` | `float` | `22.0` | positive | nest render radius and delivery reach |
 | `max_steps` | `int` | `600` | positive integer | episode truncation threshold |
 | `action_dim` | `int` | `1` | currently unused by env logic | retained field; not used to build the action space |
-| `num_actions` | `int` | `9` | should match action-table size | action-space size returned by `action_space()` |
+| `num_actions` | `int` | `18` | should match action-table size | action-space size returned by `action_space()` |
 | `dt` | `float` | `0.1` | positive | timestep used by dynamics drivers |
 | `max_speed` | `float` | `120.0` | positive | speed scale for actions and speed observation normalization |
 | `max_yaw_rate` | `float` | `2.5` | positive | yaw-rate scale for actions |
@@ -49,25 +49,41 @@ CLI-to-config mapping helpers:
 | `lidar_step` | `float` | `6.0` | positive | ray-marching step size |
 | `obs_include_pheromone` | `bool` | `True` | boolean | if false, pheromone slots remain in obs but are filled with zeros |
 | `pheromone_samples` | `int` | `3` | non-negative integer | number of pheromone observation values |
+| `pheromone_sample_spacing_scale` | `float` | `1.5` | positive | forward spacing multiplier for pheromone observation samples |
 | `obs_include_food_presence` | `bool` | `True` | boolean | adds/removes the food-presence feature from obs layout |
 | `obs_include_nest_direction` | `bool` | `True` | boolean | adds/removes the nest vector from obs layout |
 | `obs_include_carrying` | `bool` | `True` | boolean | adds/removes the carrying-food feature from obs layout |
+| `food_detection_radius` | `float` | `150.0` | positive | target-detection shaping radius |
 | `food_presence_radius` | `float` | `120.0` | positive | threshold for binary `food_presence` observation |
+| `observation_history_steps` | `int` | `3` | positive integer | number of observation frames concatenated into the policy input |
 | `pheromone_enabled` | `bool` | `True` | boolean | enables pheromone-grid allocation and updates |
 | `pheromone_cell_size` | `int` | `6` | positive integer | grid resolution and coordinate conversion |
 | `pheromone_deposit` | `float` | `1.0` | non-negative | base pheromone deposit per agent per step |
 | `pheromone_decay` | `float` | `0.985` | usually `[0, 1]` | multiplicative retention factor applied every step |
 | `pheromone_diffuse_rate` | `float` | `0.25` | usually `[0, 1]` | interpolation weight for diffusion |
+| `pheromone_min_value` | `float` | `1e-3` | non-negative | values below this are zeroed after diffusion |
 | `pheromone_deposit_carrying_scale` | `float` | `1.5` | non-negative | carry-state pheromone multiplier |
-| `reward_target` | `float` | `8.0` | any float | immediate reward when targets do not require nest delivery |
+| `pheromone_requires_food` | `bool` | `True` | boolean | when true, only carrying agents may deposit pheromone |
+| `pheromone_deposit_requires_nest_progress` | `bool` | `True` | boolean | when true, deposition also requires moving closer to the nest |
+| `reward_target` | `float` | `2.0` | any float | immediate reward when targets do not require nest delivery |
 | `reward_step` | `float` | `-0.01` | any float | step cost added to every agent every step |
-| `reward_collision` | `float` | `-0.2` | any float | per-agent collision penalty |
-| `reward_pickup` | `float` | `1.5` | any float | reward on pickup when nest delivery is required |
-| `reward_nest_delivery` | `float` | `10.0` | any float | reward on successful nest return |
-| `reward_exploration` | `float` | `0.02` | any float | reward per newly visited coverage cell |
+| `reward_collision` | `float` | `-1.5` | any float | per-agent collision penalty |
+| `reward_pickup` | `float` | `8.0` | any float | reward on pickup when nest delivery is required |
+| `reward_nest_delivery` | `float` | `30.0` | any float | reward on successful nest return |
+| `reward_nest_approach` | `float` | `0.08` | any float | signed shaping for carrying-food progress toward nest |
+| `reward_exploration` | `float` | `0.0` | any float | currently unused compatibility field |
+| `reward_new_cell` | `float` | `0.02` | any float | reward per newly visited coverage cell |
+| `reward_food_approach` | `float` | `0.03` | any float | signed shaping for progress toward detectable food |
+| `reward_food_detected` | `float` | `0.15` | any float | one-time reward when food becomes detectable |
+| `reward_pheromone_follow` | `float` | `0.02` | any float | local forward-gradient pheromone shaping term |
+| `reward_pheromone_deposit_cost` | `float` | `-0.001` | any float | cost applied only when a pheromone deposit succeeds |
+| `reward_action_switch` | `float` | `-0.01` | any float | penalty when executed action changes |
 | `reward_pheromone_following` | `float` | `0.0` | any float | multiplier for pheromone-usage shaping reward |
+| `pheromone_follow_min_gradient` | `float` | `0.05` | non-negative | minimum forward pheromone gradient for follow shaping |
 | `nest_enabled` | `bool` | `True` | boolean | enables nest spawn, render, and nest-direction observation |
 | `require_nest_delivery` | `bool` | `True` | boolean | if true, food must be carried to the nest for full task completion |
+| `active_targets` | `int` | `4` | positive integer | target count maintained when `target_respawn` is enabled |
+| `target_respawn` | `bool` | `False` | boolean | when true, targets are respawned back up to `active_targets` |
 | `coverage_cell_size` | `int` | `24` | positive integer | exploration-grid resolution |
 | `failed_agent_count` | `int` | `0` | non-negative integer | number of agents randomly disabled per episode |
 | `observation_noise_std` | `float` | `0.0` | non-negative | std of additive Gaussian observation noise |
@@ -85,6 +101,12 @@ CLI-to-config mapping helpers:
 
 These directly change `obs_dim` in `_compute_obs_dim()`.
 
+The current default is:
+
+- 23 features per frame
+- 3 stacked frames
+- flattened `obs_dim = 69`
+
 ### Fields that change pheromone behavior
 
 - `pheromone_enabled`
@@ -97,6 +119,8 @@ These directly change `obs_dim` in `_compute_obs_dim()`.
 - `pheromone_decay`
 - `pheromone_diffuse_rate`
 - `pheromone_deposit_carrying_scale`
+- `pheromone_requires_food`
+- `pheromone_deposit_requires_nest_progress`
 
 ### Fields that change dynamics behavior
 
@@ -129,18 +153,36 @@ The shared CLI config layer is implemented in [train/experiment_utils.py](../tra
 - `--n-obstacles`
 - `--max-steps-per-episode`
 - `--dynamics-mode`
+- `--action-repeat-steps`
+- `--use-pheromone` / `--no-use-pheromone`
 - `--pheromone-disabled`
 - `--failed-agent-count`
 - `--observation-noise-std`
+- `--observation-history-steps`
+- `--food-detection-radius`
+- `--reward-target`
+- `--reward-pickup`
+- `--reward-nest-delivery`
+- `--reward-nest-approach`
+- `--reward-food-approach`
+- `--reward-food-detected`
+- `--reward-pheromone-follow`
+- `--reward-pheromone-deposit-cost`
+- `--reward-action-switch`
+- `--reward-new-cell`
+- `--pheromone-requires-food` / `--no-pheromone-requires-food`
+- `--pheromone-deposit-requires-nest-progress` / `--no-pheromone-deposit-requires-nest-progress`
+- `--active-targets`
+- `--target-respawn` / `--no-target-respawn`
 
 ### `make_swarm_config(args)`
 
 `make_swarm_config(args)` maps CLI args into a `SwarmConfig` and also applies a coupling:
 
 ```python
-pheromone_enabled = not getattr(args, "pheromone_disabled", False)
+pheromone_enabled = bool(getattr(args, "use_pheromone", True)) and not getattr(args, "pheromone_disabled", False)
 render_pheromone = pheromone_enabled
-obs_include_pheromone = pheromone_enabled
+obs_include_pheromone = True
 ```
 
 So if `--pheromone-disabled` is passed:

@@ -21,7 +21,7 @@ In this repo:
 
 Example mental model:
 
-- if `obs_dim = 19` and `action_dim = 9`
+- if `obs_dim = 69` and `action_dim = 18`
 - the network maps `19 -> 128 -> 128 -> 9`
 
 So for one agent at one timestep:

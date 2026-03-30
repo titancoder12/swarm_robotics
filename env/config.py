@@ -57,7 +57,8 @@ class SwarmConfig:
     pheromone_diffuse_rate: float = 0.25
     pheromone_min_value: float = 1e-3
     pheromone_deposit_carrying_scale: float = 1.5
-    pheromone_requires_food: bool = False
+    pheromone_requires_food: bool = True
+    pheromone_deposit_requires_nest_progress: bool = True
 
     # Rewards
     #reward_target: float = 30.0
@@ -74,9 +75,10 @@ class SwarmConfig:
    # reward_pheromone_deposit_cost: float = -0.2 #-0.02
     #pheromone_follow_min_gradient: float = 0.05
 
-    reward_target: float = 30.0              # fallback only when pickup/delivery is disabled
-    reward_pickup: float = 30.0              # meaningful event, but smaller than final completion
-    reward_nest_delivery: float = 0.0 #30.0 #0.0      # main task completion reward
+    reward_target: float = 2.0               # fallback only when pickup/delivery is disabled
+    reward_pickup: float = 8.0               # meaningful event, but smaller than final completion
+    reward_nest_delivery: float = 30.0       # main task completion reward
+    reward_nest_approach: float = 0.08       # carrying-food progress toward nest
 
     reward_step: float = -0.01              # gentle time pressure
     reward_collision: float = -1.5          # collisions should clearly hurt, but not dominate
@@ -84,12 +86,12 @@ class SwarmConfig:
     reward_exploration: float = 0.0         # currently unused in env step path
     reward_new_cell: float = 0.02           # small exploration bonus
 
-    reward_food_approach: float = 0.05      # small signed shaping only
-    reward_food_detected: float = 0.2       # one-time local cue, kept modest
+    reward_food_approach: float = 0.03      # small signed shaping only
+    reward_food_detected: float = 0.15      # one-time local cue, kept modest
 
     reward_pheromone_following: float = 0.0 # keep global usage reward off by default
-    reward_pheromone_follow: float = 0.01   # light local gradient preference
-    reward_pheromone_deposit_cost: float = -0.002  # discourage spam without suppressing use
+    reward_pheromone_follow: float = 0.02   # light local gradient preference
+    reward_pheromone_deposit_cost: float = -0.001  # discourage spam without suppressing use
     reward_action_switch: float = -0.01
     pheromone_follow_min_gradient: float = 0.05
 

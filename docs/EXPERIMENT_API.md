@@ -8,7 +8,7 @@ Experiment code lives in:
 
 - [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
 - [train/run_experiments.py](../train/run_experiments.py)
-- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate.py](../analysis/evaluate.py)
 - [train/experiment_utils.py](../train/experiment_utils.py)
 - [analysis/plot_metrics.py](../analysis/plot_metrics.py)
 
@@ -137,7 +137,7 @@ Arguments:
 
 ### `train.evaluate.run(args) -> str`
 
-Experiments reuse [train/evaluate.py](../train/evaluate.py) for evaluation.
+Experiments reuse [analysis/evaluate.py](../analysis/evaluate.py) for evaluation.
 
 Supported policy kinds:
 

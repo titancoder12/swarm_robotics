@@ -713,5 +713,4 @@ After this document, the best files to read are:
 
 1. [models/q_network.py](../models/q_network.py)
 2. [env/swarm_env.py](../env/swarm_env.py)
-3. [train/evaluate.py](../train/evaluate.py)
-
+3. [analysis/evaluate.py](../analysis/evaluate.py)

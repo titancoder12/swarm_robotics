@@ -209,13 +209,19 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--observation-noise-std", type=float, default=0.0)
     parser.add_argument("--observation-history-steps", type=int, default=3)
     parser.add_argument("--food-detection-radius", type=float, default=150.0)
-    parser.add_argument("--reward-food-approach", type=float, default=0.2)
-    parser.add_argument("--reward-food-detected", type=float, default=0.05)
-    parser.add_argument("--reward-pheromone-follow", type=float, default=0.03)
+    parser.add_argument("--reward-food-approach", type=float, default=0.03)
+    parser.add_argument("--reward-food-detected", type=float, default=0.15)
+    parser.add_argument("--reward-pheromone-follow", type=float, default=0.02)
+    parser.add_argument("--reward-target", type=float, default=2.0)
+    parser.add_argument("--reward-pickup", type=float, default=8.0)
+    parser.add_argument("--reward-nest-delivery", type=float, default=30.0)
+    parser.add_argument("--reward-nest-approach", type=float, default=0.08)
+    parser.add_argument("--reward-pheromone-deposit-cost", type=float, default=-0.001)
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.02)
-    parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--eval-steps", type=int, default=600)
     parser.add_argument("--active-targets", type=int, default=4)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
@@ -238,13 +244,19 @@ def make_swarm_config(args) -> SwarmConfig:
         obs_include_pheromone=True,
         food_detection_radius=getattr(args, "food_detection_radius", 150.0),
         pheromone_requires_food=bool(getattr(args, "pheromone_requires_food", True)),
+        pheromone_deposit_requires_nest_progress=bool(getattr(args, "pheromone_deposit_requires_nest_progress", True)),
         failed_agent_count=getattr(args, "failed_agent_count", 0),
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
         observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),
         reward_new_cell=getattr(args, "reward_new_cell", 0.02),
-        reward_food_approach=getattr(args, "reward_food_approach", 0.2),
-        reward_food_detected=getattr(args, "reward_food_detected", 0.05),
-        reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.03),
+        reward_target=getattr(args, "reward_target", 2.0),
+        reward_pickup=getattr(args, "reward_pickup", 8.0),
+        reward_nest_delivery=getattr(args, "reward_nest_delivery", 30.0),
+        reward_nest_approach=getattr(args, "reward_nest_approach", 0.08),
+        reward_food_approach=getattr(args, "reward_food_approach", 0.03),
+        reward_food_detected=getattr(args, "reward_food_detected", 0.15),
+        reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.02),
+        reward_pheromone_deposit_cost=getattr(args, "reward_pheromone_deposit_cost", -0.001),
         reward_action_switch=getattr(args, "reward_action_switch", -0.01),
         pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
         active_targets=active_targets,

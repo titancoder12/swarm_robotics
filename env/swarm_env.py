@@ -110,9 +110,14 @@ class SwarmEnv(ParallelEnv):
         self.failed_agent_indices: set[int] = set()
         self._prev_detectable_food_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         self._prev_food_detected = np.zeros((self.cfg.n_agents,), dtype=np.bool_)
+        self._prev_nest_distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
         self._held_actions = np.zeros((self.cfg.n_agents,), dtype=np.int64)
         self._hold_remaining = np.zeros((self.cfg.n_agents,), dtype=np.int32)
         self._prev_executed_actions = np.full((self.cfg.n_agents,), -1, dtype=np.int64)
+        self.episode_targets_collected = 0
+        self.episode_pheromone_deposit_events = 0
+        self.first_pickup_step: int | None = None
+        self.first_delivery_step: int | None = None
 
         self.step_count = 0
         self.terminated = False
@@ -300,10 +305,15 @@ class SwarmEnv(ParallelEnv):
         self._spawn_targets()
         self._spawn_agents()
         self.food_delivered = 0
+        self.episode_targets_collected = 0
+        self.episode_pheromone_deposit_events = 0
+        self.first_pickup_step = None
+        self.first_delivery_step = None
         self._init_coverage_grid()
         self._assign_failed_agents()
         self._update_coverage()
         self._reset_food_shaping_state()
+        self._prev_nest_distances = self._compute_nest_distance_state()
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -345,6 +355,9 @@ class SwarmEnv(ParallelEnv):
                 self._held_actions[i] = actions[i]
                 self._hold_remaining[i] = max(int(self.cfg.action_repeat_steps) - 1, 0)
 
+        current_step = self.step_count + 1
+        prev_nest_distances = self._prev_nest_distances.copy()
+
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
         collisions = 0
@@ -352,6 +365,7 @@ class SwarmEnv(ParallelEnv):
             "step": float(self.cfg.reward_step * self.cfg.n_agents),
             "pickup": 0.0,
             "delivery": 0.0,
+            "nest_approach": 0.0,
             "collision": 0.0,
             "new_cell": 0.0,
             "food_approach": 0.0,
@@ -396,6 +410,8 @@ class SwarmEnv(ParallelEnv):
         picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
         reward_breakdown["pickup"] += float(pickup_reward)
         reward_breakdown["delivery"] += float(delivery_reward)
+        nest_approach_reward = self._apply_nest_return_shaping(rewards, prev_nest_distances)
+        reward_breakdown["nest_approach"] += float(nest_approach_reward)
 
         food_approach_reward, food_detect_reward = self._apply_food_shaping(rewards)
         reward_breakdown["food_approach"] += float(food_approach_reward)
@@ -409,11 +425,22 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["pheromone_follow"] += float(pheromone_follow_reward)
 
         if self.cfg.pheromone_enabled:
-            pheromone_deposit_events, pheromone_deposit_cost = self._update_pheromone(actions, rewards)
+            pheromone_deposit_events, pheromone_deposit_cost = self._update_pheromone(
+                actions,
+                rewards,
+                prev_nest_distances,
+            )
         else:
             pheromone_deposit_events = 0
             pheromone_deposit_cost = 0.0
         reward_breakdown["pheromone_deposit"] += float(pheromone_deposit_cost)
+        self._prev_nest_distances = self._compute_nest_distance_state()
+        self.episode_targets_collected += int(picked_up)
+        self.episode_pheromone_deposit_events += int(pheromone_deposit_events)
+        if picked_up > 0 and self.first_pickup_step is None:
+            self.first_pickup_step = current_step
+        if delivered > 0 and self.first_delivery_step is None:
+            self.first_delivery_step = current_step
 
         # Episode end conditions.
         self.step_count += 1
@@ -433,13 +460,24 @@ class SwarmEnv(ParallelEnv):
         truncations = {agent: self.truncated for agent in self.possible_agents}
         info = {
             "targets_collected": picked_up,
+            "episode_targets_collected": self.episode_targets_collected,
             "food_delivered": delivered,
+            "episode_food_delivered": self.food_delivered,
             "collisions": collisions,
             "new_cells_visited": new_cells,
             "coverage_reward_total": coverage_reward_total,
             "exploration_coverage": self._coverage_ratio(),
             "pheromone_usage": pheromone_usage,
             "pheromone_deposit_events": pheromone_deposit_events,
+            "episode_pheromone_deposit_events": self.episode_pheromone_deposit_events,
+            "first_pickup_step": self.first_pickup_step if self.first_pickup_step is not None else -1,
+            "first_delivery_step": self.first_delivery_step if self.first_delivery_step is not None else -1,
+            "pickup_to_delivery_latency": (
+                self.first_delivery_step - self.first_pickup_step
+                if self.first_pickup_step is not None and self.first_delivery_step is not None
+                else -1
+            ),
+            "carrying_agents": int(sum(1 for agent in self.agent_states if agent.carrying_food)),
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
             "active_targets": len(self.targets),
@@ -856,6 +894,39 @@ class SwarmEnv(ParallelEnv):
         self._prev_food_detected = current_detected
         return approach_total, detected_total
 
+    def _compute_nest_distance_state(self) -> np.ndarray:
+        """Return current per-agent distances to the nest."""
+        if not self.cfg.nest_enabled:
+            return np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
+        nx, ny = self.nest_position
+        distances = np.full((self.cfg.n_agents,), np.inf, dtype=np.float32)
+        for i, agent in enumerate(self.agent_states):
+            distances[i] = float(math.hypot(agent.x - nx, agent.y - ny))
+        return distances
+
+    def _apply_nest_return_shaping(self, rewards: np.ndarray, prev_nest_distances: np.ndarray) -> float:
+        """Reward carrying agents for making signed progress back toward the nest."""
+        if not (self.cfg.nest_enabled and self.cfg.require_nest_delivery):
+            return 0.0
+        current_distances = self._compute_nest_distance_state()
+        reward_total = 0.0
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or not agent.carrying_food:
+                continue
+            prev_dist = float(prev_nest_distances[i])
+            curr_dist = float(current_distances[i])
+            if not (np.isfinite(prev_dist) and np.isfinite(curr_dist)) or curr_dist == prev_dist:
+                continue
+            progress = np.clip(
+                (prev_dist - curr_dist) / max(float(self.cfg.lidar_max_range), 1e-6),
+                -1.0,
+                1.0,
+            )
+            reward = float(self.cfg.reward_nest_approach) * progress
+            rewards[i] += reward
+            reward_total += reward
+        return reward_total
+
     def _apply_pheromone_reward(self, rewards: np.ndarray, actions: np.ndarray) -> tuple[float, float, float]:
         """Apply conservative pheromone shaping using existing sample geometry."""
         usage = self._mean_pheromone_usage()
@@ -884,7 +955,12 @@ class SwarmEnv(ParallelEnv):
             follow_reward_total += reward
         return usage_reward_total, follow_reward_total, usage
 
-    def _update_pheromone(self, actions: np.ndarray, rewards: np.ndarray) -> tuple[int, float]:
+    def _update_pheromone(
+        self,
+        actions: np.ndarray,
+        rewards: np.ndarray,
+        prev_nest_distances: np.ndarray,
+    ) -> tuple[int, float]:
         """Deposit, decay, and diffuse pheromone values."""
         # Deposit pheromone only for agents whose action explicitly requested it,
         # then decay/diffuse the grid globally. When pheromone_requires_food is
@@ -893,6 +969,7 @@ class SwarmEnv(ParallelEnv):
         cell = self.cfg.pheromone_cell_size
         deposit_events = 0
         deposit_cost_total = 0.0
+        current_nest_distances = self._compute_nest_distance_state()
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices:
                 continue
@@ -901,6 +978,11 @@ class SwarmEnv(ParallelEnv):
                 continue
             if self.cfg.pheromone_requires_food and not agent.carrying_food:
                 continue
+            if self.cfg.pheromone_deposit_requires_nest_progress:
+                prev_dist = float(prev_nest_distances[i])
+                curr_dist = float(current_nest_distances[i])
+                if not (np.isfinite(prev_dist) and np.isfinite(curr_dist)) or curr_dist >= prev_dist:
+                    continue
             gx = int(agent.x // cell)
             gy = int(agent.y // cell)
             if 0 <= gy < grid.shape[0] and 0 <= gx < grid.shape[1]:

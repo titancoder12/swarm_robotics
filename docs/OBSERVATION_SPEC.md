@@ -12,7 +12,7 @@ Observation shape and ordering are defined in:
 Per-component helper methods:
 
 - `_lidar_scan()`
-- `_nearest_target_vector()`
+- `_nearest_target_features()`
 - `_nest_direction()`
 - `_nearest_agent_vector()`
 - `_food_presence()`

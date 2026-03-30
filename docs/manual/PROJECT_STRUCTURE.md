@@ -24,7 +24,7 @@ Training, evaluation, and experiment orchestration.
 
 - [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
   - main custom DQN training path
-- [train/evaluate.py](../../train/evaluate.py)
+- [analysis/evaluate.py](../../analysis/evaluate.py)
   - shared evaluation for DQN and rule-based policies
 - [train/experiment_utils.py](../../train/experiment_utils.py)
   - CSV logging, JSON writing, config helpers, aggregation helpers
@@ -155,6 +155,6 @@ If you are reading the code for the first time:
 
 1. [env/swarm_env.py](../../env/swarm_env.py)
 2. [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
-3. [train/evaluate.py](../../train/evaluate.py)
+3. [analysis/evaluate.py](../../analysis/evaluate.py)
 4. [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
 5. [train/run_experiments.py](../../train/run_experiments.py)

@@ -8,18 +8,18 @@ This document explains the practical evaluation paths in this repo:
 
 The main entry points are:
 
-- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate.py](../analysis/evaluate.py)
 - [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py)
 - [experiments/benchmark_configs.py](../experiments/benchmark_configs.py)
 
 ## 1. Single-Model Evaluation
 
-Use [train/evaluate.py](../train/evaluate.py) when you want to evaluate one checkpoint or the rule-based baseline.
+Use [analysis/evaluate.py](../analysis/evaluate.py) when you want to evaluate one checkpoint or the rule-based baseline.
 
 ### Shared-policy checkpoint
 
 ```bash
-./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_shared --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
+./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_shared --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
 ```
 
 ### Pheromone-enabled vs pheromone-disabled
@@ -27,27 +27,33 @@ Use [train/evaluate.py](../train/evaluate.py) when you want to evaluate one chec
 Pheromone on:
 
 ```bash
-./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_on --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --use-pheromone
+./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_on --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --use-pheromone
 ```
 
 Pheromone off:
 
 ```bash
-./.venv/bin/python train/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_off --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_off --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
 ```
 
 ### Rule-based baseline
 
 ```bash
-./.venv/bin/python train/evaluate.py --policy-kind rule_based --filename eval_rule_based --output-dir runs/rule_eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+./.venv/bin/python analysis/evaluate.py --policy-kind rule_based --filename eval_rule_based --output-dir runs/rule_eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
 ```
 
-## 2. What `train/evaluate.py` Writes
+### MAPPO GRU checkpoint
+
+```bash
+./.venv/bin/python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --filename eval_mappo_trail --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
+```
+
+## 2. What `analysis/evaluate.py` Writes
 
 For a run such as:
 
 ```bash
-./.venv/bin/python train/evaluate.py --filename eval_shared --output-dir runs/eval ...
+./.venv/bin/python analysis/evaluate.py --filename eval_shared --output-dir runs/eval ...
 ```
 
 the script writes:
@@ -181,7 +187,7 @@ Typical flow:
 2. Train a pheromone-disabled model.
 3. Confirm the checkpoints exist in directories such as:
    - [checkpoints/full_policy/](../checkpoints/full_policy/)
-4. Run a quick single-checkpoint evaluation with [train/evaluate.py](../train/evaluate.py).
+4. Run a quick single-checkpoint evaluation with [analysis/evaluate.py](../analysis/evaluate.py).
 5. Run the multi-condition comparison with [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py).
 6. Inspect:
    - raw CSVs in `experiments/experiment_data/raw/`

@@ -11,7 +11,13 @@ Decentralized swarm systems have applications in environments where communicatio
 
 # Swarm RL PyGame Environment (Stigmergy)
 
-A minimal multi-agent PyGame environment for swarm RL with pheromone stigmergy, using the PettingZoo Parallel API, plus random rollout and DQN training scripts.
+A multi-agent PyGame environment for swarm RL with pheromone stigmergy, using
+the PettingZoo Parallel API. The repo currently contains:
+
+- a custom DQN baseline
+- a recurrent GRU MAPPO training path with CTDE
+- demo and evaluation utilities
+- a robot-facing runtime that preserves decentralized inference
 
 ## Screenshots
 
@@ -58,14 +64,57 @@ For robot deployment with [firmware/run.py](firmware/run.py), `pyserial` is now 
 python train/random_rollout.py
 ```
 
-## Quickstart: Train → Demo
+## Quickstart: Trail Learning (Recommended Path)
 
-1. Train headless and save checkpoints:
+The current recommended research path is recurrent MAPPO with the staged
+curriculum. The intended behavior is:
+
+- explore to discover a target
+- pick it up
+- return to the nest
+- deposit pheromone on the successful return route
+- let later agents exploit that trail
+
+Main training run:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
+```
+
+Short smoke test:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
+```
+
+Render the trained MAPPO policy:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+```
+
+Headless MAPPO evaluation:
+
+```bash
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval
+```
+
+Pheromone comparison example:
+
+```bash
+python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_trail_full/latest --checkpoint-without-pheromone checkpoints/mappo_trail_no_pher/latest --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
+```
+
+## Quickstart: DQN Baseline
+
+Train headless and save checkpoints:
+
 ```bash
 python train/independent_dqn_pytorch.py --headless --total-steps 10000 --save-dir checkpoints --folder-name demo_run --save-every 2000
 ```
 
-2. Render the trained policy:
+Render the trained policy:
+
 ```bash
 python train/demo.py --checkpoint-dir checkpoints/demo_run/full_policy
 ```
@@ -142,6 +191,12 @@ RLlib demo:
 python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn
 ```
 
+MAPPO demo:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+```
+
 With a custom Ray temp dir:
 ```bash
 python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn --ray-tmpdir /Users/christopherlin/.ray_tmp
@@ -210,27 +265,46 @@ Methods:
 - `close()`
 
 ### Actions
-Discrete action space with 9 actions: `{throttle ∈ [-1,0,1]} × {turn ∈ [-1,0,1]}`.
-Provide `actions` as a dict keyed by agent id (e.g., `agent_0`) with values in `[0, 8]`.
+Discrete action space with 18 actions:
+`{throttle ∈ [-1,0,1]} × {turn ∈ [-1,0,1]} × {deposit ∈ [0,1]}`.
+Provide `actions` as a dict keyed by agent id (e.g., `agent_0`) with values in `[0, 17]`.
 
 ### Observations
-Each agent gets a local observation vector; `reset`/`step` return a dict of `agent_id -> obs`:
-- 9 lidar rays (normalized)
-- 2D relative vector to nearest target (agent frame, normalized)
-- 2D relative vector to nearest agent (agent frame, normalized)
-- heading as `sin(theta), cos(theta)`
-- speed (normalized)
-- pheromone samples in front of the agent (3 values, normalized)
+Each agent gets a local observation history vector; `reset`/`step` return a
+dict of `agent_id -> obs`.
 
-Default `obs_dim` = 19.
+Current default per-frame features:
+
+- 9 lidar rays
+- 2 nearest detectable target features: distance and relative angle
+- 2 nest-direction features
+- 2 nearest-neighbor features
+- 2 heading features: `sin(theta)`, `cos(theta)`
+- 1 normalized speed feature
+- 1 food-presence flag
+- 1 carrying-food flag
+- 3 pheromone samples
+
+Current default observation size:
+
+- 23 features per frame
+- `observation_history_steps = 3`
+- flattened `obs_dim = 69`
 
 ### Stigmergy (pheromone)
-The environment maintains a pheromone grid:
-- deposit: each agent deposits per step
-- decay: `pheromone *= 0.985`
-- diffuse: simple neighbor averaging
+The environment maintains a pheromone grid with:
 
-Toggle pheromone cues in observation with `SwarmConfig.obs_include_pheromone`.
+- explicit deposit vs no-deposit action choice
+- decay
+- bounded diffusion
+- carrying-food scaling
+- optional gating so deposition only happens while carrying food and making return-to-nest progress
+
+The intended training story is trail formation:
+
+- discovery is expensive early
+- successful returns write route hints into the environment
+- later agents can exploit those hints
 
 ## Files
 - `env/swarm_env.py` : environment implementation
@@ -254,7 +328,8 @@ If you’re new to PyGame and RL, this section gives a quick mental model and a 
 ### What this project does
 - Simulates a swarm of agents in a 2D PyGame world.
 - Exposes an RL-style API (`reset`, `step`) with multi-agent observations and rewards.
-- Adds stigmergy via a pheromone grid that agents can sense.
+- Adds stigmergy via a pheromone grid that agents can sense and write to.
+- Supports a trail-formation objective where agents learn `discover -> return -> deposit -> exploit`.
 
 ### The fastest way to see it working
 1) Random sanity check (renders a window):

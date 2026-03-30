@@ -2,38 +2,36 @@
 
 This project simulates a swarm of agents that search for food, interact through pheromones, and learn coordination behaviors.
 
-## Fastest Way to See the Project Working
+## Fastest Way To See The Current Main Path Working
 
-Run the flagship experiment:
+Run the recurrent MAPPO trail-learning smoke test:
 
 ```bash
-python train/run_experiments.py --experiment collective_intelligence_scaling
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
 ```
 
 That command will:
 
-- train policies
-- evaluate them
-- aggregate metrics
-- generate plots
+- train the recurrent MAPPO path through the easy single-agent curriculum stages
+- write run logs under `runs/`
+- write checkpoints under `checkpoints/`
 
 ## Where to Look After It Finishes
 
-- raw run logs: `runs/collective_intelligence_scaling/`
-- aggregated CSVs: `results/collective_intelligence_scaling/`
-- plots: `analysis/collective_intelligence_scaling/`
+- raw run logs: `runs/`
+- checkpoints: `checkpoints/mappo_trail_smoke/`
 
-## If You Want the Algorithm Comparison
+## If You Want A Full Trail-Learning Run
 
 ```bash
-python train/run_experiments.py --experiment rl_algorithm_comparison
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
 ```
 
-That experiment compares:
+## If You Want The Older Experiment Runner
 
-- DQN
-- shared-policy DQN
-- rule-based baseline
+```bash
+python train/run_experiments.py --experiment collective_intelligence_scaling
+```
 
 ## If You Want a Visual Simulation First
 
@@ -66,7 +64,7 @@ That path is now the canonical robot runtime. It talks directly to [ant.py](../.
 
 ## Important Current Facts
 
-- observation space: `23`
-- action space: `Discrete(9)`
+- observation space: `69` by default from `3 x 23` stacked frames
+- action space: `Discrete(18)`
 - main environment features: nest, food, obstacles, pheromones
-- main experiment runner: [train/run_experiments.py](../../train/run_experiments.py)
+- main MAPPO trainer: [train/mappo_gru.py](../../train/mappo_gru.py)

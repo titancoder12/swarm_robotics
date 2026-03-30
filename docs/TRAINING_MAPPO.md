@@ -28,6 +28,26 @@ Inference remains decentralized:
 - the actor consumes only local observations plus recurrent hidden state
 - the critic is training-only
 
+## Trail Objective
+
+The current intended training behavior is not only “reach the target.”
+
+The training path is now aligned to teach the full loop:
+
+1. discover a target
+2. pick it up
+3. return to the nest
+4. deposit pheromone on the successful return route
+5. let later agents exploit that trail
+
+This is reflected in the default reward ordering and pheromone behavior:
+
+- pickup reward is meaningful but smaller than delivery reward
+- delivery is the strongest task reward
+- carrying-food progress back toward the nest gets a small signed shaping term
+- pheromone following remains a small supportive signal
+- pheromone deposition is gated so it is tied to carrying-food return behavior by default
+
 ## Curriculum
 
 The current implementation supports three curriculum modes:
@@ -87,19 +107,31 @@ Important current limitation:
 Single-agent smoke test:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 600 --rollout-steps 32 --update-epochs 2 --minibatch-size 32 --no-plots
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
 ```
 
-Full curriculum run:
+Main trail-learning run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 30000
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
 ```
 
 Resume from a checkpoint:
 
 ```bash
 python train/train.py --backend mappo --headless --curriculum full --resume-checkpoint checkpoints/my_run/latest
+```
+
+Rendered MAPPO demo:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+```
+
+Headless MAPPO evaluation:
+
+```bash
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval
 ```
 
 ## Checkpoints

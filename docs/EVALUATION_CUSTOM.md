@@ -1,12 +1,12 @@
 # Custom Evaluation Walkthrough
 
-This document explains how evaluation works in [train/evaluate.py](../train/evaluate.py).
+This document explains how evaluation works in [analysis/evaluate.py](../analysis/evaluate.py).
 
 It is implementation-grounded. The goal is to help a developer understand exactly what the evaluation script does, how it differs from training, how policies are loaded, and what files it writes.
 
 ## What This File Does
 
-[train/evaluate.py](../train/evaluate.py) runs headless evaluation episodes and records metrics.
+[analysis/evaluate.py](../analysis/evaluate.py) runs headless evaluation episodes and records metrics.
 
 It does not train.
 
@@ -49,7 +49,7 @@ The main parts of the file are:
 
 ## CLI Arguments
 
-`parse_args(...)` is defined at [train/evaluate.py#L21](../train/evaluate.py#L21).
+`parse_args(...)` is defined in [analysis/evaluate.py](../analysis/evaluate.py).
 
 Main arguments:
 
@@ -73,7 +73,7 @@ It also imports environment-related flags through `add_env_config_args(parser)`,
 
 ### DQN checkpoints
 
-`_load_models(...)` is defined at [train/evaluate.py#L34](../train/evaluate.py#L34).
+`_load_models(...)` is defined in [analysis/evaluate.py](../analysis/evaluate.py).
 
 It always evaluates on CPU:
 
@@ -106,7 +106,7 @@ net.eval()
 
 ### Rule-based policies
 
-`_build_rule_based_policies(...)` is defined at [train/evaluate.py#L51](../train/evaluate.py#L51).
+`_build_rule_based_policies(...)` is defined in [analysis/evaluate.py](../analysis/evaluate.py).
 
 It constructs one [RuleBasedSwarmPolicy](../models/rule_based_policy.py) per agent:
 
@@ -118,7 +118,7 @@ This gives each agent its own rule-based policy instance with a deterministic se
 
 ## Main Evaluation Flow
 
-The main function is `run(args)` at [train/evaluate.py#L55](../train/evaluate.py#L55).
+The main function is `run(args)` in [analysis/evaluate.py](../analysis/evaluate.py).
 
 ### 1. Create output directory
 
@@ -166,7 +166,7 @@ That makes it consistent with the current environment contract.
 
 ### 4. Choose policy type
 
-At [train/evaluate.py#L63](../train/evaluate.py#L63):
+In [analysis/evaluate.py](../analysis/evaluate.py):
 
 - if `args.policy_kind == "dqn"`:
   - load DQN checkpoints
@@ -177,7 +177,7 @@ So the evaluator is the shared measurement path for both learned and non-learned
 
 ## Per-Episode Logging Setup
 
-At [train/evaluate.py#L71](../train/evaluate.py#L71), the script creates a CSV logger for:
+The script creates a CSV logger for:
 
 - `episode`
 - `seed`
@@ -196,7 +196,7 @@ It also keeps a `summaries` list in memory so it can compute overall means at th
 
 ## Episode Loop
 
-The main evaluation loop begins at [train/evaluate.py#L87](../train/evaluate.py#L87):
+The main evaluation loop begins in [analysis/evaluate.py](../analysis/evaluate.py):
 
 ```python
 for episode in range(1, args.episodes + 1):
@@ -217,7 +217,7 @@ This means different episodes use different seeds, but the sequence is determini
 
 ## Action Selection
 
-Inside the episode, the main step loop begins at [train/evaluate.py#L96](../train/evaluate.py#L96):
+Inside the episode, the main step loop begins in [analysis/evaluate.py](../analysis/evaluate.py):
 
 ```python
 while True:
@@ -254,7 +254,7 @@ This uses the same observation vector and the same discrete action space, but pr
 
 ## Environment Step
 
-At [train/evaluate.py#L107](../train/evaluate.py#L107):
+In [analysis/evaluate.py](../analysis/evaluate.py):
 
 ```python
 action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
@@ -291,7 +291,7 @@ Interpretation:
 
 ## Episode Termination
 
-At [train/evaluate.py#L119](../train/evaluate.py#L119):
+In [analysis/evaluate.py](../analysis/evaluate.py):
 
 ```python
 if any(terminations.values()) or any(truncations.values()):
@@ -324,7 +324,7 @@ The row contains:
 - `episode_length`
 - `swarm_efficiency`
 
-That happens at [train/evaluate.py#L125](../train/evaluate.py#L125) through [train/evaluate.py#L136](../train/evaluate.py#L136).
+That happens in [analysis/evaluate.py](../analysis/evaluate.py).
 
 ## Final Summary JSON
 
@@ -332,7 +332,7 @@ After all episodes finish, the evaluator writes:
 
 - `eval_summary.json`
 
-at [train/evaluate.py#L141](../train/evaluate.py#L141).
+in [analysis/evaluate.py](../analysis/evaluate.py).
 
 It contains:
 
@@ -444,25 +444,25 @@ Shapes:
 Evaluate saved DQN checkpoints:
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
+python analysis/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
 ```
 
 Evaluate a shared-policy checkpoint:
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints --shared-policy --episodes 10 --output-dir runs/eval_shared
+python analysis/evaluate.py --checkpoint-dir checkpoints --shared-policy --episodes 10 --output-dir runs/eval_shared
 ```
 
 Evaluate the rule-based baseline:
 
 ```bash
-python train/evaluate.py --policy-kind rule_based --n-agents 5 --episodes 10 --output-dir runs/rule_eval
+python analysis/evaluate.py --policy-kind rule_based --n-agents 5 --episodes 10 --output-dir runs/rule_eval
 ```
 
 Evaluate with pheromones disabled:
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --pheromone-disabled --output-dir runs/eval_no_pheromone
+python analysis/evaluate.py --checkpoint-dir checkpoints --episodes 10 --pheromone-disabled --output-dir runs/eval_no_pheromone
 ```
 
 ## Practical Mental Model

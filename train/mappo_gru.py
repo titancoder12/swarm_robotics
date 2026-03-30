@@ -116,6 +116,9 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
             length = 0
             picked_up = 0
             delivered = 0
+            pheromone_deposits = 0
+            first_pickup_step = -1
+            first_delivery_step = -1
             while True:
                 obs_t = torch.as_tensor(obs, dtype=torch.float32, device=device)
                 mask_t = torch.as_tensor(1.0 - prev_done, dtype=torch.float32, device=device)
@@ -132,6 +135,11 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                 length = int(info.get("episode_length", length + 1))
                 picked_up += int(info.get("targets_collected", 0))
                 delivered += int(info.get("food_delivered", 0))
+                pheromone_deposits += int(info.get("pheromone_deposit_events", 0))
+                if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
+                    first_pickup_step = int(info.get("first_pickup_step", -1))
+                if first_delivery_step < 0 and int(info.get("first_delivery_step", -1)) >= 0:
+                    first_delivery_step = int(info.get("first_delivery_step", -1))
                 prev_done = np.array([float(terminations[a] or truncations[a]) for a in agent_ids], dtype=np.float32)
                 if prev_done.any():
                     break
@@ -143,7 +151,15 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                     "food_retrieved": float(delivered),
                     "exploration_coverage": float(coverage),
                     "pheromone_usage": float(np.mean(pheromone)) if pheromone else 0.0,
+                    "pheromone_deposit_events": float(pheromone_deposits),
                     "episode_length": float(length),
+                    "first_pickup_step": float(first_pickup_step),
+                    "first_delivery_step": float(first_delivery_step),
+                    "pickup_to_delivery_latency": float(
+                        first_delivery_step - first_pickup_step
+                        if first_pickup_step >= 0 and first_delivery_step >= 0
+                        else -1
+                    ),
                     "swarm_efficiency": float(delivered / max(length, 1)),
                 }
             )
@@ -261,7 +277,11 @@ def train(args):
             "food_retrieved",
             "exploration_coverage",
             "pheromone_usage",
+            "pheromone_deposit_events",
             "episode_length",
+            "first_pickup_step",
+            "first_delivery_step",
+            "pickup_to_delivery_latency",
             "swarm_efficiency",
         ],
     )
@@ -280,7 +300,11 @@ def train(args):
             "food_retrieved",
             "exploration_coverage",
             "pheromone_usage",
+            "pheromone_deposit_events",
             "episode_length",
+            "first_pickup_step",
+            "first_delivery_step",
+            "pickup_to_delivery_latency",
             "swarm_efficiency",
         ],
     )
@@ -336,7 +360,10 @@ def train(args):
         episode_coverage = 0.0
         episode_food_picked_up = 0
         episode_food_delivered = 0
+        episode_pheromone_deposit_events = 0
         episode_length = 0
+        first_pickup_step = -1
+        first_delivery_step = -1
 
         print(
             f"[MAPPO] Stage {stage_index}/{len(curriculum)} {stage.name} | "
@@ -406,7 +433,12 @@ def train(args):
                 episode_coverage = max(episode_coverage, float(info.get("exploration_coverage", 0.0)))
                 episode_food_picked_up += int(info.get("targets_collected", 0))
                 episode_food_delivered += int(info.get("food_delivered", 0))
+                episode_pheromone_deposit_events += int(info.get("pheromone_deposit_events", 0))
                 episode_length = int(info.get("episode_length", episode_length + 1))
+                if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
+                    first_pickup_step = int(info.get("first_pickup_step", -1))
+                if first_delivery_step < 0 and int(info.get("first_delivery_step", -1)) >= 0:
+                    first_delivery_step = int(info.get("first_delivery_step", -1))
 
                 if done:
                     stage_episode += 1
@@ -431,7 +463,15 @@ def train(args):
                             "food_retrieved": float(episode_food_delivered),
                             "exploration_coverage": float(episode_coverage),
                             "pheromone_usage": pheromone_usage,
+                            "pheromone_deposit_events": int(episode_pheromone_deposit_events),
                             "episode_length": int(episode_length),
+                            "first_pickup_step": int(first_pickup_step),
+                            "first_delivery_step": int(first_delivery_step),
+                            "pickup_to_delivery_latency": int(
+                                first_delivery_step - first_pickup_step
+                                if first_pickup_step >= 0 and first_delivery_step >= 0
+                                else -1
+                            ),
                             "swarm_efficiency": swarm_efficiency,
                         }
                     )
@@ -443,6 +483,8 @@ def train(args):
                         f"[MAPPO] {stage.name} ep={completed_episodes} stage_ep={stage_episode} "
                         f"step={global_step}/{args.total_steps} reward={mean_episode_reward:.2f} "
                         f"picked_up={episode_food_picked_up} delivered={episode_food_delivered} "
+                        f"deposits={episode_pheromone_deposit_events} "
+                        f"first_pickup={first_pickup_step} first_delivery={first_delivery_step} "
                         f"coverage={episode_coverage:.3f} "
                         f"pheromone={pheromone_usage:.3f} len={episode_length} "
                         f"elapsed={_format_duration(elapsed)} eta={_format_duration(eta_seconds)}"
@@ -458,7 +500,10 @@ def train(args):
                     episode_coverage = 0.0
                     episode_food_picked_up = 0
                     episode_food_delivered = 0
+                    episode_pheromone_deposit_events = 0
                     episode_length = 0
+                    first_pickup_step = -1
+                    first_delivery_step = -1
 
                 if stage_steps >= stage.total_steps:
                     break
@@ -558,6 +603,9 @@ def train(args):
                         f"reward={eval_metrics['mean_episode_reward']:.2f} "
                         f"picked_up={eval_metrics['food_picked_up']:.2f} "
                         f"delivered={eval_metrics['food_retrieved']:.2f} "
+                        f"deposits={eval_metrics['pheromone_deposit_events']:.2f} "
+                        f"first_pickup={eval_metrics['first_pickup_step']:.1f} "
+                        f"first_delivery={eval_metrics['first_delivery_step']:.1f} "
                         f"coverage={eval_metrics['exploration_coverage']:.3f} "
                         f"pheromone={eval_metrics['pheromone_usage']:.3f} "
                         f"len={eval_metrics['episode_length']:.1f}"

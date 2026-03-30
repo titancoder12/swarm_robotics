@@ -16,8 +16,8 @@ The system has five main layers:
 
 3. Training and evaluation
    - [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py) is the main custom DQN trainer.
-   - [train/evaluate.py](../train/evaluate.py) runs shared evaluation for learned and rule-based policies.
-   - [train/train.py](../train/train.py) dispatches between custom, SB3, and RLlib training backends.
+   - [analysis/evaluate.py](../analysis/evaluate.py) runs shared evaluation for learned and rule-based policies.
+   - [train/train.py](../train/train.py) dispatches between custom, SB3, RLlib, and MAPPO training backends.
 
 4. Experiment framework
    - [experiments/benchmark_configs.py](../experiments/benchmark_configs.py) defines experiment sweeps.
@@ -42,7 +42,7 @@ Agents do not communicate directly. Coordination emerges from local sensing and 
 
 ### Observation Space
 
-Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](../env/swarm_env.py):
+Each agent receives a 23-dimensional observation frame built in `_get_obs_frame()` and a default 69-dimensional stacked observation built in `_get_obs()` in [env/swarm_env.py](../env/swarm_env.py):
 
 - lidar obstacle rays
 - nearest food vector in agent-local coordinates
@@ -54,14 +54,19 @@ Each agent receives a 23-dimensional observation vector built in `_get_obs()` in
 - carrying-food flag
 - pheromone samples
 
-This 23-dimensional contract is the current source of truth for training, evaluation, and sim-to-real integration.
+The current default contract is:
+
+- 23 features per frame
+- 3-frame history
+- flattened `obs_dim = 69`
 
 ### Action Space
 
-The action space remains `Discrete(9)`. Actions map to a 3x3 grid of `(throttle, turn)` values:
+The action space is `Discrete(18)`. Actions map to a 3x3x2 grid of `(throttle, turn, deposit)` values:
 
 - throttle in `{-1, 0, 1}`
 - turn in `{-1, 0, 1}`
+- deposit in `{0, 1}`
 
 This mapping is defined in `_build_action_table()` in [env/swarm_env.py](../env/swarm_env.py).
 
@@ -87,7 +92,10 @@ Rendering can show the field as a heatmap overlay.
 
 ## Training Architecture
 
-The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py).
+The repo currently has two main training paths:
+
+- the custom DQN trainer in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
+- the recurrent MAPPO trainer in [train/mappo_gru.py](../train/mappo_gru.py)
 
 It supports:
 
@@ -100,7 +108,7 @@ It supports:
 - structured CSV and JSON logging
 - periodic evaluation
 
-The trainer reads `obs_dim` dynamically from the environment, so it is aligned with the current 23-dimensional observation space.
+Both trainers read observation and action dimensions from the environment dynamically, so they stay aligned with the current 69-dimensional stacked observation and 18-action interface.
 
 Optional comparison backends still exist:
 
@@ -109,9 +117,10 @@ Optional comparison backends still exist:
 
 ## Evaluation and Metrics
 
-Shared evaluation is handled by [train/evaluate.py](../train/evaluate.py). It evaluates:
+Shared evaluation is handled by [analysis/evaluate.py](../analysis/evaluate.py). It evaluates:
 
 - DQN checkpoints
+- MAPPO GRU checkpoints
 - shared-policy DQN checkpoints
 - the rule-based baseline
 

@@ -7,7 +7,8 @@ All behavior described here is based on the current implementation in:
 - [env/config.py](../env/config.py)
 - [env/swarm_env.py](../env/swarm_env.py)
 - [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
-- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate.py](../analysis/evaluate.py)
+- [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py)
 - [train/run_experiments.py](../train/run_experiments.py)
 - [train/experiment_utils.py](../train/experiment_utils.py)
 - [train/random_rollout.py](../train/random_rollout.py)
@@ -185,7 +186,7 @@ python train/independent_dqn_pytorch.py --headless --total-steps 10000
 ### Headless evaluation
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
+python analysis/evaluate.py --checkpoint-dir checkpoints --episodes 10 --output-dir runs/eval
 ```
 
 ### Probe a trained policy with hand-written observations
@@ -196,7 +197,7 @@ python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case
 python train/policy_probe.py --checkpoint-dir checkpoints --case wall_ahead --agent-index 0
 ```
 
-This loads a custom DQN checkpoint, prints the observation values by name, shows all 9 Q-values, and explains the chosen action in plain language.
+This loads a custom DQN checkpoint, prints the observation values by name, shows the current Q-values over the 18-action table, and explains the chosen action in plain language.
 
 ## 3. Core Environment API
 
@@ -210,7 +211,7 @@ This loads a custom DQN checkpoint, prints the observation values by name, shows
   - active agent list
   - emptied when an episode ends
 - `env.action_table`
-  - list of `(throttle, turn)` tuples
+  - list of `(throttle, turn, deposit)` tuples
 - `env.agent_states`
   - list of `AgentState`
 - `env.targets`
@@ -234,7 +235,7 @@ This loads a custom DQN checkpoint, prints the observation values by name, shows
 #### `action_space(agent: str) -> gymnasium.spaces.Discrete`
 
 - `Discrete(cfg.num_actions)`
-- default `num_actions = 9`
+- default `num_actions = 18`
 
 ### Agent state variables
 
@@ -533,7 +534,7 @@ Implications:
 ### Action shape
 
 - scalar discrete integer per agent
-- action space: `Discrete(9)`
+- action space: `Discrete(18)`
 
 ### Action mapping
 
@@ -544,9 +545,11 @@ Construction order:
 ```python
 throttle_vals = [-1.0, 0.0, 1.0]
 turn_vals = [-1.0, 0.0, 1.0]
+deposit_vals = [0, 1]
 for throttle in throttle_vals:
     for turn in turn_vals:
-        table.append((throttle, turn))
+        for deposit in deposit_vals:
+            table.append((throttle, turn, deposit))
 ```
 
 So the actual index mapping is:
@@ -1018,33 +1021,34 @@ Methods:
 
 ### Evaluation entry points
 
-#### `train.evaluate.parse_args(argv=None)`
+#### `analysis.evaluate.parse_args(argv=None)`
 
-- file: [train/evaluate.py](../train/evaluate.py)
+- file: [analysis/evaluate.py](../analysis/evaluate.py)
 
 Important arguments:
 
 - `--checkpoint-dir`
 - `--shared-policy`
-- `--policy-kind {dqn, rule_based}`
+- `--policy-kind {dqn, mappo_gru, rule_based}`
 - `--episodes`
 - `--n-agents`
 - `--seed`
 - `--output-dir`
 - shared env args via `add_env_config_args()`
 
-#### `train.evaluate.run(args) -> str`
+#### `analysis.evaluate.run(args) -> str`
 
 - purpose: evaluate a policy in headless mode
 - returns: output directory
 - supported policy kinds:
   - `dqn`
+  - `mappo_gru`
   - `rule_based`
 
 Minimal usage:
 
 ```python
-from train.evaluate import parse_args, run
+from analysis.evaluate import parse_args, run
 
 args = parse_args(["--policy-kind", "rule_based", "--episodes", "5"])
 out_dir = run(args)
@@ -1055,7 +1059,7 @@ out_dir = run(args)
 #### `train/policy_probe.py`
 
 - file: [train/policy_probe.py](../train/policy_probe.py)
-- purpose: manually feed named 23-dimensional observation vectors into a trained custom DQN checkpoint and inspect outputs
+- purpose: manually feed named single-frame observation vectors into a trained custom DQN checkpoint and inspect outputs
 
 Typical commands:
 
@@ -1271,7 +1275,7 @@ Typical insertion points:
 If you want the trainer and evaluator to expose the new signal, also update:
 
 - [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
-- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate.py](../analysis/evaluate.py)
 
 ### Add a new action
 

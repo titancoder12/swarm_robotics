@@ -330,3 +330,18 @@ In training terms, the intended system should work like this:
 - the swarm gradually shifts from expensive random search toward structured route reuse
 
 That is the core mechanism by which the desired trail behavior can emerge.
+
+## 11. Current System Alignment
+
+The current implementation direction now matches this trail discussion more
+closely than before:
+
+- delivery reward is stronger than pickup reward by default
+- carrying-food progress back toward the nest has its own small shaping term
+- pheromone deposition is gated by carrying-food status by default
+- pheromone deposition can also require actual progress toward the nest
+- recurrent MAPPO curriculum remains the main recommended trail-learning path
+
+That does not guarantee strong trail formation from a short run, but it means
+the code is now aligned with the intended `discover -> return -> deposit ->
+exploit` story rather than fighting it.

@@ -8,17 +8,17 @@ This repository studies stigmergic swarm intelligence in a 2D robotics simulatio
 
 ## Quick Start
 
-If you only want one command to see the current system working:
+If you want the current main training path:
 
 ```bash
-python train/run_experiments.py --experiment collective_intelligence_scaling
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
 ```
 
-That command trains and evaluates the flagship experiment, then writes:
+If you want a much shorter smoke test:
 
-- raw logs under `runs/`
-- aggregated CSVs under `results/`
-- plots under `analysis/`
+```bash
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
+```
 
 For a short version, see [docs/manual/QUICK_START.md](manual/QUICK_START.md).
 
@@ -75,9 +75,9 @@ Keep those commands on one line unless you are deliberately using shell line con
 
 Important notes:
 
-- the current observation dimension is `23`
-- old 19-dimensional checkpoints are not compatible
-- the current action space is still `Discrete(9)`
+- the default per-agent observation is `69` dims from `3 x 23` stacked frames
+- old checkpoints trained on smaller observation layouts are not compatible
+- the current action space is `Discrete(18)`
 
 ## 4. Render a Trained Policy
 
@@ -94,13 +94,13 @@ The demo renders the current environment, including pheromone heatmap, food, nes
 Evaluate saved DQN checkpoints:
 
 ```bash
-python train/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --episodes 10 --output-dir runs/eval
+python analysis/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --episodes 10 --output-dir runs/eval
 ```
 
 Evaluate the rule-based baseline directly:
 
 ```bash
-python train/evaluate.py --policy-kind rule_based --n-agents 5 --episodes 10 --output-dir runs/rule_eval
+python analysis/evaluate.py --policy-kind rule_based --n-agents 5 --episodes 10 --output-dir runs/rule_eval
 ```
 
 Outputs include:
@@ -116,7 +116,7 @@ python train/policy_probe.py --checkpoint-dir checkpoints --shared-policy --case
 python train/policy_probe.py --checkpoint-dir checkpoints --case wall_ahead --agent-index 0
 ```
 
-This is a small teaching script for manually feeding 23-dimensional observations into the custom DQN model and inspecting Q-values plus the chosen discrete action.
+This is a small teaching script for manually feeding the current stacked observation into the custom DQN model and inspecting Q-values plus the chosen discrete action.
 
 ## 6. Run Experiments
 
@@ -173,7 +173,7 @@ The project uses three main output directories:
   - simulation configuration
 - [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py)
   - custom DQN trainer
-- [train/evaluate.py](../train/evaluate.py)
+- [analysis/evaluate.py](../analysis/evaluate.py)
   - shared evaluation path
 - [train/run_experiments.py](../train/run_experiments.py)
   - experiment runner

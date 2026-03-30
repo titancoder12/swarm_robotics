@@ -54,10 +54,11 @@ That means the runtime is operational, but full sim-to-real fidelity still depen
 
 ## 4) Action Contract
 
-The action space remains the trained discrete 9-action table:
+The action space remains the trained discrete 18-action table:
 
 - throttle in `[-1, 0, 1]`
 - turn in `[-1, 0, 1]`
+- pheromone deposit bit in `[0, 1]`
 
 The physical mapping is implemented directly in [firmware/run.py](../firmware/run.py) using:
 
@@ -65,7 +66,7 @@ The physical mapping is implemented directly in [firmware/run.py](../firmware/ru
 - `--move-distance-mm`
 - `--reverse-distance-mm`
 
-So the deployed robot keeps the same policy output semantics even though the transport and execution code are now simpler.
+So the deployed robot keeps the same policy output semantics even though the transport and execution code are now simpler. When the action's deposit bit is enabled, the runtime can also emit the corresponding pheromone-side effect path where supported.
 
 ## 5) Safety Expectations
 
