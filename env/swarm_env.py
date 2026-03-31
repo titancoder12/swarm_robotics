@@ -1361,15 +1361,19 @@ class SwarmEnv(ParallelEnv):
         total_penalty = 0.0
         loiter_steps = 0
         crowding_steps = 0
+        cluster_size = len(eligible)
+        excess_crowding = max(0, cluster_size - crowding_threshold)
+        cluster_scale = 1.0 + float(excess_crowding * excess_crowding)
         for i in eligible:
             agent = self.agent_states[i]
             dist_sq = (agent.x - nx) ** 2 + (agent.y - ny) ** 2
             if loiter_radius > 0.0 and dist_sq <= loiter_sq and loiter_penalty != 0.0:
-                rewards[i] += loiter_penalty
-                total_penalty += loiter_penalty
+                scaled_loiter_penalty = loiter_penalty * cluster_scale
+                rewards[i] += scaled_loiter_penalty
+                total_penalty += scaled_loiter_penalty
                 loiter_steps += 1
             if crowding_radius > 0.0 and dist_sq <= crowd_sq and len(eligible) >= crowding_threshold and crowding_penalty != 0.0:
-                crowd_multiplier = 1.0 + float(max(0, len(eligible) - crowding_threshold))
+                crowd_multiplier = 1.0 + float((max(0, len(eligible) - crowding_threshold) + 1) ** 2)
                 scaled_penalty = crowding_penalty * crowd_multiplier
                 rewards[i] += scaled_penalty
                 total_penalty += scaled_penalty
@@ -1406,20 +1410,23 @@ class SwarmEnv(ParallelEnv):
                 continue
             active_steps += 1
             prev_dist = float(prev_nest_distances[i])
+            proximity_scale = 1.0 + float(np.clip((explore_radius - curr_dist) / max(explore_radius, 1e-6), 0.0, 1.0))
             if np.isfinite(prev_dist) and curr_dist > prev_dist:
                 progress = np.clip((curr_dist - prev_dist) / max(float(self.cfg.lidar_max_range), 1e-6), 0.0, 1.0)
-                reward = outward_reward_scale * progress
+                reward = outward_reward_scale * progress * proximity_scale
                 rewards[i] += reward
                 outward_reward_total += reward
             elif np.isfinite(prev_dist) and no_progress_penalty != 0.0 and curr_dist <= prev_dist + progress_epsilon:
-                rewards[i] += no_progress_penalty
-                idle_penalty_total += no_progress_penalty
+                scaled_no_progress_penalty = no_progress_penalty * proximity_scale
+                rewards[i] += scaled_no_progress_penalty
+                idle_penalty_total += scaled_no_progress_penalty
             dx = float(agent.x) - float(prev_positions[i, 0])
             dy = float(agent.y) - float(prev_positions[i, 1])
             displacement = math.hypot(dx, dy)
             if low_disp_threshold > 0.0 and displacement < low_disp_threshold and idle_penalty != 0.0:
-                rewards[i] += idle_penalty
-                idle_penalty_total += idle_penalty
+                scaled_idle_penalty = idle_penalty * proximity_scale
+                rewards[i] += scaled_idle_penalty
+                idle_penalty_total += scaled_idle_penalty
                 idle_steps += 1
         return outward_reward_total, idle_penalty_total, active_steps, idle_steps
 
