@@ -92,6 +92,9 @@ def _build_demo_env(args):
             args_copy.max_steps_per_episode = int(metadata.get("max_steps", getattr(args_copy, "max_steps_per_episode", 600)))
             args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 3)))
             args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", True)))
+            args_copy.action_repeat_steps = int(
+                metadata.get("action_repeat_steps", getattr(args_copy, "action_repeat_steps", 2))
+            )
             args_copy.food_source_capacity = int(
                 metadata.get("food_source_capacity", getattr(args_copy, "food_source_capacity", 4))
             )

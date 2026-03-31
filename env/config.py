@@ -76,16 +76,16 @@ class SwarmConfig:
     #pheromone_follow_min_gradient: float = 0.05
 
     reward_target: float = 0.0#2.0               # fallback only when pickup/delivery is disabled
-    reward_pickup: float = 5.0               # meaningful event, but smaller than final completion
+    reward_pickup: float = 6.0               # meaningful event, but clearly smaller than final completion
     reward_nest_delivery: float = 30.0       # main task completion reward
     reward_nest_approach: float = 0.08       # carrying-food progress toward nest
-    reward_undelivered_food: float = -5.0   # penalty if episode ends while still carrying food
+    reward_undelivered_food: float = -10.0   # penalty if episode ends while still carrying food
 
     reward_step: float = -0.01              # gentle time pressure
     reward_collision: float = -1.5          # collisions should clearly hurt, but not dominate
 
     reward_exploration: float = 0.0         # currently unused in env step path
-    reward_new_cell: float = 0.02           # small exploration bonus
+    reward_new_cell: float = 0.01           # small exploration bonus
 
     reward_food_approach: float = 0.03      # small signed shaping only
     reward_food_detected: float = 0.15      # one-time local cue, kept modest

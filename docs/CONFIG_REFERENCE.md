@@ -65,15 +65,15 @@ CLI-to-config mapping helpers:
 | `pheromone_deposit_carrying_scale` | `float` | `1.5` | non-negative | carry-state pheromone multiplier |
 | `pheromone_requires_food` | `bool` | `True` | boolean | when true, only carrying agents may deposit pheromone |
 | `pheromone_deposit_requires_nest_progress` | `bool` | `True` | boolean | when true, deposition also requires moving closer to the nest |
-| `reward_target` | `float` | `2.0` | any float | immediate reward when targets do not require nest delivery |
+| `reward_target` | `float` | `0.0` | any float | immediate reward when targets do not require nest delivery |
 | `reward_step` | `float` | `-0.01` | any float | step cost added to every agent every step |
 | `reward_collision` | `float` | `-1.5` | any float | per-agent collision penalty |
-| `reward_pickup` | `float` | `8.0` | any float | reward on pickup when nest delivery is required |
+| `reward_pickup` | `float` | `6.0` | any float | reward on pickup when nest delivery is required |
 | `reward_nest_delivery` | `float` | `30.0` | any float | reward on successful nest return |
 | `reward_nest_approach` | `float` | `0.08` | any float | signed shaping for carrying-food progress toward nest |
-| `reward_undelivered_food` | `float` | `-5.0` | any float | penalty applied if an episode ends while an agent is still carrying food |
+| `reward_undelivered_food` | `float` | `-10.0` | any float | penalty applied if an episode ends while an agent is still carrying food |
 | `reward_exploration` | `float` | `0.0` | any float | currently unused compatibility field |
-| `reward_new_cell` | `float` | `0.02` | any float | reward per newly visited coverage cell |
+| `reward_new_cell` | `float` | `0.01` | any float | reward per newly visited coverage cell |
 | `reward_food_approach` | `float` | `0.03` | any float | signed shaping for progress toward detectable food |
 | `reward_food_detected` | `float` | `0.15` | any float | one-time reward when food becomes detectable |
 | `reward_pheromone_follow` | `float` | `0.02` | any float | local forward-gradient pheromone shaping term |

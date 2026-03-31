@@ -766,3 +766,6 @@ What it is not:
 - it is not guaranteed to produce a perfect policy
 - it is not the only valid command
 - it is a practical strong starting point for the current repo, not a proof of optimality
+
+## Q: What training/config changes were made to improve prompts 25 and 26?
+A: The current training path now fixes the stage-budget allocation bug in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py) by assigning one explicit budget weight to each actual stage instead of reusing the same early bucket, and by distributing `--total-steps` across the curriculum slice you actually selected rather than across omitted stages too. The curriculum also now includes a dedicated single-agent obstacle-delivery stage with one target and no respawn before the harder multi-source swarm stages. Early stages use `action_repeat_steps = 1` and a slightly stronger `reward_new_cell`, while later stages switch back to `action_repeat_steps = 2` and lower `reward_new_cell` so delivery and trail reuse compete less with generic wandering. The default reward balance was also tightened to favor completed return behavior: `reward_pickup = 6.0`, `reward_nest_delivery = 30.0`, and `reward_undelivered_food = -10.0`.

@@ -76,12 +76,14 @@ only changing swarm size.
 
 The default `full` schedule is:
 
-1. `stage1a_single_agent_tiny`
-2. `stage1b_single_agent_obstacles`
-3. `stage2a_small_swarm_medium`
-4. `stage2b_small_swarm_large`
-5. `stage3a_full_swarm_large`
-6. `stage3b_full_swarm_final`
+1. `stage1a_single_agent_miniscule`
+2. `stage1b_single_agent_tiny`
+3. `stage1c_single_agent_small`
+4. `stage1d_single_agent_delivery_obstacles`
+5. `stage2a_small_swarm_medium`
+6. `stage2b_small_swarm_large`
+7. `stage3a_full_swarm_large`
+8. `stage3b_full_swarm_final`
 
 The current curriculum stages the following environment variables:
 
@@ -93,22 +95,44 @@ The current curriculum stages the following environment variables:
 - `max_steps`
 - `active_targets`
 - `target_respawn`
-- `food_source_capacity`
+- `action_repeat_steps`
+- `reward_new_cell`
 
 Intended teaching progression:
 
-- Stage 1A: one agent, tiny easy world, single target, no obstacles
-- Stage 1B: one agent, larger world, some obstacles
-- Stage 2A: small swarm, medium environment
-- Stage 2B: small swarm, large but not final environment
+- Stage 1A-1C: one agent, increasingly larger empty worlds with one target
+- Stage 1D: one agent, one target, obstacles, no respawn; this is the first full obstacle delivery stage
+- Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet
+- Stage 2B: small swarm, large but not final environment, now with respawn enabled
 - Stage 3A: full swarm, same large but not final environment
 - Stage 3B: full swarm, final large obstacle-heavy environment
 
+The stage-budget bug fixed in the current version was that the old curriculum
+reused early budget buckets and left later stages more starved than intended.
+The schedule now assigns one explicit weight per actual stage:
+
+- `1, 1, 1, 2, 2, 3, 4, 6`
+
+This keeps the hardest full-swarm stages from receiving only accidental
+fine-tuning time.
+
+`--total-steps` now applies to the curriculum slice you actually selected. For
+example, `--curriculum stage1 --total-steps 32000` distributes that full
+`32000` budget across the four single-agent stages instead of first splitting
+it across all eight full-schedule stages and then discarding the unused ones.
+
+Control/reward staging now also changes with difficulty:
+
+- early single-agent stages use `action_repeat_steps = 1` for more responsive control
+- later swarm stages use `action_repeat_steps = 2` for smoother execution
+- early stages keep a slightly stronger `reward_new_cell`
+- later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
+
 Mode semantics:
 
-- `stage1` runs the two single-agent stages
-- `stage1_to_2` runs the two single-agent stages plus the two small-swarm stages
-- `full` runs all six stages
+- `stage1` runs all four single-agent stages
+- `stage1_to_2` runs the four single-agent stages plus the two small-swarm stages
+- `full` runs all eight stages
 
 Actor weights are carried across stages.
 
@@ -129,8 +153,15 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Main trail-learning run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_trail_full
 ```
+
+Why this command is more realistic than the older shorter examples:
+
+- `600k` total steps gives the eight-stage curriculum meaningful late-stage time
+- delivery now dominates pickup more clearly
+- the stronger undelivered-food penalty makes `picked up but never returned` less acceptable
+- the later full-swarm stages are still hard enough that `180k` or `200k` often remains undertrained
 
 Resume from a checkpoint:
 

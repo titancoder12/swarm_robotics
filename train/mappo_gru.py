@@ -90,6 +90,8 @@ def _build_env(args, stage):
     args_copy.max_steps_per_episode = int(stage.max_steps)
     args_copy.active_targets = int(stage.active_targets)
     args_copy.target_respawn = bool(stage.target_respawn)
+    args_copy.action_repeat_steps = int(stage.action_repeat_steps)
+    args_copy.reward_new_cell = float(stage.reward_new_cell)
     cfg = make_swarm_config(args_copy)
     cfg.width = int(stage.width)
     cfg.height = int(stage.height)
@@ -264,7 +266,7 @@ def train(args):
         eval_episodes=args.eval_episodes,
     )
 
-    curriculum = select_curriculum(default_curriculum(args.total_steps, args.n_agents), args.curriculum)
+    curriculum = select_curriculum(default_curriculum(args.n_agents), args.curriculum, args.total_steps)
     episode_logger = CSVLogger(
         os.path.join(run_dir, "episode_metrics.csv"),
         [
@@ -382,6 +384,7 @@ def train(args):
             f"[MAPPO] Stage {stage_index}/{len(curriculum)} {stage.name} | "
             f"agents={cfg.n_agents} | target_steps={stage.total_steps} | "
             f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
+            f"action_repeat={cfg.action_repeat_steps} | reward_new_cell={cfg.reward_new_cell:.4f} | "
             f"obs_dim={spaces.obs_dim} | action_dim={spaces.action_dim} | state_dim={spaces.state_dim}"
         )
 
@@ -649,6 +652,8 @@ def train(args):
             "active_targets": cfg.active_targets,
             "target_respawn": bool(cfg.target_respawn),
             "food_source_capacity": int(cfg.food_source_capacity),
+            "action_repeat_steps": int(cfg.action_repeat_steps),
+            "reward_new_cell": float(cfg.reward_new_cell),
             "obs_dim": spaces.obs_dim,
             "action_dim": spaces.action_dim,
             "state_dim": spaces.state_dim,

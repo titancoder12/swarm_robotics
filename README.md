@@ -89,7 +89,7 @@ The current default task settings now make that loop more explicit:
 Recommended full training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 8 --reward-nest-delivery 30 --reward-undelivered-food -5 --folder-name mappo_full_600k
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_600k
 ```
 
 What the main arguments mean:
@@ -108,6 +108,7 @@ What the main arguments mean:
 
 - `--total-steps 600000`
   - total training budget across the whole curriculum
+  - this budget is distributed across the curriculum slice you selected, not across omitted stages
   - this is much more serious than a short `30k`–`200k` run because the later stages need real time
 
 - `--rollout-steps 128`
@@ -125,13 +126,13 @@ What the main arguments mean:
 - `--eval-episodes 5`
   - use five episodes for each scheduled evaluation so eval is less noisy
 
-- `--reward-pickup 8`
+- `--reward-pickup 6`
   - keep pickup meaningful, but not as important as completed delivery
 
 - `--reward-nest-delivery 30`
   - make successful return-to-nest delivery the strongest core task reward
 
-- `--reward-undelivered-food -5`
+- `--reward-undelivered-food -10`
   - penalize ending an episode while still carrying food
   - this helps discourage “pick up but never bring it home”
 
@@ -141,6 +142,8 @@ What the main arguments mean:
 Why this is the recommended starting point:
 
 - the current curriculum spreads learning across many stages
+- the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
+- the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
 - a shorter run can finish, but often leaves the later full-swarm stages undertrained
 - `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo
