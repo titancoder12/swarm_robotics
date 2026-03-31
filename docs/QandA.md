@@ -944,3 +944,15 @@ A: Because the first scaling patch moved most world drawing to an off-screen wor
 
 ## Q: If training reaches a stage goal before max steps, does it stop?
 A: Not the whole run. In the current MAPPO trainer, meeting a stage goal causes promotion to the next curriculum stage, not immediate termination of training. The overall run stops when either the curriculum is exhausted or the hard global `--total-steps` cap is reached. So early success in one stage saves time inside that stage, but training still continues into later stages unless there are no stages left.
+
+## Q: What initial seed does demo use if I do not pass `--seed`?
+A: It uses `0`. In `train/demo.py`, the CLI flag `--seed` defaults to `0`, and the initial environment reset calls `env.reset(seed=args.seed)`. So a command like `python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_g/latest --max-steps 0 --render-scale 0.75` starts with seed `0` unless you explicitly pass a different `--seed`.
+
+## Q: Why can `best_greedy_eval` show a small arena with no obstacles?
+A: Because `best_greedy_eval` is selected globally across all curriculum stages, not forced to come from the final stage. In `train/mappo_gru.py`, whenever a stage-end greedy eval score beats the previous best, that stage checkpoint is saved into `best_greedy_eval/`. So if an easier bootstrap stage achieves the highest greedy score, `best_greedy_eval` will point to that easier stage. For example, `checkpoints/mappo_g/best_greedy_eval/metadata.json` currently says `best_greedy_eval_stage = "stage2a_small_swarm_carry_bootstrap"`, with `width = 260`, `height = 220`, and `n_obstacles = 0`.
+
+## Q: Can demo show the current seed in the PyGame window title?
+A: Yes. `env/swarm_env.py` now tracks the most recent reset seed and updates the PyGame caption to `Swarm RL | seed=<N>` whenever the environment resets with a known seed. Since `train/demo.py` already resets with a deterministic seed sequence, the title updates as the demo advances through seeds.
+
+## Q: What were the best presentation seeds from the `runs/presentation_seed_scan` headless evaluation?
+A: Ranking by `food_delivered` first, then `pheromone_usage` and `exploration_coverage`, the strongest seeds in `runs/presentation_seed_scan/` were: `seed 3` clearly first (`delivered=5`, `picked=5`, `pheromone_usage=0.169`), then `seed 2`, `seed 10`, and `seed 4` (all `delivered=2`, with `seed 2` winning that group on higher pheromone usage). `seed 7` was weaker but still nonzero (`delivered=1`). Seeds `1, 5, 6, 8, 9` all delivered `0` in that scan.

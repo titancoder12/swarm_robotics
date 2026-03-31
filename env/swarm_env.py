@@ -174,6 +174,7 @@ class SwarmEnv(ParallelEnv):
         self._screen = None
         self._world_surface = None
         self._clock = None
+        self._current_reset_seed: int | None = None
 
         self._single_obs_dim = self._compute_single_obs_dim()
         self._obs_dim = self._compute_obs_dim()
@@ -334,6 +335,9 @@ class SwarmEnv(ParallelEnv):
         # (Re)initialize RNG and episode state, then spawn a fresh world.
         if seed is not None:
             self.rng = np.random.default_rng(seed)
+        self._current_reset_seed = int(seed) if seed is not None else None
+        if self._pygame_inited:
+            self._update_window_caption()
         self.step_count = 0
         self.terminated = False
         self.truncated = False
@@ -778,9 +782,16 @@ class SwarmEnv(ParallelEnv):
             )
             self._screen = pygame.display.set_mode(display_size)
             self._world_surface = pygame.Surface((self.width, self.height))
-            pygame.display.set_caption("Swarm RL")
+            self._update_window_caption()
             self._clock = pygame.time.Clock()
             self._pygame_inited = True
+
+    def _update_window_caption(self):
+        """Refresh the PyGame title bar with the current reset seed when known."""
+        caption = "Swarm RL"
+        if self._current_reset_seed is not None:
+            caption += f" | seed={self._current_reset_seed}"
+        pygame.display.set_caption(caption)
 
     def _build_action_table(self):
         """Create the discrete action lookup table (throttle, turn, deposit)."""
