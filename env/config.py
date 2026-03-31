@@ -86,6 +86,7 @@ class SwarmConfig:
 
     reward_exploration: float = 0.0         # currently unused in env step path
     reward_new_cell: float = 0.01           # small exploration bonus
+    carrying_reward_new_cell_scale: float = 1.0  # scale exploration bonus while carrying
 
     reward_food_approach: float = 0.03      # small signed shaping only
     reward_food_detected: float = 0.15      # one-time local cue, kept modest

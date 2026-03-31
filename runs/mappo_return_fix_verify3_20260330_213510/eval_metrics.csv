@@ -1,0 +1,7 @@
+stage,stage_attempt,global_step,width,height,n_targets,n_obstacles,mean_episode_reward,food_discovered,food_picked_up,food_retrieved,exploration_coverage,pheromone_usage,pheromone_deposit_events,food_source_respawns,food_units_remaining,episode_length,first_pickup_step,first_delivery_step,pickup_to_delivery_latency,delivery_conversion,swarm_efficiency
+stage1a_single_agent_miniscule,1,1170,50,50,1,0,188.46112060546875,4.0,4.0,4.0,0.3333333333333333,0.0,0.0,0.0,0.0,95.0,81.0,81.0,0.0,1.0,0.042273890310379356
+stage1b_single_agent_tiny,1,2340,75,75,1,0,12.488241076469421,1.5,1.5,0.0,0.125,0.0,0.0,0.0,2.5,120.0,6.0,-1.0,-1.0,0.0,0.0
+stage1c_single_agent_small,1,3510,100,100,1,0,0.5399996787309647,0.0,0.0,0.0,0.04,0.0,0.0,0.0,4.0,140.0,-1.0,-1.0,-1.0,0.0,0.0
+stage1d_single_agent_return_medium,1,5850,160,120,1,0,23.918766975402832,3.5,3.5,0.0,0.3928571428571429,0.0,0.0,0.0,0.5,111.0,69.5,-1.0,-1.0,0.0,0.0
+stage1e_single_agent_delivery_obstacles,1,8192,320,240,1,1,-0.033000215888023376,0.0,0.0,0.0,0.025974025974025976,0.0,0.0,0.0,4.0,220.0,-1.0,-1.0,-1.0,0.0,0.0
+stage1e_single_agent_delivery_obstacles,1,8192,320,240,1,1,-0.3350003883242607,0.0,0.0,0.0,0.022727272727272728,0.0,0.0,0.0,4.0,220.0,-1.0,-1.0,-1.0,0.0,0.0

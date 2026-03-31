@@ -154,11 +154,13 @@ Why this is the recommended starting point:
 - the current curriculum spreads learning across many stages
 - the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
 - the early stages now deliberately simplify the task: pheromone is disabled in stage 1, movement penalties are softened, and pickup/delivery cues are stronger so greedy `pickup -> return -> deliver` behavior can form first
+- prompt 30 now also suppresses exploration reward while carrying in the return-focused stages, and adds a dedicated single-agent return stage before the first obstacle-delivery stage so carrying-food nest return is taught more directly
 - the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes
 - stage progression is now greedy-eval-aware, with optional repeats when pickup/delivery remain below minimum promotion targets
 - the trainer now prints sampled-vs-greedy pickup/delivery gaps and saves `best_greedy_eval/` so demo can use the strongest greedy checkpoint instead of assuming `latest/` is best
+- stage summaries now also print pickup-to-delivery conversion, which is the main signal for whether return-to-nest behavior is actually forming
 - the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
 - a shorter run can finish, but often leaves the later full-swarm stages undertrained
 - `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo

@@ -221,6 +221,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.01)
+    parser.add_argument("--carrying-reward-new-cell-scale", type=float, default=1.0)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--eval-steps", type=int, default=600)
@@ -251,6 +252,7 @@ def make_swarm_config(args) -> SwarmConfig:
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
         observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),
         reward_new_cell=getattr(args, "reward_new_cell", 0.01),
+        carrying_reward_new_cell_scale=getattr(args, "carrying_reward_new_cell_scale", 1.0),
         reward_target=getattr(args, "reward_target", 0.0),
         reward_pickup=getattr(args, "reward_pickup", 6.0),
         reward_nest_delivery=getattr(args, "reward_nest_delivery", 30.0),

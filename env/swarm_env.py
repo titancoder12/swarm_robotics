@@ -915,20 +915,22 @@ class SwarmEnv(ParallelEnv):
         self.covered_cells = 0
         self.total_cover_cells = int(self.coverage_grid.size)
 
-    def _update_coverage(self) -> int:
-        """Mark currently occupied coverage cells and return newly visited count."""
+    def _update_coverage(self) -> tuple[int, np.ndarray]:
+        """Mark currently occupied coverage cells and return total/per-agent new-cell counts."""
         if self.coverage_grid is None:
-            return 0
+            return 0, np.zeros((self.cfg.n_agents,), dtype=np.int32)
         cell = max(self.cfg.coverage_cell_size, 1)
         new_cells = 0
-        for agent in self.agent_states:
+        per_agent_new_cells = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        for idx, agent in enumerate(self.agent_states):
             gx = int(np.clip(agent.x // cell, 0, self.coverage_grid.shape[1] - 1))
             gy = int(np.clip(agent.y // cell, 0, self.coverage_grid.shape[0] - 1))
             if not self.coverage_grid[gy, gx]:
                 self.coverage_grid[gy, gx] = True
                 self.covered_cells += 1
                 new_cells += 1
-        return new_cells
+                per_agent_new_cells[idx] += 1
+        return new_cells, per_agent_new_cells
 
     def _coverage_ratio(self) -> float:
         """Return the fraction of visited coverage cells this episode."""
@@ -938,10 +940,16 @@ class SwarmEnv(ParallelEnv):
 
     def _apply_exploration_reward(self, rewards: np.ndarray) -> tuple[float, int]:
         """Reward visiting previously unseen coverage cells."""
-        new_cells = self._update_coverage()
-        reward_total = float(new_cells * self.cfg.reward_new_cell)
-        if reward_total != 0.0 and self.cfg.n_agents > 0:
-            rewards += reward_total / self.cfg.n_agents
+        new_cells, per_agent_new_cells = self._update_coverage()
+        reward_total = 0.0
+        if new_cells > 0:
+            for i, count in enumerate(per_agent_new_cells):
+                if count <= 0:
+                    continue
+                scale = float(self.cfg.carrying_reward_new_cell_scale) if self.agent_states[i].carrying_food else 1.0
+                reward = float(count) * float(self.cfg.reward_new_cell) * scale
+                rewards[i] += reward
+                reward_total += reward
         return reward_total, new_cells
 
     def _apply_food_shaping(self, rewards: np.ndarray) -> tuple[float, float]:

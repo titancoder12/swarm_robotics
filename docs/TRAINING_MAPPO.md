@@ -79,11 +79,12 @@ The default `full` schedule is:
 1. `stage1a_single_agent_miniscule`
 2. `stage1b_single_agent_tiny`
 3. `stage1c_single_agent_small`
-4. `stage1d_single_agent_delivery_obstacles`
-5. `stage2a_small_swarm_medium`
-6. `stage2b_small_swarm_large`
-7. `stage3a_full_swarm_large`
-8. `stage3b_full_swarm_final`
+4. `stage1d_single_agent_return_medium`
+5. `stage1e_single_agent_delivery_obstacles`
+6. `stage2a_small_swarm_medium`
+7. `stage2b_small_swarm_large`
+8. `stage3a_full_swarm_large`
+9. `stage3b_full_swarm_final`
 
 The current curriculum stages the following environment variables:
 
@@ -97,14 +98,17 @@ The current curriculum stages the following environment variables:
 - `target_respawn`
 - `action_repeat_steps`
 - `reward_new_cell`
+- `reward_nest_approach`
+- `carrying_reward_new_cell_scale`
 - staged reward/pheromone simplifications for early greedy behavior
 - stage-wise entropy start/end values used for within-stage entropy decay
 
 Intended teaching progression:
 
 - Stage 1A-1C: one agent, increasingly larger empty worlds with one target
-- Stage 1D: one agent, one target, obstacles, no respawn; this is the first full obstacle delivery stage
-- Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet
+- Stage 1D: one agent, medium world, one target, no obstacles; this stage isolates carrying-food return-to-nest before clutter is introduced
+- Stage 1E: one agent, one target, one obstacle, no respawn; this is the first obstacle delivery stage
+- Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet, with pheromone still disabled so early swarm delivery is learned before trail exploitation returns
 - Stage 2B: small swarm, large but not final environment, now with respawn enabled
 - Stage 3A: full swarm, same large but not final environment
 - Stage 3B: full swarm, final large obstacle-heavy environment
@@ -131,6 +135,8 @@ Control/reward staging now also changes with difficulty:
 - later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
 - stage 1 now disables pheromone entirely so pickup/return/delivery is learned before trail exploitation is introduced
 - stage 1 softens `reward_step` and `reward_collision`, and strengthens pickup/delivery cues, so freezing is less attractive than useful movement
+- prompt 30 also suppresses or strongly reduces exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
+- `reward_nest_approach` is now staged explicitly, with stronger values in the return-focused single-agent stages than in the final full-swarm stages
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -142,9 +148,9 @@ Prompt 29 also changes entropy handling:
 
 Mode semantics:
 
-- `stage1` runs all four single-agent stages
-- `stage1_to_2` runs the four single-agent stages plus the two small-swarm stages
-- `full` runs all eight stages
+- `stage1` runs all five single-agent stages
+- `stage1_to_2` runs the five single-agent stages plus the two small-swarm stages
+- `full` runs all nine stages
 
 Actor and critic weights are now both carried across stages.
 
@@ -230,6 +236,18 @@ What prompt 29 changes:
 - reward/control pressure is eased in stage 1 so movement and task completion dominate freezing
 - entropy decays within a stage instead of staying fixed
 - trainer runtime prints now call out sampled-vs-greedy gaps, making it obvious when lucky sampled behavior is not surviving into greedy eval
+
+What still remained broken after prompt 29:
+
+- pickup became learnable, but carrying-food return-to-nest completion still collapsed in the first obstacle stage and in early swarm stages
+
+What prompt 30 changes:
+
+- adds a dedicated single-agent return stage before the first obstacle-return stage
+- stages `reward_nest_approach` explicitly
+- suppresses exploration reward while carrying in the return-focused stages
+- keeps stage 2A pheromone-free so early swarm delivery is learned before pheromone exploitation returns
+- adds pickup-to-delivery conversion reporting to runtime/eval summaries
 
 Headless MAPPO evaluation:
 

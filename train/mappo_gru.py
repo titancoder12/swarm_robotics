@@ -109,6 +109,8 @@ def _build_env(args, stage):
         cfg.reward_collision = float(stage.reward_collision)
     if stage.reward_pickup is not None:
         cfg.reward_pickup = float(stage.reward_pickup)
+    if stage.reward_nest_approach is not None:
+        cfg.reward_nest_approach = float(stage.reward_nest_approach)
     if stage.reward_nest_delivery is not None:
         cfg.reward_nest_delivery = float(stage.reward_nest_delivery)
     if stage.reward_undelivered_food is not None:
@@ -119,6 +121,8 @@ def _build_env(args, stage):
         cfg.reward_food_detected = float(stage.reward_food_detected)
     if stage.reward_pheromone_follow is not None:
         cfg.reward_pheromone_follow = float(stage.reward_pheromone_follow)
+    if stage.carrying_reward_new_cell_scale is not None:
+        cfg.carrying_reward_new_cell_scale = float(stage.carrying_reward_new_cell_scale)
     if stage.pheromone_enabled is not None:
         cfg.pheromone_enabled = bool(stage.pheromone_enabled)
         cfg.render_pheromone = bool(stage.pheromone_enabled)
@@ -147,10 +151,12 @@ def _pad_state(state: np.ndarray, target_dim: int) -> np.ndarray:
 
 
 def _stage_promotion_target(stage) -> StagePromotionTarget:
+    if int(stage.n_agents) == 1 and int(stage.n_obstacles) == 0 and int(stage.width) <= 160:
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
     if int(stage.n_agents) == 1:
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
     if not bool(stage.target_respawn):
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
     if int(stage.n_agents) < 5:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
     return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.2)
@@ -268,6 +274,7 @@ def _evaluate(actor, critic, cfg, critic_state_dim: int, device, episodes: int, 
                         if first_pickup_step >= 0 and first_delivery_step >= 0
                         else -1
                     ),
+                    "delivery_conversion": float(delivered / max(picked_up, 1)),
                     "swarm_efficiency": float(delivered / max(length, 1)),
                 }
             )
@@ -394,6 +401,7 @@ def train(args):
             "first_pickup_step",
             "first_delivery_step",
             "pickup_to_delivery_latency",
+            "delivery_conversion",
             "swarm_efficiency",
         ],
     )
@@ -420,6 +428,7 @@ def train(args):
             "first_pickup_step",
             "first_delivery_step",
             "pickup_to_delivery_latency",
+            "delivery_conversion",
             "swarm_efficiency",
         ],
     )
@@ -504,8 +513,10 @@ def train(args):
                 f"agents={cfg.n_agents} | target_steps={stage.total_steps} | "
                 f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
                 f"action_repeat={cfg.action_repeat_steps} | reward_new_cell={cfg.reward_new_cell:.4f} | "
+                f"carrying_new_cell_scale={cfg.carrying_reward_new_cell_scale:.2f} | "
                 f"reward_step={cfg.reward_step:.4f} | reward_collision={cfg.reward_collision:.2f} | "
-                f"reward_pickup={cfg.reward_pickup:.2f} | reward_delivery={cfg.reward_nest_delivery:.2f} | "
+                f"reward_pickup={cfg.reward_pickup:.2f} | reward_nest_approach={cfg.reward_nest_approach:.2f} | "
+                f"reward_delivery={cfg.reward_nest_delivery:.2f} | "
                 f"reward_undelivered={cfg.reward_undelivered_food:.2f} | "
                 f"pheromone={'on' if cfg.pheromone_enabled else 'off'} | "
                 f"entropy={stage.entropy_start:.4f}->{stage.entropy_end:.4f} | "
@@ -618,6 +629,7 @@ def train(args):
                                     if first_pickup_step >= 0 and first_delivery_step >= 0
                                     else -1
                                 ),
+                                "delivery_conversion": float(episode_food_delivered / max(episode_food_picked_up, 1)),
                                 "swarm_efficiency": swarm_efficiency,
                             }
                         )
@@ -764,6 +776,7 @@ def train(args):
                             f"reward={eval_metrics['mean_episode_reward']:.2f} "
                             f"picked_up={eval_metrics['food_picked_up']:.2f} "
                             f"delivered={eval_metrics['food_retrieved']:.2f} "
+                            f"conversion={eval_metrics['delivery_conversion']:.2f} "
                             f"gap_pickup={max(0.0, (sampled_pickups_sum / max(sampled_episode_count, 1)) - eval_metrics['food_picked_up']):.2f} "
                             f"gap_delivery={max(0.0, (sampled_deliveries_sum / max(sampled_episode_count, 1)) - eval_metrics['food_retrieved']):.2f} "
                             f"deposits={eval_metrics['pheromone_deposit_events']:.2f} "
@@ -816,6 +829,7 @@ def train(args):
             sampled_mean_reward = sampled_reward_sum / max(sampled_episode_count, 1)
             sampled_mean_pickups = sampled_pickups_sum / max(sampled_episode_count, 1)
             sampled_mean_deliveries = sampled_deliveries_sum / max(sampled_episode_count, 1)
+            sampled_delivery_conversion = sampled_mean_deliveries / max(sampled_mean_pickups, 1.0)
             current_entropy_coef = _stage_entropy_coef(stage, stage_steps)
 
             metadata = {
@@ -835,9 +849,11 @@ def train(args):
                 "food_source_capacity": int(cfg.food_source_capacity),
                 "action_repeat_steps": int(cfg.action_repeat_steps),
                 "reward_new_cell": float(cfg.reward_new_cell),
+                "carrying_reward_new_cell_scale": float(cfg.carrying_reward_new_cell_scale),
                 "reward_step": float(cfg.reward_step),
                 "reward_collision": float(cfg.reward_collision),
                 "reward_pickup": float(cfg.reward_pickup),
+                "reward_nest_approach": float(cfg.reward_nest_approach),
                 "reward_nest_delivery": float(cfg.reward_nest_delivery),
                 "reward_undelivered_food": float(cfg.reward_undelivered_food),
                 "reward_food_approach": float(cfg.reward_food_approach),
@@ -861,6 +877,7 @@ def train(args):
                 "sampled_mean_episode_reward": float(sampled_mean_reward),
                 "sampled_mean_food_picked_up": float(sampled_mean_pickups),
                 "sampled_mean_food_retrieved": float(sampled_mean_deliveries),
+                "sampled_delivery_conversion": float(sampled_delivery_conversion),
                 "stage_end_eval": stage_end_eval,
                 "recommended_demo_checkpoint": "best_greedy_eval",
             }
@@ -918,10 +935,11 @@ def train(args):
                 f"[MAPPO] Completed {stage.name} attempt={stage_attempt} | "
                 f"stage_steps={global_step - stage_start_step} | episodes={stage_episode} | "
                 f"sampled_reward={sampled_mean_reward:.2f} | sampled_pickup={sampled_mean_pickups:.2f} | "
-                f"sampled_delivery={sampled_mean_deliveries:.2f} | "
+                f"sampled_delivery={sampled_mean_deliveries:.2f} | sampled_conversion={sampled_delivery_conversion:.2f} | "
                 f"greedy_reward={float(stage_end_eval.get('mean_episode_reward', 0.0)) if stage_end_eval else 0.0:.2f} | "
                 f"greedy_pickup={float(stage_end_eval.get('food_picked_up', 0.0)) if stage_end_eval else 0.0:.2f} | "
                 f"greedy_delivery={float(stage_end_eval.get('food_retrieved', 0.0)) if stage_end_eval else 0.0:.2f} | "
+                f"greedy_conversion={float(stage_end_eval.get('delivery_conversion', 0.0)) if stage_end_eval else 0.0:.2f} | "
                 f"promoted={stage_promoted} | best_eval_score={stage_best_eval_score:.2f} | "
                 f"elapsed={_format_duration(stage_elapsed)}"
             )
