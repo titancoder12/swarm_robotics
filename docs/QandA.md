@@ -926,3 +926,9 @@ A: Because `train/demo.py` seeds the environment deterministically by default. T
 
 ## Q: What changed in prompt 47?
 A: Prompt 47 adds env-side extra action randomness for non-carrying agents while they are exploring. It introduces `non_carrying_explore_random_action_prob`, applies it only to empty agents, samples movement-producing non-deposit actions so the randomness still looks like search behavior, and leaves carrying-food return behavior untouched. The setting is enabled in the later swarm curriculum stages, logged in MAPPO episode/eval metrics, and saved into checkpoint `metadata.json` so demos reproduce the same exploration-mode behavior.
+
+## Q: What does it mean if training says it is advancing despite an unmet stage target and then stops at the hard global step cap?
+A: It means the run hit the global `--total-steps` ceiling before fully satisfying the current stage's promotion target. The trainer still finished the current stage-end evaluation and, because `stage-repeat-limit=1`, allowed advancement after the allowed attempts were exhausted, but then immediately stopped because the hard global budget had been used up. So yes: training ended due to the hard cap, not because the curriculum was fully completed successfully.
+
+## Q: Why can the bottom border of the PyGame environment appear outside the visible window?
+A: The env is rendered 1:1 into a PyGame window created at exactly `(self.width, self.height)` in `env/swarm_env.py`. There is no extra padding, camera fit, or scaling margin. That means if the configured env size is large relative to the visible desktop area, the OS window frame/title bar can make the usable content area feel slightly clipped, especially at the bottom. In other words, the env is not drawing past its own surface; the window is just being created at the full world size with no viewport margin or fit-to-screen logic.
