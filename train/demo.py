@@ -98,6 +98,90 @@ def _build_demo_env(args):
             args_copy.food_source_capacity = int(
                 metadata.get("food_source_capacity", getattr(args_copy, "food_source_capacity", 4))
             )
+            args_copy.non_carrying_nest_pheromone_suppression_radius = float(
+                metadata.get(
+                    "non_carrying_nest_pheromone_suppression_radius",
+                    getattr(args_copy, "non_carrying_nest_pheromone_suppression_radius", 0.0),
+                )
+            )
+            args_copy.non_carrying_nest_loiter_radius = float(
+                metadata.get(
+                    "non_carrying_nest_loiter_radius",
+                    getattr(args_copy, "non_carrying_nest_loiter_radius", 0.0),
+                )
+            )
+            args_copy.non_carrying_nest_loiter_penalty = float(
+                metadata.get(
+                    "non_carrying_nest_loiter_penalty",
+                    getattr(args_copy, "non_carrying_nest_loiter_penalty", 0.0),
+                )
+            )
+            args_copy.non_carrying_nest_crowding_radius = float(
+                metadata.get(
+                    "non_carrying_nest_crowding_radius",
+                    getattr(args_copy, "non_carrying_nest_crowding_radius", 0.0),
+                )
+            )
+            args_copy.non_carrying_nest_crowding_penalty = float(
+                metadata.get(
+                    "non_carrying_nest_crowding_penalty",
+                    getattr(args_copy, "non_carrying_nest_crowding_penalty", 0.0),
+                )
+            )
+            args_copy.non_carrying_nest_crowding_threshold = int(
+                metadata.get(
+                    "non_carrying_nest_crowding_threshold",
+                    getattr(args_copy, "non_carrying_nest_crowding_threshold", 2),
+                )
+            )
+            args_copy.post_delivery_cooldown_steps = int(
+                metadata.get(
+                    "post_delivery_cooldown_steps",
+                    getattr(args_copy, "post_delivery_cooldown_steps", 0),
+                )
+            )
+            args_copy.post_delivery_exit_radius = float(
+                metadata.get(
+                    "post_delivery_exit_radius",
+                    getattr(args_copy, "post_delivery_exit_radius", 0.0),
+                )
+            )
+            args_copy.post_delivery_outward_reward = float(
+                metadata.get(
+                    "post_delivery_outward_reward",
+                    getattr(args_copy, "post_delivery_outward_reward", 0.0),
+                )
+            )
+            args_copy.post_delivery_loiter_penalty = float(
+                metadata.get(
+                    "post_delivery_loiter_penalty",
+                    getattr(args_copy, "post_delivery_loiter_penalty", 0.0),
+                )
+            )
+            args_copy.post_delivery_pheromone_suppression_radius = float(
+                metadata.get(
+                    "post_delivery_pheromone_suppression_radius",
+                    getattr(args_copy, "post_delivery_pheromone_suppression_radius", 0.0),
+                )
+            )
+            args_copy.post_delivery_require_exit = bool(
+                metadata.get(
+                    "post_delivery_require_exit",
+                    getattr(args_copy, "post_delivery_require_exit", False),
+                )
+            )
+            args_copy.post_delivery_crowding_penalty = float(
+                metadata.get(
+                    "post_delivery_crowding_penalty",
+                    getattr(args_copy, "post_delivery_crowding_penalty", 0.0),
+                )
+            )
+            args_copy.post_delivery_crowding_threshold = int(
+                metadata.get(
+                    "post_delivery_crowding_threshold",
+                    getattr(args_copy, "post_delivery_crowding_threshold", 2),
+                )
+            )
 
     cfg = make_swarm_config(args_copy)
     if metadata:

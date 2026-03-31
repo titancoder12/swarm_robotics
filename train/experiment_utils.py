@@ -235,6 +235,14 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--carrying-progress-streak-threshold", type=int, default=3)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--post-delivery-cooldown-steps", type=int, default=0)
+    parser.add_argument("--post-delivery-exit-radius", type=float, default=0.0)
+    parser.add_argument("--post-delivery-outward-reward", type=float, default=0.0)
+    parser.add_argument("--post-delivery-loiter-penalty", type=float, default=0.0)
+    parser.add_argument("--post-delivery-pheromone-suppression-radius", type=float, default=0.0)
+    parser.add_argument("--post-delivery-require-exit", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--post-delivery-crowding-penalty", type=float, default=0.0)
+    parser.add_argument("--post-delivery-crowding-threshold", type=int, default=2)
     parser.add_argument("--eval-steps", type=int, default=600)
     parser.add_argument("--active-targets", type=int, default=3)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
@@ -263,6 +271,20 @@ def make_swarm_config(args) -> SwarmConfig:
         target_nest_corridor_clearance=getattr(args, "target_nest_corridor_clearance", 0.0),
         pheromone_requires_food=bool(getattr(args, "pheromone_requires_food", True)),
         pheromone_deposit_requires_nest_progress=bool(getattr(args, "pheromone_deposit_requires_nest_progress", True)),
+        non_carrying_nest_pheromone_suppression_radius=getattr(args, "non_carrying_nest_pheromone_suppression_radius", 0.0),
+        non_carrying_nest_loiter_radius=getattr(args, "non_carrying_nest_loiter_radius", 0.0),
+        non_carrying_nest_loiter_penalty=getattr(args, "non_carrying_nest_loiter_penalty", 0.0),
+        non_carrying_nest_crowding_radius=getattr(args, "non_carrying_nest_crowding_radius", 0.0),
+        non_carrying_nest_crowding_penalty=getattr(args, "non_carrying_nest_crowding_penalty", 0.0),
+        non_carrying_nest_crowding_threshold=max(1, int(getattr(args, "non_carrying_nest_crowding_threshold", 2))),
+        post_delivery_cooldown_steps=max(0, int(getattr(args, "post_delivery_cooldown_steps", 0))),
+        post_delivery_exit_radius=getattr(args, "post_delivery_exit_radius", 0.0),
+        post_delivery_outward_reward=getattr(args, "post_delivery_outward_reward", 0.0),
+        post_delivery_loiter_penalty=getattr(args, "post_delivery_loiter_penalty", 0.0),
+        post_delivery_pheromone_suppression_radius=getattr(args, "post_delivery_pheromone_suppression_radius", 0.0),
+        post_delivery_require_exit=bool(getattr(args, "post_delivery_require_exit", False)),
+        post_delivery_crowding_penalty=getattr(args, "post_delivery_crowding_penalty", 0.0),
+        post_delivery_crowding_threshold=max(1, int(getattr(args, "post_delivery_crowding_threshold", 2))),
         failed_agent_count=getattr(args, "failed_agent_count", 0),
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
         observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),

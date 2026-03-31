@@ -66,6 +66,20 @@ class SwarmConfig:
     pheromone_deposit_carrying_scale: float = 1.5
     pheromone_requires_food: bool = True
     pheromone_deposit_requires_nest_progress: bool = True
+    non_carrying_nest_pheromone_suppression_radius: float = 0.0
+    non_carrying_nest_loiter_radius: float = 0.0
+    non_carrying_nest_loiter_penalty: float = 0.0
+    non_carrying_nest_crowding_radius: float = 0.0
+    non_carrying_nest_crowding_penalty: float = 0.0
+    non_carrying_nest_crowding_threshold: int = 2
+    post_delivery_cooldown_steps: int = 0
+    post_delivery_exit_radius: float = 0.0
+    post_delivery_outward_reward: float = 0.0
+    post_delivery_loiter_penalty: float = 0.0
+    post_delivery_pheromone_suppression_radius: float = 0.0
+    post_delivery_require_exit: bool = False
+    post_delivery_crowding_penalty: float = 0.0
+    post_delivery_crowding_threshold: int = 2
 
     # Rewards
     #reward_target: float = 30.0

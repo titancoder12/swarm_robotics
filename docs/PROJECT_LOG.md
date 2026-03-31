@@ -416,3 +416,8 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Implemented prompt 40 by inserting a small-swarm bootstrap stack (`stage2a` carry bootstrap, `stage2b` easy delivery, `stage2c` delivery-first medium, `stage2d` larger small-swarm) and updating MAPPO promotion logic and docs to match.
 - Added prompt 41 to preserve the solved stage-1 stack while reducing repeat/budget drain so the new small-swarm bootstrap stages are actually reached in verification.
 - Implemented prompt 41 by lowering repeat pressure and budget weights for `stage1d`/`stage1e`/`stage1f` and relaxing the pure carry-bootstrap promotion target so `stage1_to_2` verification can reach the new swarm bootstrap stages.
+- Added a Q&A note explaining why agents can circle or cluster around the nest in demo even though nest-approach shaping only applies while carrying food.
+- Added a Q&A note with recommended fixes for nest-circling behavior: reduce non-carrying nest/pheromone attraction, strengthen outward-search pressure after delivery, and add anti-crowding / anti-loiter pressure near the nest.
+- Added prompt 42 to reduce non-carrying nest circling by suppressing nest-adjacent pheromone attraction and adding nest-loiter / nest-crowding pressure for empty agents.
+- Added prompt 43 to reduce post-delivery nest orbiting by adding a short outward-search cooldown, post-delivery nest-exit shaping, and stronger pheromone suppression for recently delivered empty agents.
+- Added prompt 44 to hold the post-delivery handoff until empty agents actually leave the nest zone and to add extra post-delivery crowding pressure inside that zone.

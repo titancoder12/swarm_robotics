@@ -143,6 +143,34 @@ def _build_env(args, stage):
     if stage.pheromone_enabled is not None:
         cfg.pheromone_enabled = bool(stage.pheromone_enabled)
         cfg.render_pheromone = bool(stage.pheromone_enabled)
+    if stage.non_carrying_nest_pheromone_suppression_radius is not None:
+        cfg.non_carrying_nest_pheromone_suppression_radius = float(stage.non_carrying_nest_pheromone_suppression_radius)
+    if stage.non_carrying_nest_loiter_radius is not None:
+        cfg.non_carrying_nest_loiter_radius = float(stage.non_carrying_nest_loiter_radius)
+    if stage.non_carrying_nest_loiter_penalty is not None:
+        cfg.non_carrying_nest_loiter_penalty = float(stage.non_carrying_nest_loiter_penalty)
+    if stage.non_carrying_nest_crowding_radius is not None:
+        cfg.non_carrying_nest_crowding_radius = float(stage.non_carrying_nest_crowding_radius)
+    if stage.non_carrying_nest_crowding_penalty is not None:
+        cfg.non_carrying_nest_crowding_penalty = float(stage.non_carrying_nest_crowding_penalty)
+    if stage.non_carrying_nest_crowding_threshold is not None:
+        cfg.non_carrying_nest_crowding_threshold = int(stage.non_carrying_nest_crowding_threshold)
+    if stage.post_delivery_cooldown_steps is not None:
+        cfg.post_delivery_cooldown_steps = int(stage.post_delivery_cooldown_steps)
+    if stage.post_delivery_exit_radius is not None:
+        cfg.post_delivery_exit_radius = float(stage.post_delivery_exit_radius)
+    if stage.post_delivery_outward_reward is not None:
+        cfg.post_delivery_outward_reward = float(stage.post_delivery_outward_reward)
+    if stage.post_delivery_loiter_penalty is not None:
+        cfg.post_delivery_loiter_penalty = float(stage.post_delivery_loiter_penalty)
+    if stage.post_delivery_pheromone_suppression_radius is not None:
+        cfg.post_delivery_pheromone_suppression_radius = float(stage.post_delivery_pheromone_suppression_radius)
+    if stage.post_delivery_require_exit is not None:
+        cfg.post_delivery_require_exit = bool(stage.post_delivery_require_exit)
+    if stage.post_delivery_crowding_penalty is not None:
+        cfg.post_delivery_crowding_penalty = float(stage.post_delivery_crowding_penalty)
+    if stage.post_delivery_crowding_threshold is not None:
+        cfg.post_delivery_crowding_threshold = int(stage.post_delivery_crowding_threshold)
     if stage.target_nest_distance_min is not None:
         cfg.target_nest_distance_min = float(stage.target_nest_distance_min)
     if stage.target_nest_distance_max is not None:
@@ -362,6 +390,12 @@ def _evaluate(actor, critic, cfg, critic_state_dim: int, device, episodes: int, 
                     "carrying_low_progress_fraction": float(info.get("carrying_low_progress_fraction", 0.0)),
                     "carrying_low_displacement_fraction": float(info.get("carrying_low_displacement_fraction", 0.0)),
                     "carrying_penalty_total": float(info.get("carrying_penalty_total", 0.0)),
+                    "non_carrying_nest_loiter_fraction": float(info.get("non_carrying_nest_loiter_fraction", 0.0)),
+                    "non_carrying_nest_crowding_fraction": float(info.get("non_carrying_nest_crowding_fraction", 0.0)),
+                    "non_carrying_nest_penalty_total": float(info.get("non_carrying_nest_penalty_total", 0.0)),
+                    "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
+                    "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
+                    "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
                     "swarm_efficiency": float(delivered / max(length, 1)),
                 }
             )
@@ -494,6 +528,12 @@ def train(args):
             "carrying_low_progress_fraction",
             "carrying_low_displacement_fraction",
             "carrying_penalty_total",
+            "non_carrying_nest_loiter_fraction",
+            "non_carrying_nest_crowding_fraction",
+            "non_carrying_nest_penalty_total",
+            "post_delivery_active_fraction",
+            "post_delivery_outward_reward",
+            "post_delivery_loiter_penalty_total",
             "swarm_efficiency",
         ],
     )
@@ -526,6 +566,12 @@ def train(args):
             "carrying_low_progress_fraction",
             "carrying_low_displacement_fraction",
             "carrying_penalty_total",
+            "non_carrying_nest_loiter_fraction",
+            "non_carrying_nest_crowding_fraction",
+            "non_carrying_nest_penalty_total",
+            "post_delivery_active_fraction",
+            "post_delivery_outward_reward",
+            "post_delivery_loiter_penalty_total",
             "swarm_efficiency",
         ],
     )
@@ -743,6 +789,12 @@ def train(args):
                                 "carrying_low_progress_fraction": float(info.get("carrying_low_progress_fraction", 0.0)),
                                 "carrying_low_displacement_fraction": float(info.get("carrying_low_displacement_fraction", 0.0)),
                                 "carrying_penalty_total": float(info.get("carrying_penalty_total", 0.0)),
+                                "non_carrying_nest_loiter_fraction": float(info.get("non_carrying_nest_loiter_fraction", 0.0)),
+                                "non_carrying_nest_crowding_fraction": float(info.get("non_carrying_nest_crowding_fraction", 0.0)),
+                                "non_carrying_nest_penalty_total": float(info.get("non_carrying_nest_penalty_total", 0.0)),
+                                "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
+                                "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
+                                "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
                                 "swarm_efficiency": swarm_efficiency,
                             }
                         )
@@ -995,6 +1047,20 @@ def train(args):
                 "reward_food_detected": float(cfg.reward_food_detected),
                 "reward_pheromone_follow": float(cfg.reward_pheromone_follow),
                 "pheromone_enabled": bool(cfg.pheromone_enabled),
+                "non_carrying_nest_pheromone_suppression_radius": float(cfg.non_carrying_nest_pheromone_suppression_radius),
+                "non_carrying_nest_loiter_radius": float(cfg.non_carrying_nest_loiter_radius),
+                "non_carrying_nest_loiter_penalty": float(cfg.non_carrying_nest_loiter_penalty),
+                "non_carrying_nest_crowding_radius": float(cfg.non_carrying_nest_crowding_radius),
+                "non_carrying_nest_crowding_penalty": float(cfg.non_carrying_nest_crowding_penalty),
+                "non_carrying_nest_crowding_threshold": int(cfg.non_carrying_nest_crowding_threshold),
+                "post_delivery_cooldown_steps": int(cfg.post_delivery_cooldown_steps),
+                "post_delivery_exit_radius": float(cfg.post_delivery_exit_radius),
+                "post_delivery_outward_reward": float(cfg.post_delivery_outward_reward),
+                "post_delivery_loiter_penalty": float(cfg.post_delivery_loiter_penalty),
+                "post_delivery_pheromone_suppression_radius": float(cfg.post_delivery_pheromone_suppression_radius),
+                "post_delivery_require_exit": bool(cfg.post_delivery_require_exit),
+                "post_delivery_crowding_penalty": float(cfg.post_delivery_crowding_penalty),
+                "post_delivery_crowding_threshold": int(cfg.post_delivery_crowding_threshold),
                 "obs_dim": spaces.obs_dim,
                 "action_dim": spaces.action_dim,
                 "env_state_dim": spaces.state_dim,

@@ -23,6 +23,7 @@ class AgentState:
     omega: float = 0.0
     v_lat: float = 0.0
     carrying_food: bool = False
+    post_delivery_steps: int = 0
 
 
 class DynamicsDriver:
@@ -48,7 +49,16 @@ class TankKinematicsDriver(DynamicsDriver):
 
         nx = state.x + math.cos(theta) * v * dt
         ny = state.y + math.sin(theta) * v * dt
-        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=0.0, carrying_food=state.carrying_food)
+        return AgentState(
+            nx,
+            ny,
+            theta,
+            v=v,
+            omega=omega,
+            v_lat=0.0,
+            carrying_food=state.carrying_food,
+            post_delivery_steps=state.post_delivery_steps,
+        )
 
 
 class HovercraftDriver(DynamicsDriver):
@@ -76,7 +86,16 @@ class HovercraftDriver(DynamicsDriver):
 
         nx = state.x + vel[0] * dt
         ny = state.y + vel[1] * dt
-        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=v_lat, carrying_food=state.carrying_food)
+        return AgentState(
+            nx,
+            ny,
+            theta,
+            v=v,
+            omega=omega,
+            v_lat=v_lat,
+            carrying_food=state.carrying_food,
+            post_delivery_steps=state.post_delivery_steps,
+        )
 
 
 class SwarmEnv(ParallelEnv):
@@ -130,6 +149,12 @@ class SwarmEnv(ParallelEnv):
         self.episode_carrying_progress_reward = 0.0
         self.episode_carrying_sustained_progress_reward = 0.0
         self.episode_carrying_penalty_total = 0.0
+        self.episode_non_carrying_nest_loiter_steps = 0
+        self.episode_non_carrying_nest_crowding_steps = 0
+        self.episode_non_carrying_nest_penalty_total = 0.0
+        self.episode_post_delivery_active_steps = 0
+        self.episode_post_delivery_outward_reward = 0.0
+        self.episode_post_delivery_loiter_penalty_total = 0.0
 
         self.step_count = 0
         self.terminated = False
@@ -333,6 +358,12 @@ class SwarmEnv(ParallelEnv):
         self.episode_carrying_progress_reward = 0.0
         self.episode_carrying_sustained_progress_reward = 0.0
         self.episode_carrying_penalty_total = 0.0
+        self.episode_non_carrying_nest_loiter_steps = 0
+        self.episode_non_carrying_nest_crowding_steps = 0
+        self.episode_non_carrying_nest_penalty_total = 0.0
+        self.episode_post_delivery_active_steps = 0
+        self.episode_post_delivery_outward_reward = 0.0
+        self.episode_post_delivery_loiter_penalty_total = 0.0
         self._init_coverage_grid()
         self._assign_failed_agents()
         self._update_coverage()
@@ -406,6 +437,9 @@ class SwarmEnv(ParallelEnv):
             "pheromone_follow": 0.0,
             "pheromone_usage": 0.0,
             "pheromone_deposit": 0.0,
+            "non_carrying_nest_penalty": 0.0,
+            "post_delivery_outward": 0.0,
+            "post_delivery_loiter": 0.0,
         }
 
         for i, action_id in enumerate(actions):
@@ -472,6 +506,20 @@ class SwarmEnv(ParallelEnv):
         pheromone_usage_reward, pheromone_follow_reward, pheromone_usage = self._apply_pheromone_reward(rewards, actions)
         reward_breakdown["pheromone_usage"] += float(pheromone_usage_reward)
         reward_breakdown["pheromone_follow"] += float(pheromone_follow_reward)
+        nest_penalty_total, nest_loiter_steps, nest_crowding_steps = self._apply_non_carrying_nest_penalties(rewards)
+        reward_breakdown["non_carrying_nest_penalty"] += float(nest_penalty_total)
+        self.episode_non_carrying_nest_penalty_total += float(nest_penalty_total)
+        self.episode_non_carrying_nest_loiter_steps += int(nest_loiter_steps)
+        self.episode_non_carrying_nest_crowding_steps += int(nest_crowding_steps)
+        post_delivery_outward_reward, post_delivery_loiter_penalty, post_delivery_active_steps = self._apply_post_delivery_outward_shaping(
+            rewards,
+            prev_nest_distances,
+        )
+        reward_breakdown["post_delivery_outward"] += float(post_delivery_outward_reward)
+        reward_breakdown["post_delivery_loiter"] += float(post_delivery_loiter_penalty)
+        self.episode_post_delivery_active_steps += int(post_delivery_active_steps)
+        self.episode_post_delivery_outward_reward += float(post_delivery_outward_reward)
+        self.episode_post_delivery_loiter_penalty_total += float(post_delivery_loiter_penalty)
 
         if self.cfg.pheromone_enabled:
             pheromone_deposit_events, pheromone_deposit_cost = self._update_pheromone(
@@ -548,6 +596,12 @@ class SwarmEnv(ParallelEnv):
             "carrying_stall_fraction": float(self.episode_carrying_stall_steps / max(self.step_count, 1)),
             "carrying_low_progress_fraction": float(self.episode_carrying_low_progress_steps / max(self.step_count, 1)),
             "carrying_low_displacement_fraction": float(self.episode_carrying_low_displacement_steps / max(self.step_count, 1)),
+            "non_carrying_nest_loiter_fraction": float(self.episode_non_carrying_nest_loiter_steps / max(self.step_count, 1)),
+            "non_carrying_nest_crowding_fraction": float(self.episode_non_carrying_nest_crowding_steps / max(self.step_count, 1)),
+            "non_carrying_nest_penalty_total": float(self.episode_non_carrying_nest_penalty_total),
+            "post_delivery_active_fraction": float(self.episode_post_delivery_active_steps / max(self.step_count, 1)),
+            "post_delivery_outward_reward": float(self.episode_post_delivery_outward_reward),
+            "post_delivery_loiter_penalty_total": float(self.episode_post_delivery_loiter_penalty_total),
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
             "active_targets": len(self.targets),
@@ -1006,6 +1060,7 @@ class SwarmEnv(ParallelEnv):
                 continue
             if (agent.x - nx) ** 2 + (agent.y - ny) ** 2 <= nest_reach:
                 agent.carrying_food = False
+                agent.post_delivery_steps = int(max(getattr(self.cfg, "post_delivery_cooldown_steps", 0), 0))
                 rewards[i] += self.cfg.reward_nest_delivery
                 self.food_delivered += 1
                 delivered += 1
@@ -1216,9 +1271,21 @@ class SwarmEnv(ParallelEnv):
             rewards += usage_reward_total / self.cfg.n_agents
 
         follow_reward_total = 0.0
+        nest_suppression_radius = float(max(getattr(self.cfg, "non_carrying_nest_pheromone_suppression_radius", 0.0), 0.0))
+        nest_suppression_sq = nest_suppression_radius ** 2
+        post_delivery_suppression_radius = float(max(getattr(self.cfg, "post_delivery_pheromone_suppression_radius", 0.0), 0.0))
+        post_delivery_suppression_sq = post_delivery_suppression_radius ** 2
+        nest_x, nest_y = self.nest_position if self.cfg.nest_enabled else (0.0, 0.0)
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices or agent.carrying_food:
                 continue
+            is_post_delivery = int(getattr(agent, "post_delivery_steps", 0)) > 0
+            if self.cfg.nest_enabled and nest_suppression_radius > 0.0:
+                if (agent.x - nest_x) ** 2 + (agent.y - nest_y) ** 2 <= nest_suppression_sq:
+                    continue
+            if self.cfg.nest_enabled and is_post_delivery and post_delivery_suppression_radius > 0.0:
+                if (agent.x - nest_x) ** 2 + (agent.y - nest_y) ** 2 <= post_delivery_suppression_sq:
+                    continue
             throttle, _, _ = self.action_table[int(actions[i])]
             if throttle <= 0.0:
                 continue
@@ -1235,6 +1302,97 @@ class SwarmEnv(ParallelEnv):
             rewards[i] += reward
             follow_reward_total += reward
         return usage_reward_total, follow_reward_total, usage
+
+    def _apply_non_carrying_nest_penalties(self, rewards: np.ndarray) -> tuple[float, int, int]:
+        """Discourage empty agents from loitering or crowding near the nest."""
+        if not self.cfg.nest_enabled:
+            return 0.0, 0, 0
+        loiter_radius = float(max(getattr(self.cfg, "non_carrying_nest_loiter_radius", 0.0), 0.0))
+        crowding_radius = float(max(getattr(self.cfg, "non_carrying_nest_crowding_radius", 0.0), 0.0))
+        loiter_penalty = float(getattr(self.cfg, "non_carrying_nest_loiter_penalty", 0.0))
+        crowding_penalty = float(getattr(self.cfg, "non_carrying_nest_crowding_penalty", 0.0))
+        crowding_threshold = int(max(getattr(self.cfg, "non_carrying_nest_crowding_threshold", 2), 1))
+        if loiter_radius <= 0.0 and crowding_radius <= 0.0:
+            return 0.0, 0, 0
+
+        nx, ny = self.nest_position
+        loiter_sq = loiter_radius ** 2
+        crowd_sq = crowding_radius ** 2
+        eligible: list[int] = []
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food:
+                continue
+            dist_sq = (agent.x - nx) ** 2 + (agent.y - ny) ** 2
+            if (loiter_radius > 0.0 and dist_sq <= loiter_sq) or (crowding_radius > 0.0 and dist_sq <= crowd_sq):
+                eligible.append(i)
+
+        total_penalty = 0.0
+        loiter_steps = 0
+        crowding_steps = 0
+        for i in eligible:
+            agent = self.agent_states[i]
+            dist_sq = (agent.x - nx) ** 2 + (agent.y - ny) ** 2
+            if loiter_radius > 0.0 and dist_sq <= loiter_sq and loiter_penalty != 0.0:
+                rewards[i] += loiter_penalty
+                total_penalty += loiter_penalty
+                loiter_steps += 1
+            if crowding_radius > 0.0 and dist_sq <= crowd_sq and len(eligible) >= crowding_threshold and crowding_penalty != 0.0:
+                rewards[i] += crowding_penalty
+                total_penalty += crowding_penalty
+                crowding_steps += 1
+        return total_penalty, loiter_steps, crowding_steps
+
+    def _apply_post_delivery_outward_shaping(
+        self,
+        rewards: np.ndarray,
+    prev_nest_distances: np.ndarray,
+    ) -> tuple[float, float, int]:
+        """Encourage recently delivered agents to leave the nest region and resume outward search."""
+        if not self.cfg.nest_enabled:
+            return 0.0, 0.0, 0
+        cooldown_steps = int(max(getattr(self.cfg, "post_delivery_cooldown_steps", 0), 0))
+        if cooldown_steps <= 0:
+            return 0.0, 0.0, 0
+        current_distances = self._compute_nest_distance_state()
+        outward_reward_total = 0.0
+        loiter_penalty_total = 0.0
+        active_steps = 0
+        exit_radius = float(max(getattr(self.cfg, "post_delivery_exit_radius", 0.0), 0.0))
+        outward_reward_scale = float(getattr(self.cfg, "post_delivery_outward_reward", 0.0))
+        loiter_penalty = float(getattr(self.cfg, "post_delivery_loiter_penalty", 0.0))
+        require_exit = bool(getattr(self.cfg, "post_delivery_require_exit", False))
+        crowding_penalty = float(getattr(self.cfg, "post_delivery_crowding_penalty", 0.0))
+        crowding_threshold = int(max(getattr(self.cfg, "post_delivery_crowding_threshold", 2), 1))
+        inside_exit_radius: list[int] = []
+        for i, agent in enumerate(self.agent_states):
+            remaining = int(getattr(agent, "post_delivery_steps", 0))
+            if remaining <= 0 or agent.carrying_food or i in self.failed_agent_indices:
+                if agent.carrying_food:
+                    agent.post_delivery_steps = 0
+                continue
+            active_steps += 1
+            prev_dist = float(prev_nest_distances[i])
+            curr_dist = float(current_distances[i])
+            if np.isfinite(prev_dist) and np.isfinite(curr_dist) and curr_dist > prev_dist:
+                progress = np.clip((curr_dist - prev_dist) / max(float(self.cfg.lidar_max_range), 1e-6), 0.0, 1.0)
+                reward = outward_reward_scale * progress
+                rewards[i] += reward
+                outward_reward_total += reward
+            if exit_radius > 0.0 and curr_dist < exit_radius:
+                rewards[i] += loiter_penalty
+                loiter_penalty_total += loiter_penalty
+                inside_exit_radius.append(i)
+                if require_exit:
+                    agent.post_delivery_steps = max(1, remaining - 1)
+                else:
+                    agent.post_delivery_steps = max(0, remaining - 1)
+            else:
+                agent.post_delivery_steps = max(0, remaining - 1)
+        if crowding_penalty != 0.0 and len(inside_exit_radius) >= crowding_threshold:
+            for i in inside_exit_radius:
+                rewards[i] += crowding_penalty
+                loiter_penalty_total += crowding_penalty
+        return outward_reward_total, loiter_penalty_total, active_steps
 
     def _update_pheromone(
         self,
