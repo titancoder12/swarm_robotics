@@ -802,7 +802,6 @@ class SwarmEnv(ParallelEnv):
             return
         carrying_agents = sum(1 for agent in self.agent_states if agent.carrying_food)
         lines = [
-            f"Seed: {self._current_reset_seed if self._current_reset_seed is not None else '-'}",
             f"Step: {self.step_count}/{self.cfg.max_steps}",
             f"Picked Up: {self.episode_targets_collected}",
             f"Delivered: {self.food_delivered}",
