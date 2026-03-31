@@ -957,5 +957,8 @@ A: Yes. `env/swarm_env.py` now tracks the most recent reset seed and updates the
 ## Q: Can demo show basic live stats like pickups, deliveries, and pheromone drops?
 A: Yes. `env/swarm_env.py` now draws a small HUD on the PyGame display showing step count, pickups, deliveries, pheromone drops, and number of agents currently carrying food. The current seed is kept in the window title instead of repeating it in the HUD. The HUD is drawn after render scaling so it stays legible even when `render_scale` is less than `1.0`.
 
+## Q: Can demo cycle through only a specified list of seeds?
+A: Yes. `train/demo.py` now supports `--seed-list` with a comma-separated list such as `--seed-list 3,17,45`. The initial world uses the first seed in the list, and each later reset cycles through the remaining seeds and then wraps around the list again. If `--seed-list` is not provided, demo keeps the old behavior: start from `--seed` and then increment by `1` on each reset.
+
 ## Q: What were the best presentation seeds from the `runs/presentation_seed_scan` headless evaluation?
 A: Ranking by `food_delivered` first, then `pheromone_usage` and `exploration_coverage`, the strongest seeds in `runs/presentation_seed_scan/` were: `seed 3` clearly first (`delivered=5`, `picked=5`, `pheromone_usage=0.169`), then `seed 2`, `seed 10`, and `seed 4` (all `delivered=2`, with `seed 2` winning that group on higher pheromone usage). `seed 7` was weaker but still nonzero (`delivered=1`). Seeds `1, 5, 6, 8, 9` all delivered `0` in that scan.

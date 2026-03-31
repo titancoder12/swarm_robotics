@@ -38,6 +38,12 @@ def parse_args(argv=None):
     parser.add_argument("--shared-policy", action="store_true")
     parser.add_argument("--n-agents", type=int, default=6)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument(
+        "--seed-list",
+        type=str,
+        default="",
+        help="Comma-separated reset seeds to cycle through during demo (for example: 3,17,45).",
+    )
     parser.add_argument("--headless", action="store_true")
     parser.add_argument("--max-steps", type=int, default=0, help="Exit after N steps (0 = run until window closed)")
     parser.add_argument(
@@ -52,6 +58,38 @@ def parse_args(argv=None):
     add_env_config_args(parser)
     parser.set_defaults(n_obstacles=18)
     return parser.parse_args(argv)
+
+
+def _parse_seed_list(seed_list_raw: str) -> list[int]:
+    values = []
+    for part in (seed_list_raw or "").split(","):
+        token = part.strip()
+        if not token:
+            continue
+        values.append(int(token))
+    return values
+
+
+def _make_reset_seed_provider(args):
+    seeds = _parse_seed_list(getattr(args, "seed_list", ""))
+    if seeds:
+        state = {"idx": 1}
+
+        def next_seed():
+            seed = seeds[state["idx"] % len(seeds)]
+            state["idx"] += 1
+            return int(seed)
+
+        return int(seeds[0]), next_seed
+
+    state = {"next_seed": int(args.seed) + 1}
+
+    def next_seed():
+        seed = state["next_seed"]
+        state["next_seed"] += 1
+        return int(seed)
+
+    return int(args.seed), next_seed
 
 
 def load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: int, shared: bool, device):
@@ -252,7 +290,7 @@ def _custom_demo(env, obs, agent_ids, args):
     device = torch.device("cpu")
     random.seed(args.seed)
     np.random.seed(args.seed)
-    next_reset_seed = args.seed + 1
+    _, next_reset_seed = _make_reset_seed_provider(args)
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
@@ -312,9 +350,8 @@ def _custom_demo(env, obs, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=next_reset_seed)
+            obs_dict, _ = env.reset(seed=next_reset_seed())
             obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
-            next_reset_seed += 1
 
     return obs
 
@@ -325,7 +362,7 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     model = DQN.load(args.sb3_model, device="cpu")
     random.seed(args.seed)
     np.random.seed(args.seed)
-    next_reset_seed = args.seed + 1
+    _, next_reset_seed = _make_reset_seed_provider(args)
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
@@ -384,8 +421,7 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=next_reset_seed)
-            next_reset_seed += 1
+            obs_dict, _ = env.reset(seed=next_reset_seed())
 
     return obs_dict
 
@@ -439,7 +475,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     steps = 0
     random.seed(args.seed)
     np.random.seed(args.seed)
-    next_reset_seed = args.seed + 1
+    _, next_reset_seed = _make_reset_seed_provider(args)
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
@@ -489,8 +525,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=next_reset_seed)
-            next_reset_seed += 1
+            obs_dict, _ = env.reset(seed=next_reset_seed())
 
     algo.stop()
     ray.shutdown()
@@ -503,7 +538,7 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
     actor, device = load_actor(args.checkpoint_dir, obs_dim, action_dim, device="cpu")
     random.seed(args.seed)
     np.random.seed(args.seed)
-    next_reset_seed = args.seed + 1
+    _, next_reset_seed = _make_reset_seed_provider(args)
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
@@ -563,8 +598,7 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=next_reset_seed)
-            next_reset_seed += 1
+            obs_dict, _ = env.reset(seed=next_reset_seed())
             hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
             prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
 
@@ -574,7 +608,7 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
 def _random_demo(env, obs_dict, agent_ids, args):
     random.seed(args.seed)
     np.random.seed(args.seed)
-    next_reset_seed = args.seed + 1
+    _, next_reset_seed = _make_reset_seed_provider(args)
 
     running = True
     steps = 0
@@ -595,14 +629,14 @@ def _random_demo(env, obs_dict, agent_ids, args):
         if args.max_steps and steps >= args.max_steps:
             running = False
         if terminated or truncated:
-            obs_dict, _ = env.reset(seed=next_reset_seed)
-            next_reset_seed += 1
+            obs_dict, _ = env.reset(seed=next_reset_seed())
 
     return obs_dict
 
 
 def main():
     args = parse_args()
+    initial_seed, _ = _make_reset_seed_provider(args)
 
     # 2) Build config + environment, then reset to get initial observations.
     demo_args, cfg, env, metadata = _build_demo_env(args)
@@ -613,7 +647,7 @@ def main():
             f"targets={cfg.n_targets} obstacles={cfg.n_obstacles} "
             f"max_steps={cfg.max_steps}"
         )
-    obs_dict, _ = env.reset(seed=args.seed)
+    obs_dict, _ = env.reset(seed=initial_seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
     if demo_args.headless and demo_args.max_steps <= 0:
