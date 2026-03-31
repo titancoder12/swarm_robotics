@@ -23,7 +23,13 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Recommended demo checkpoint after a full run:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+```
+
+If you want demo resets to cycle through only a few presentation seeds:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 For a short version, see [docs/manual/QUICK_START.md](manual/QUICK_START.md).
@@ -93,7 +99,7 @@ Custom DQN demo:
 python train/demo.py --checkpoint-dir checkpoints/dqn_foraging/full_policy
 ```
 
-The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents.
+The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents. The window title shows the current reset seed, and the HUD shows live counts for pickups, deliveries, pheromone drops, and carrying agents.
 
 ## 5. Evaluate a Policy
 

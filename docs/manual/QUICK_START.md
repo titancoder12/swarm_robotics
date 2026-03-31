@@ -30,7 +30,13 @@ python train/train.py --backend mappo --headless --curriculum full --n-agents 6 
 Recommended demo after a full run:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+```
+
+If you want demo resets to rotate through hand-picked presentation seeds:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 ## If You Want The Older Experiment Runner

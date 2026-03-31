@@ -182,7 +182,7 @@ python train/train.py --backend mappo --headless --curriculum full --n-agents 6 
 Recommended demo checkpoint after training:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 Current single-agent return stack:
@@ -321,11 +321,19 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Render the trained MAPPO policy:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 In demo mode, agents now switch to a distinct carrying-food color after pickup
 and return to the normal agent color after a completed nest delivery.
+The PyGame window title also shows the current reset seed, and the HUD shows
+step, pickups, deliveries, pheromone drops, and carrying-agent count.
+
+Cycle demo resets through only specific seeds:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
+```
 
 Headless MAPPO evaluation:
 
@@ -428,7 +436,7 @@ python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn
 MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 With a custom Ray temp dir:

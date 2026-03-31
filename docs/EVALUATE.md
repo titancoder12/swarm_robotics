@@ -48,6 +48,28 @@ Pheromone off:
 ./.venv/bin/python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --filename eval_mappo_current --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 3
 ```
 
+### Presentation-seed scan for one checkpoint
+
+```bash
+for s in $(seq 1 100); do
+  python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_g/latest --episodes 1 --seed "$s" --headless --eval-steps 800 --output-dir runs/presentation_seed_scan --filename "seed_$s"
+done
+```
+
+Use the resulting `runs/presentation_seed_scan/*_eval_metrics.csv` files to rank seeds by:
+
+- `food_delivered` first
+- then `pheromone_usage`
+- then `exploration_coverage`
+
+At the time of the latest scan, the strongest presentation seeds were:
+
+- `45`
+- `40`
+- `58`
+- `31`
+- `51`
+
 ## 2. What `analysis/evaluate.py` Writes
 
 For a run such as:

@@ -246,7 +246,13 @@ python train/train.py --backend mappo --headless --curriculum full --resume-chec
 Rendered MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+```
+
+Cycle demo resets through a curated seed list:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 Checkpoint recommendation:
@@ -321,3 +327,9 @@ Prompt 47 adds stage-configurable extra action randomness for non-carrying agent
 ## Prompt 48
 
 Prompt 48 fixes large-window clipping properly by separating world rendering from display size. The env now renders into an off-screen world surface at full simulation resolution and scales that surface into the PyGame window using `render_scale`, which is now exposed through the shared CLI config path.
+
+The current demo path also shows:
+
+- current reset seed in the window title
+- a small HUD with step count, pickups, deliveries, pheromone drops, and carrying-agent count
+- optional `--seed-list` cycling for presentation-friendly reset control
