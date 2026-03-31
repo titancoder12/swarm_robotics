@@ -110,6 +110,14 @@ It supports:
 
 Both trainers read observation and action dimensions from the environment dynamically, so they stay aligned with the current 69-dimensional stacked observation and 18-action interface.
 
+The MAPPO path is the current main research path. Its curriculum now teaches:
+
+- single-agent pickup and return
+- pure carrying bootstrap and guaranteed homing
+- mild-clutter and obstacle-return bridge stages
+- small-swarm delivery scale-up
+- full-swarm trail building with explicit anti-nest-clustering shaping for non-carrying agents
+
 Optional comparison backends still exist:
 
 - [train/sb3_dqn.py](../train/sb3_dqn.py)
@@ -140,6 +148,8 @@ The experiment runner also derives:
 - `time_to_first_food`
 
 These derived metrics are computed in the analysis/aggregation layer, not in the trainer.
+
+For current MAPPO checkpoints, the recommended demo/eval target is usually `best_greedy_eval/`, not `latest/`, because `best_greedy_eval/` is selected by greedy evaluation quality rather than simple recency.
 
 ## Experiment Framework
 

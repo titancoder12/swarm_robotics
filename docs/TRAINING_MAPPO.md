@@ -121,9 +121,8 @@ Intended teaching progression:
 
 The stage-budget bug fixed in the current version was that the old curriculum
 reused early budget buckets and left later stages more starved than intended.
-The schedule now assigns one explicit weight per actual stage:
-
-- `1, 1, 1, 2, 2, 2, 2, 3, 4, 6`
+The schedule now assigns one explicit weight per actual stage across the full
+13-stage curriculum instead of only budgeting the early stages correctly.
 
 This keeps the hardest full-swarm stages from receiving only accidental
 fine-tuning time.
@@ -131,7 +130,7 @@ fine-tuning time.
 `--total-steps` now applies to the curriculum slice you actually selected. For
 example, `--curriculum stage1 --total-steps 32000` distributes that full
 `32000` budget across the seven single-agent stages instead of first splitting
-it across all eleven full-schedule stages and then discarding the unused ones.
+it across the full schedule and then discarding the unused ones.
 
 Control/reward staging now also changes with difficulty:
 
@@ -151,6 +150,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
 - prompt 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
 - prompt 39 then stabilizes bridge-stage greedy behavior at the trainer level: stage-end evaluation and promotion now restore the best within-stage bridge policy before evaluating it, so the stage no longer has to end on a later drifted policy after it already discovered a better one
+- prompts 42 through 45 then harden the late swarm behavior around the nest: post-delivery outward shaping is held until agents actually leave the nest zone, and non-carrying agents near the nest now receive explicit outward-search shaping plus strong loiter, crowding, idle, and no-outward-progress penalties
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -163,8 +163,8 @@ Prompt 29 also changes entropy handling:
 Mode semantics:
 
 - `stage1` runs all seven single-agent stages
-- `stage1_to_2` runs the seven single-agent stages plus the two small-swarm stages
-- `full` runs all eleven stages
+- `stage1_to_2` runs the seven single-agent stages plus the four small-swarm stages
+- `full` runs all thirteen stages
 
 Actor and critic weights are now both carried across stages.
 
@@ -216,12 +216,12 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Main trail-learning run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_current
 ```
 
 Why this command is more realistic than the older shorter examples:
 
-- `600k` total steps gives the eight-stage curriculum meaningful late-stage time
+- `600k` total steps gives the full 13-stage curriculum meaningful late-stage time
 - delivery now dominates pickup more clearly
 - the stronger undelivered-food penalty makes `picked up but never returned` less acceptable
 - the later full-swarm stages are still hard enough that `180k` or `200k` often remains undertrained
@@ -229,7 +229,7 @@ Why this command is more realistic than the older shorter examples:
 Useful additional control:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --stage-repeat-limit 1 --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --stage-repeat-limit 1 --folder-name mappo_full_current
 ```
 
 - `--stage-repeat-limit 1`
@@ -245,7 +245,7 @@ python train/train.py --backend mappo --headless --curriculum full --resume-chec
 Rendered MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
 ```
 
 Checkpoint recommendation:
@@ -290,7 +290,7 @@ What prompt 30 changes:
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval --active-targets 3 --food-source-capacity 4
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_current_eval --active-targets 3 --food-source-capacity 4
 ```
 
 ## Checkpoints

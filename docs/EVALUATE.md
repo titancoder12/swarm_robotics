@@ -45,7 +45,7 @@ Pheromone off:
 ### MAPPO GRU checkpoint
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --filename eval_mappo_trail --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
+./.venv/bin/python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --filename eval_mappo_current --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 3
 ```
 
 ## 2. What `analysis/evaluate.py` Writes
@@ -133,19 +133,18 @@ The comparison metadata file is:
 
 ## 5. Checkpoint Conventions
 
-Training saves checkpoints in directory form. The most important paths are usually:
+Training saves checkpoints in directory form. For the current MAPPO path, the most important folders are usually:
 
-- [checkpoints/full_policy/](../checkpoints/full_policy/)
-- [checkpoints/1_4_trained/](../checkpoints/1_4_trained/)
-- [checkpoints/1_2_trained/](../checkpoints/1_2_trained/)
-- [checkpoints/3_4_trained/](../checkpoints/3_4_trained/)
+- `checkpoints/<run_name>/latest/`
+- `checkpoints/<run_name>/best_greedy_eval/`
+- `checkpoints/<run_name>/stage3b_full_swarm_final/`
 
-For shared-policy runs, evaluation expects `shared.pt` inside the checkpoint directory.
+For DQN shared-policy runs, evaluation expects `shared.pt` inside the checkpoint directory. For MAPPO runs, evaluation expects `actor.pt` and usually `metadata.json`.
 
 Example:
 
-- [checkpoints/full_policy/shared.pt](../checkpoints/full_policy/shared.pt)
-- [checkpoints/full_policy/metadata.json](../checkpoints/full_policy/metadata.json)
+- `checkpoints/<run_name>/best_greedy_eval/actor.pt`
+- `checkpoints/<run_name>/best_greedy_eval/metadata.json`
 
 ## 6. Pheromone Controls During Evaluation
 

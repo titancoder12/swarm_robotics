@@ -89,13 +89,13 @@ The current default task settings now make that loop more explicit:
 Recommended full training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_600k
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_current
 ```
 
 Recommended demo checkpoint after training:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_600k/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
 ```
 
 Current single-agent return stack:
@@ -137,6 +137,12 @@ Prompt 40 then adds an explicit small-swarm bootstrap stack so the first scale-u
   - larger small-swarm stage where trail behavior can return
 
 Prompt 41 then reduces repeat and budget pressure in the already-solved single-agent carry/bootstrap stages so `stage1_to_2` and full runs reach the new swarm bootstrap stages instead of spending too much budget re-proving stage-1 lessons.
+
+Prompt 44 and prompt 45 then strengthen the late swarm behavior around the nest:
+
+- post-delivery outward pressure stays active until agents actually leave the nest zone
+- non-carrying agents are pushed to fan out and explore instead of orbiting the nest
+- late swarm stages now use strong non-carrying loiter, crowding, idle, and no-outward-progress penalties near the nest
 
 Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
@@ -188,7 +194,7 @@ What the main arguments mean:
   - penalize ending an episode while still carrying food
   - this helps discourage “pick up but never bring it home”
 
-- `--folder-name mappo_full_600k`
+- `--folder-name mappo_full_current`
   - base name for checkpoints and run outputs
 
 Why this is the recommended starting point:
@@ -222,7 +228,7 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Render the trained MAPPO policy:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/best_greedy_eval --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
 ```
 
 In demo mode, agents now switch to a distinct carrying-food color after pickup
@@ -231,13 +237,13 @@ and return to the normal agent color after a completed nest delivery.
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval --active-targets 3 --food-source-capacity 4
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_current_eval --active-targets 3 --food-source-capacity 4
 ```
 
 Pheromone comparison example:
 
 ```bash
-python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_trail_full/latest --checkpoint-without-pheromone checkpoints/mappo_trail_no_pher/latest --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
+python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_full_current/best_greedy_eval --checkpoint-without-pheromone checkpoints/mappo_no_pher_current/best_greedy_eval --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
 ```
 
 ## Quickstart: DQN Baseline
@@ -329,7 +335,7 @@ python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn
 MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300
 ```
 
 With a custom Ray temp dir:
