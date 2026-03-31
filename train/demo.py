@@ -5,6 +5,7 @@ import json
 import os
 import random
 import sys
+import math
 
 import numpy as np
 import pygame
@@ -90,6 +91,93 @@ def _make_reset_seed_provider(args):
         return int(seed)
 
     return int(args.seed), next_seed
+
+
+def _make_demo_ui_state():
+    return {"paused": False, "selected_agent_index": None}
+
+
+def _handle_demo_events(env, ui_state):
+    running = True
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+        elif event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            ui_state["paused"] = not bool(ui_state.get("paused", False))
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            ui_state["selected_agent_index"] = env.pick_agent_at_screen_pos(event.pos)
+    return running
+
+
+def _action_label(env, action_id: int) -> str:
+    throttle, turn, deposit = env.action_table[int(action_id)]
+    throttle_label = {1.0: "FWD", 0.0: "STOP", -1.0: "REV"}.get(float(throttle), f"thr={throttle:.1f}")
+    turn_label = {1.0: "RIGHT", 0.0: "STRAIGHT", -1.0: "LEFT"}.get(float(turn), f"turn={turn:.1f}")
+    deposit_label = "DROP" if int(deposit) else "NO-DROP"
+    return f"{throttle_label} | {turn_label} | {deposit_label}"
+
+
+def _format_vector_block(label: str, values, *, chunk_size: int = 6) -> list[str]:
+    arr = np.asarray(values, dtype=np.float32).reshape(-1)
+    lines = [f"{label}:"]
+    for start in range(0, arr.size, chunk_size):
+        chunk = arr[start : start + chunk_size]
+        parts = [f"{start + idx:02d}:{value:+.2f}" for idx, value in enumerate(chunk)]
+        lines.append("  " + "  ".join(parts))
+    return lines
+
+
+def _format_top_actions(action_scores, top_k: int = 5) -> list[str]:
+    arr = np.asarray(action_scores, dtype=np.float32).reshape(-1)
+    if arr.size == 0:
+        return ["Top actions:", "  unavailable"]
+    order = np.argsort(arr)[::-1][: max(1, min(top_k, arr.size))]
+    lines = ["Top actions:"]
+    for idx in order:
+        lines.append(f"  a{int(idx):02d}: {float(arr[idx]):+.3f}")
+    return lines
+
+
+def _build_agent_panel(
+    env,
+    agent_ids,
+    selected_agent_index,
+    obs_matrix,
+    output_name,
+    output_matrix,
+    chosen_actions,
+    modes,
+):
+    if selected_agent_index is None:
+        return "", []
+    if selected_agent_index < 0 or selected_agent_index >= len(agent_ids):
+        return "", []
+    agent = env.agent_states[selected_agent_index]
+    agent_id = agent_ids[selected_agent_index]
+    obs_vec = np.asarray(obs_matrix[selected_agent_index], dtype=np.float32)
+    action_id = int(chosen_actions[selected_agent_index])
+    mode = str(modes[selected_agent_index])
+    output_vec = None if output_matrix is None else np.asarray(output_matrix[selected_agent_index], dtype=np.float32)
+
+    lines = [
+        "Status:",
+        f"  id: {agent_id}",
+        f"  pos: ({agent.x:.1f}, {agent.y:.1f})",
+        f"  theta: {math.degrees(agent.theta):+.1f} deg",
+        f"  carrying: {'yes' if agent.carrying_food else 'no'}",
+        f"  post_delivery: {int(getattr(agent, 'post_delivery_steps', 0))}",
+        f"  mode: {mode}",
+        f"  action: a{action_id:02d} ({_action_label(env, action_id)})",
+    ]
+    if output_vec is not None:
+        lines.extend(_format_top_actions(output_vec))
+    else:
+        lines.extend([f"{output_name}:", "  unavailable"])
+    lines.extend(_format_vector_block("Input", obs_vec))
+    if output_vec is not None:
+        lines.extend(_format_vector_block(output_name, output_vec))
+    title = f"Agent Inspector: {agent_id}"
+    return title, lines
 
 
 def load_models(checkpoint_dir: str, obs_dim: int, action_dim: int, n_agents: int, shared: bool, device):
@@ -294,6 +382,7 @@ def _custom_demo(env, obs, agent_ids, args):
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
+    ui_state = _make_demo_ui_state()
 
     nets = load_models(args.checkpoint_dir, obs_dim, action_dim, env.cfg.n_agents, args.shared_policy, device)
 
@@ -301,15 +390,16 @@ def _custom_demo(env, obs, agent_ids, args):
     steps = 0
     while running:
         if not args.headless:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = _handle_demo_events(env, ui_state)
 
         actions = np.zeros(env.cfg.n_agents, dtype=np.int64)
+        q_matrix = np.zeros((env.cfg.n_agents, action_dim), dtype=np.float32)
+        modes = ["greedy"] * env.cfg.n_agents
         for i in range(env.cfg.n_agents):
             with torch.no_grad():
                 obs_tensor = torch.tensor(obs[i], dtype=torch.float32, device=device).unsqueeze(0)
                 q_vals = nets[i](obs_tensor)
+                q_matrix[i] = q_vals.detach().cpu().numpy().reshape(-1)
                 greedy_action = int(torch.argmax(q_vals, dim=1).item())
             if random.random() < args.demo_epsilon:
                 actions[i] = np.random.randint(0, action_dim)
@@ -317,6 +407,7 @@ def _custom_demo(env, obs, agent_ids, args):
             else:
                 actions[i] = greedy_action
                 mode = "greedy"
+            modes[i] = mode
             if should_debug_policy(debug_cfg, steps, i, agent_ids[i]):
                 print_policy_debug(
                     step=steps,
@@ -332,6 +423,27 @@ def _custom_demo(env, obs, agent_ids, args):
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=None if prev_done is None else bool(prev_done[i]),
                 )
+
+        panel_title, panel_lines = _build_agent_panel(
+            env,
+            agent_ids,
+            ui_state.get("selected_agent_index"),
+            obs,
+            "Q-values",
+            q_matrix,
+            actions,
+            modes,
+        )
+        env.set_demo_overlay(
+            paused=bool(ui_state.get("paused", False)),
+            selected_agent_index=ui_state.get("selected_agent_index"),
+            panel_title=panel_title,
+            panel_lines=panel_lines,
+        )
+        if ui_state.get("paused", False):
+            if not args.headless:
+                env.render(fps=30)
+            continue
 
         action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
@@ -366,22 +478,24 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
+    ui_state = _make_demo_ui_state()
 
     running = True
     steps = 0
     while running:
         if not args.headless:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = _handle_demo_events(env, ui_state)
 
         action_dict = {}
+        obs_matrix = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
+        q_matrix = np.zeros((env.cfg.n_agents, env.cfg.num_actions), dtype=np.float32)
+        chosen_actions = np.zeros((env.cfg.n_agents,), dtype=np.int64)
+        modes = ["greedy"] * env.cfg.n_agents
         for i, agent in enumerate(agent_ids):
-            q_values = None
-            if args.debug_policy:
-                obs_tensor = torch.as_tensor(obs_dict[agent], dtype=torch.float32).unsqueeze(0)
-                with torch.no_grad():
-                    q_values = model.q_net(obs_tensor).detach().cpu().numpy()
+            obs_tensor = torch.as_tensor(obs_dict[agent], dtype=torch.float32).unsqueeze(0)
+            with torch.no_grad():
+                q_values = model.q_net(obs_tensor).detach().cpu().numpy()
+            q_matrix[i] = q_values.reshape(-1)
             action, _ = model.predict(obs_dict[agent], deterministic=True)
             greedy_action = int(action)
             if random.random() < args.demo_epsilon:
@@ -390,6 +504,8 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
             else:
                 action_dict[agent] = greedy_action
                 mode = "greedy"
+            chosen_actions[i] = int(action_dict[agent])
+            modes[i] = mode
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
@@ -405,6 +521,27 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=None if prev_done is None else bool(prev_done[i]),
                 )
+
+        panel_title, panel_lines = _build_agent_panel(
+            env,
+            agent_ids,
+            ui_state.get("selected_agent_index"),
+            obs_matrix,
+            "Q-values",
+            q_matrix,
+            chosen_actions,
+            modes,
+        )
+        env.set_demo_overlay(
+            paused=bool(ui_state.get("paused", False)),
+            selected_agent_index=ui_state.get("selected_agent_index"),
+            panel_title=panel_title,
+            panel_lines=panel_lines,
+        )
+        if ui_state.get("paused", False):
+            if not args.headless:
+                env.render(fps=30)
+            continue
 
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
@@ -479,13 +616,15 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     debug_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
     prev_rewards = None
     prev_done = None
+    ui_state = _make_demo_ui_state()
     while running:
         if not args.headless:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = _handle_demo_events(env, ui_state)
 
         action_dict = {}
+        obs_matrix = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
+        chosen_actions = np.zeros((env.cfg.n_agents,), dtype=np.int64)
+        modes = ["greedy"] * env.cfg.n_agents
         for i, agent in enumerate(agent_ids):
             action = int(algo.compute_single_action(obs_dict[agent], policy_id="shared_policy"))
             if random.random() < args.demo_epsilon:
@@ -494,6 +633,8 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
             else:
                 action_dict[agent] = action
                 mode = "greedy"
+            chosen_actions[i] = int(action_dict[agent])
+            modes[i] = mode
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
@@ -509,6 +650,27 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=None if prev_done is None else bool(prev_done[i]),
                 )
+
+        panel_title, panel_lines = _build_agent_panel(
+            env,
+            agent_ids,
+            ui_state.get("selected_agent_index"),
+            obs_matrix,
+            "Policy output",
+            None,
+            chosen_actions,
+            modes,
+        )
+        env.set_demo_overlay(
+            paused=bool(ui_state.get("paused", False)),
+            selected_agent_index=ui_state.get("selected_agent_index"),
+            panel_title=panel_title,
+            panel_lines=panel_lines,
+        )
+        if ui_state.get("paused", False):
+            if not args.headless:
+                env.render(fps=30)
+            continue
 
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
@@ -543,14 +705,13 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
     prev_rewards = None
     prev_done = np.zeros((env.cfg.n_agents,), dtype=np.float32)
     hidden_state = actor.initial_hidden(env.cfg.n_agents, device)
+    ui_state = _make_demo_ui_state()
 
     running = True
     steps = 0
     while running:
         if not args.headless:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = _handle_demo_events(env, ui_state)
 
         obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
         obs_tensor = torch.as_tensor(obs, dtype=torch.float32, device=device)
@@ -558,8 +719,11 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
         with torch.no_grad():
             logits, hidden_state = actor(obs_tensor, hidden_state, done_mask)
             greedy_actions = torch.argmax(logits, dim=-1).detach().cpu().numpy().astype(np.int64, copy=False)
+        logits_matrix = logits.detach().cpu().numpy()
 
         action_dict = {}
+        chosen_actions = np.zeros((env.cfg.n_agents,), dtype=np.int64)
+        modes = ["greedy"] * env.cfg.n_agents
         for i, agent in enumerate(agent_ids):
             if random.random() < args.demo_epsilon:
                 action_dict[agent] = int(np.random.randint(0, env.cfg.num_actions))
@@ -567,6 +731,8 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
             else:
                 action_dict[agent] = int(greedy_actions[i])
                 mode = "greedy"
+            chosen_actions[i] = int(action_dict[agent])
+            modes[i] = mode
             if should_debug_policy(debug_cfg, steps, i, agent):
                 print_policy_debug(
                     step=steps,
@@ -582,6 +748,27 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
                     prev_reward=None if prev_rewards is None else float(prev_rewards[i]),
                     prev_done=bool(prev_done[i]),
                 )
+
+        panel_title, panel_lines = _build_agent_panel(
+            env,
+            agent_ids,
+            ui_state.get("selected_agent_index"),
+            obs,
+            "Policy logits",
+            logits_matrix,
+            chosen_actions,
+            modes,
+        )
+        env.set_demo_overlay(
+            paused=bool(ui_state.get("paused", False)),
+            selected_agent_index=ui_state.get("selected_agent_index"),
+            panel_title=panel_title,
+            panel_lines=panel_lines,
+        )
+        if ui_state.get("paused", False):
+            if not args.headless:
+                env.render(fps=30)
+            continue
 
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
@@ -609,16 +796,38 @@ def _random_demo(env, obs_dict, agent_ids, args):
     random.seed(args.seed)
     np.random.seed(args.seed)
     _, next_reset_seed = _make_reset_seed_provider(args)
+    ui_state = _make_demo_ui_state()
 
     running = True
     steps = 0
     while running:
         if not args.headless:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
+            running = _handle_demo_events(env, ui_state)
 
-        action_dict = {agent: int(np.random.randint(0, env.cfg.num_actions)) for agent in agent_ids}
+        obs_matrix = np.stack([obs_dict[agent] for agent in agent_ids], axis=0).astype(np.float32)
+        chosen_actions = np.array([int(np.random.randint(0, env.cfg.num_actions)) for _ in agent_ids], dtype=np.int64)
+        action_dict = {agent: int(chosen_actions[i]) for i, agent in enumerate(agent_ids)}
+        panel_title, panel_lines = _build_agent_panel(
+            env,
+            agent_ids,
+            ui_state.get("selected_agent_index"),
+            obs_matrix,
+            "Policy output",
+            None,
+            chosen_actions,
+            ["random"] * env.cfg.n_agents,
+        )
+        env.set_demo_overlay(
+            paused=bool(ui_state.get("paused", False)),
+            selected_agent_index=ui_state.get("selected_agent_index"),
+            panel_title=panel_title,
+            panel_lines=panel_lines,
+        )
+        if ui_state.get("paused", False):
+            if not args.headless:
+                env.render(fps=30)
+            continue
+
         obs_dict, _, terminations, truncations, _ = env.step(action_dict)
         terminated = any(terminations.values())
         truncated = any(truncations.values())

@@ -175,7 +175,12 @@ class SwarmEnv(ParallelEnv):
         self._world_surface = None
         self._clock = None
         self._hud_font = None
+        self._overlay_font = None
         self._current_reset_seed: int | None = None
+        self._demo_paused = False
+        self._demo_selected_agent_index: int | None = None
+        self._demo_panel_title = ""
+        self._demo_panel_lines: list[str] = []
 
         self._single_obs_dim = self._compute_single_obs_dim()
         self._obs_dim = self._compute_obs_dim()
@@ -724,6 +729,8 @@ class SwarmEnv(ParallelEnv):
             else:
                 body_color = (70, 220, 140) if agent.carrying_food else (200, 160, 50)
             pygame.draw.circle(target, body_color, (x, y), int(self.cfg.agent_radius))
+            if self._demo_selected_agent_index == i:
+                pygame.draw.circle(target, (255, 255, 255), (x, y), int(self.cfg.agent_radius) + 6, 2)
             if agent.carrying_food:
                 pygame.draw.circle(target, (235, 255, 180), (x, y), int(self.cfg.agent_radius) + 3, 2)
                 pygame.draw.circle(target, (240, 255, 200), (x, y), max(2, int(self.cfg.agent_radius // 2)))
@@ -756,6 +763,7 @@ class SwarmEnv(ParallelEnv):
             scaled = pygame.transform.smoothscale(target, self._screen.get_size())
             self._screen.blit(scaled, (0, 0))
         self._draw_hud(self._screen)
+        self._draw_demo_overlay(self._screen)
         pygame.display.flip()
         self._clock.tick(fps)
 
@@ -785,6 +793,7 @@ class SwarmEnv(ParallelEnv):
             self._screen = pygame.display.set_mode(display_size)
             self._world_surface = pygame.Surface((self.width, self.height))
             self._hud_font = pygame.font.SysFont(None, 22)
+            self._overlay_font = pygame.font.SysFont("Menlo", 18) or pygame.font.SysFont(None, 18)
             self._update_window_caption()
             self._clock = pygame.time.Clock()
             self._pygame_inited = True
@@ -821,6 +830,92 @@ class SwarmEnv(ParallelEnv):
         for line in lines:
             text = self._hud_font.render(line, True, (235, 240, 250))
             surface.blit(text, (hud_rect.left + padding, y))
+            y += line_height
+
+    def set_demo_overlay(
+        self,
+        *,
+        paused: bool,
+        selected_agent_index: int | None,
+        panel_title: str = "",
+        panel_lines: list[str] | None = None,
+    ) -> None:
+        """Update transient demo-only overlay state used by render()."""
+        self._demo_paused = bool(paused)
+        self._demo_selected_agent_index = selected_agent_index
+        self._demo_panel_title = panel_title
+        self._demo_panel_lines = list(panel_lines or [])
+
+    def screen_to_world(self, screen_pos: tuple[int, int]) -> tuple[float, float]:
+        """Map a display-space pixel position back into world coordinates."""
+        if self._screen is None:
+            return float(screen_pos[0]), float(screen_pos[1])
+        sw, sh = self._screen.get_size()
+        if sw <= 0 or sh <= 0:
+            return float(screen_pos[0]), float(screen_pos[1])
+        wx = (float(screen_pos[0]) / float(sw)) * float(self.width)
+        wy = (float(screen_pos[1]) / float(sh)) * float(self.height)
+        return wx, wy
+
+    def pick_agent_at_screen_pos(self, screen_pos: tuple[int, int]) -> int | None:
+        """Return the nearest agent index under the mouse, if any."""
+        wx, wy = self.screen_to_world(screen_pos)
+        pick_radius = max(float(self.cfg.agent_radius) * 2.5, 14.0)
+        pick_radius_sq = pick_radius * pick_radius
+        best_idx = None
+        best_dist_sq = None
+        for i, agent in enumerate(self.agent_states):
+            dx = float(agent.x) - wx
+            dy = float(agent.y) - wy
+            dist_sq = dx * dx + dy * dy
+            if dist_sq > pick_radius_sq:
+                continue
+            if best_dist_sq is None or dist_sq < best_dist_sq:
+                best_idx = i
+                best_dist_sq = dist_sq
+        return best_idx
+
+    def _draw_demo_overlay(self, surface: pygame.Surface) -> None:
+        """Draw demo-only overlays such as pause state and selected-agent inspector."""
+        if self._demo_paused:
+            font = self._hud_font or self._overlay_font
+            if font is not None:
+                text = font.render("PAUSED", True, (255, 240, 160))
+                padding = 8
+                badge = pygame.Rect(surface.get_width() - text.get_width() - padding * 2 - 12, 10, text.get_width() + padding * 2, text.get_height() + padding * 2)
+                overlay = pygame.Surface(badge.size, pygame.SRCALPHA)
+                overlay.fill((40, 28, 10, 190))
+                surface.blit(overlay, badge.topleft)
+                pygame.draw.rect(surface, (255, 220, 120), badge, 1)
+                surface.blit(text, (badge.left + padding, badge.top + padding))
+
+        if not self._demo_panel_lines or self._overlay_font is None:
+            return
+
+        title_font = self._hud_font or self._overlay_font
+        padding = 12
+        line_height = self._overlay_font.get_linesize()
+        title_height = title_font.get_linesize() if title_font is not None else line_height
+        panel_width = min(max(int(surface.get_width() * 0.38), 320), max(320, surface.get_width() - 40))
+        max_lines = max(1, (surface.get_height() - 40 - title_height - padding * 3) // line_height)
+        visible_lines = self._demo_panel_lines[:max_lines]
+        panel_height = padding * 3 + title_height + len(visible_lines) * line_height
+        panel_rect = pygame.Rect(surface.get_width() - panel_width - 12, 48, panel_width, panel_height)
+        overlay = pygame.Surface(panel_rect.size, pygame.SRCALPHA)
+        overlay.fill((8, 10, 16, 215))
+        surface.blit(overlay, panel_rect.topleft)
+        pygame.draw.rect(surface, (120, 150, 200), panel_rect, 1)
+
+        y = panel_rect.top + padding
+        if title_font is not None and self._demo_panel_title:
+            title = title_font.render(self._demo_panel_title, True, (245, 248, 255))
+            surface.blit(title, (panel_rect.left + padding, y))
+            y += title_height + 6
+
+        for line in visible_lines:
+            color = (180, 215, 255) if line.endswith(":") else (220, 228, 238)
+            text = self._overlay_font.render(line, True, color)
+            surface.blit(text, (panel_rect.left + padding, y))
             y += line_height
 
     def _build_action_table(self):

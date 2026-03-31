@@ -333,3 +333,4 @@ The current demo path also shows:
 - current reset seed in the window title
 - a small HUD with step count, pickups, deliveries, pheromone drops, and carrying-agent count
 - optional `--seed-list` cycling for presentation-friendly reset control
+- `Space` pause/resume and click-to-inspect for an individual agent's current inputs and model outputs

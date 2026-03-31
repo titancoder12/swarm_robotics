@@ -99,7 +99,7 @@ Custom DQN demo:
 python train/demo.py --checkpoint-dir checkpoints/dqn_foraging/full_policy
 ```
 
-The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents. The window title shows the current reset seed, and the HUD shows live counts for pickups, deliveries, pheromone drops, and carrying agents.
+The demo renders the current environment, including pheromone heatmap, food, nest, obstacles, and agents. The window title shows the current reset seed, the HUD shows live counts for pickups, deliveries, pheromone drops, and carrying agents, `Space` pauses/resumes, and clicking an agent opens an inspector panel with that agent's current inputs and model outputs.
 
 ## 5. Evaluate a Policy
 

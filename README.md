@@ -328,6 +328,8 @@ In demo mode, agents now switch to a distinct carrying-food color after pickup
 and return to the normal agent color after a completed nest delivery.
 The PyGame window title also shows the current reset seed, and the HUD shows
 step, pickups, deliveries, pheromone drops, and carrying-agent count.
+You can press `Space` to pause/resume and click an agent to open an inspector
+panel showing that agent's current inputs and model outputs.
 
 Cycle demo resets through only specific seeds:
 

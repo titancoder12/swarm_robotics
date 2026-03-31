@@ -39,6 +39,8 @@ If you want demo resets to rotate through hand-picked presentation seeds:
 python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
+In the PyGame demo, `Space` pauses/resumes the simulation and clicking an agent opens an inspector panel for that agent.
+
 ## If You Want The Older Experiment Runner
 
 ```bash

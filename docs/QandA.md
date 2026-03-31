@@ -960,5 +960,8 @@ A: Yes. `env/swarm_env.py` now draws a small HUD on the PyGame display showing s
 ## Q: Can demo cycle through only a specified list of seeds?
 A: Yes. `train/demo.py` now supports `--seed-list` with a comma-separated list such as `--seed-list 3,17,45`. The initial world uses the first seed in the list, and each later reset cycles through the remaining seeds and then wraps around the list again. If `--seed-list` is not provided, demo keeps the old behavior: start from `--seed` and then increment by `1` on each reset.
 
+## Q: Can the PyGame demo be paused and can I inspect an agent by clicking it?
+A: Yes. In the current interactive demo, pressing `Space` toggles pause/resume, and left-clicking an agent selects it and opens an inspector panel. The panel shows that agent's current status, chosen action, observation input vector, and model outputs (for example Q-values or policy logits, depending on the backend).
+
 ## Q: What were the best presentation seeds from the latest `runs/presentation_seed_scan` headless evaluation?
 A: Ranking by `food_delivered` first, then `pheromone_usage` and `exploration_coverage`, the strongest seeds in the latest `runs/presentation_seed_scan/` scan were: `seed 45` first (`delivered=12`, `picked=12`, `pheromone_usage=0.171`, `coverage=0.278`), `seed 40` second (`delivered=11`), then `seed 58`, `seed 31`, and `seed 51` (all `delivered=9`, with `seed 58` winning that group on pheromone usage and coverage). The best practical presentation shortlist is `45`, `40`, and `58`.
