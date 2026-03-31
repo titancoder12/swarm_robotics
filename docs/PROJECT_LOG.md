@@ -421,3 +421,5 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added prompt 42 to reduce non-carrying nest circling by suppressing nest-adjacent pheromone attraction and adding nest-loiter / nest-crowding pressure for empty agents.
 - Added prompt 43 to reduce post-delivery nest orbiting by adding a short outward-search cooldown, post-delivery nest-exit shaping, and stronger pheromone suppression for recently delivered empty agents.
 - Added prompt 44 to hold the post-delivery handoff until empty agents actually leave the nest zone and to add extra post-delivery crowding pressure inside that zone.
+- Added prompt 45 in `docs/prompts/45_force_non_carrying_agents_to_fan_out_and_explore_prompt.md` to target the remaining nest-centered local optimum by explicitly making empty agents fan out and explore when they are not carrying food.
+- Added a Q&A note describing the focus of prompt 45: shift from only penalizing nest loitering to explicitly rewarding non-carrying outward exploration and dispersion.

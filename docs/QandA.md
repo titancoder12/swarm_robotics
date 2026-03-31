@@ -897,3 +897,6 @@ A: I would treat it as a policy-shaping problem with three priorities. First, re
 
 ## Q: What changed in prompt 43 and prompt 44 for nest circling?
 A: Prompt 43 added a short post-delivery cooldown that rewards recently delivered empty agents for increasing nest distance and suppresses nest-adjacent pheromone attraction during that handoff. That reduced nest-loiter somewhat in late swarm stages, but did not fully eliminate nest-centered crowding. Prompt 44 tightens that handoff by keeping post-delivery mode active until the agent actually clears the nest-exit radius in the late pheromone-on stages, and adds an extra post-delivery crowding penalty inside that exit zone. The intended effect is to stop the handoff from expiring too early and letting empty agents re-form a ring around the nest.
+
+## Q: What should prompt 45 focus on for the remaining nest-clustering problem?
+A: Prompt 45 should stop treating this only as a “don’t stay near the nest” problem and instead make it an explicit “fan out and explore when not carrying food” problem. The next fix should add outward-search shaping for empty agents near the nest, stronger low-motion penalties for empty agents lingering in the nest zone, and metrics that show whether non-carrying agents are actually dispersing across the map instead of merely being punished while still hovering near the nest.
