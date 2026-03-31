@@ -1,0 +1,25 @@
+{
+  "active_targets": 3,
+  "checkpoint_dir": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/mappo_g/latest",
+  "episodes": 1,
+  "eval_steps": 800,
+  "filename": "seed_403",
+  "metrics": {
+    "mean_coverage_efficiency": 0.00021128542510121459,
+    "mean_efficiency": 0.6666666666666666,
+    "mean_episode_length": 800.0,
+    "mean_exploration_coverage": 0.16902834008097167,
+    "mean_food_discovered": 4.0,
+    "mean_food_retrieved": 4.0,
+    "mean_food_source_respawns": 1.0,
+    "mean_food_units_remaining": 12.0,
+    "mean_pheromone_usage": 0.036416156714088474,
+    "mean_reward": -3.468379020690918,
+    "mean_time_to_first_discovery": 78.0,
+    "targets_collected_definition": "pickup_events_not_delivery"
+  },
+  "metrics_csv": "seed_403_eval_metrics.csv",
+  "obs_dim": 69,
+  "policy_kind": "mappo_gru",
+  "use_pheromone": true
+}

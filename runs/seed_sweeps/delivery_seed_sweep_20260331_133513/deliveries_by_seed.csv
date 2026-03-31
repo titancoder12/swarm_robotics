@@ -1,0 +1,12 @@
+seed,episodes,food_delivered,food_picked_up,food_discovered,pheromone_usage,food_source_respawns,food_units_remaining,episode_length,checkpoint_dir
+0,1,4.0,6.0,6.0,0.22835264394886814,1.0,10.0,800.0,checkpoints/mappo_g/latest
+1,1,0.0,0.0,0.0,0.0,0.0,12.0,800.0,checkpoints/mappo_g/latest
+2,1,2.0,4.0,4.0,0.15085863060869695,1.0,12.0,800.0,checkpoints/mappo_g/latest
+3,1,5.0,5.0,5.0,0.16939125866570975,1.0,11.0,800.0,checkpoints/mappo_g/latest
+4,1,2.0,4.0,4.0,0.08737145862255906,0.0,8.0,800.0,checkpoints/mappo_g/latest
+5,1,0.0,0.0,0.0,0.0,0.0,12.0,800.0,checkpoints/mappo_g/latest
+6,1,0.0,0.0,0.0,0.0,0.0,12.0,800.0,checkpoints/mappo_g/latest
+7,1,1.0,3.0,3.0,0.1176126474936124,0.0,9.0,800.0,checkpoints/mappo_g/latest
+8,1,0.0,0.0,0.0,0.0,0.0,12.0,800.0,checkpoints/mappo_g/latest
+9,1,0.0,0.0,0.0,0.0,0.0,12.0,800.0,checkpoints/mappo_g/latest
+10,1,2.0,4.0,4.0,0.11338644619450253,1.0,12.0,800.0,checkpoints/mappo_g/latest
