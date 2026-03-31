@@ -12,6 +12,7 @@ Use this file to capture decisions, open questions, and next steps so we can res
  - RLlib backend uses compatibility shims and may require setting `RAY_TMPDIR` if `/tmp` is full.
 
 ## Change Log
+- Executed [docs/prompts/45_force_non_carrying_agents_to_fan_out_and_explore_prompt.md](../docs/prompts/45_force_non_carrying_agents_to_fan_out_and_explore_prompt.md): added non-carrying fan-out controls across config, curriculum, env, trainer, and demo metadata. Empty agents can now receive outward-from-nest shaping near the nest, an idle-near-nest penalty based on low displacement, and optional pheromone-follow suppression while they are in the forced exploration zone. MAPPO logs and checkpoint metadata now record the new non-carrying exploration metrics.
 - Logged a Q&A pointing to the current reward source-of-truth locations: reward constants in `env/config.py`, reward application paths in `env/swarm_env.py`, and per-episode reward-breakdown logging in `train/independent_dqn_pytorch.py`.
 - Added a repo rule: when Codex updates files, it must log a short summary in `docs/PROJECT_LOG.md` (added to `AGENTS.md`).
 - Summary of recent work: converted `SwarmEnv` to PettingZoo Parallel API, updated training/demo scripts to dict-based I/O, added SB3/RLlib backends with dispatcher, expanded dependencies in `requirements.txt`, updated docs, and added RLlib compatibility shims; checkpoints saved for RLlib in `checkpoints/rllib_dqn/`.

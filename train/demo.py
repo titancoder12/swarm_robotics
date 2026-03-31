@@ -182,6 +182,36 @@ def _build_demo_env(args):
                     getattr(args_copy, "post_delivery_crowding_threshold", 2),
                 )
             )
+            args_copy.non_carrying_explore_radius = float(
+                metadata.get(
+                    "non_carrying_explore_radius",
+                    getattr(args_copy, "non_carrying_explore_radius", 0.0),
+                )
+            )
+            args_copy.non_carrying_outward_reward = float(
+                metadata.get(
+                    "non_carrying_outward_reward",
+                    getattr(args_copy, "non_carrying_outward_reward", 0.0),
+                )
+            )
+            args_copy.non_carrying_idle_near_nest_penalty = float(
+                metadata.get(
+                    "non_carrying_idle_near_nest_penalty",
+                    getattr(args_copy, "non_carrying_idle_near_nest_penalty", 0.0),
+                )
+            )
+            args_copy.non_carrying_low_displacement_threshold = float(
+                metadata.get(
+                    "non_carrying_low_displacement_threshold",
+                    getattr(args_copy, "non_carrying_low_displacement_threshold", 0.0),
+                )
+            )
+            args_copy.non_carrying_explore_ignore_pheromone = bool(
+                metadata.get(
+                    "non_carrying_explore_ignore_pheromone",
+                    getattr(args_copy, "non_carrying_explore_ignore_pheromone", False),
+                )
+            )
 
     cfg = make_swarm_config(args_copy)
     if metadata:

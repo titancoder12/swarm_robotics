@@ -43,6 +43,11 @@ class CurriculumStage:
     non_carrying_nest_crowding_radius: float | None = None
     non_carrying_nest_crowding_penalty: float | None = None
     non_carrying_nest_crowding_threshold: int | None = None
+    non_carrying_explore_radius: float | None = None
+    non_carrying_outward_reward: float | None = None
+    non_carrying_idle_near_nest_penalty: float | None = None
+    non_carrying_low_displacement_threshold: float | None = None
+    non_carrying_explore_ignore_pheromone: bool | None = None
     post_delivery_cooldown_steps: int | None = None
     post_delivery_exit_radius: float | None = None
     post_delivery_outward_reward: float | None = None
@@ -536,6 +541,11 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_nest_crowding_radius=120.0,
             non_carrying_nest_crowding_penalty=-0.008,
             non_carrying_nest_crowding_threshold=2,
+            non_carrying_explore_radius=160.0,
+            non_carrying_outward_reward=0.05,
+            non_carrying_idle_near_nest_penalty=-0.02,
+            non_carrying_low_displacement_threshold=3.5,
+            non_carrying_explore_ignore_pheromone=True,
             post_delivery_cooldown_steps=18,
             post_delivery_exit_radius=105.0,
             post_delivery_outward_reward=0.05,
@@ -587,6 +597,11 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_nest_crowding_radius=120.0,
             non_carrying_nest_crowding_penalty=-0.008,
             non_carrying_nest_crowding_threshold=2,
+            non_carrying_explore_radius=170.0,
+            non_carrying_outward_reward=0.055,
+            non_carrying_idle_near_nest_penalty=-0.022,
+            non_carrying_low_displacement_threshold=3.8,
+            non_carrying_explore_ignore_pheromone=True,
             post_delivery_cooldown_steps=22,
             post_delivery_exit_radius=110.0,
             post_delivery_outward_reward=0.06,
@@ -638,6 +653,11 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_nest_crowding_radius=140.0,
             non_carrying_nest_crowding_penalty=-0.010,
             non_carrying_nest_crowding_threshold=2,
+            non_carrying_explore_radius=200.0,
+            non_carrying_outward_reward=0.06,
+            non_carrying_idle_near_nest_penalty=-0.024,
+            non_carrying_low_displacement_threshold=4.0,
+            non_carrying_explore_ignore_pheromone=True,
             post_delivery_cooldown_steps=28,
             post_delivery_exit_radius=120.0,
             post_delivery_outward_reward=0.07,

@@ -152,6 +152,10 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_nest_loiter_steps = 0
         self.episode_non_carrying_nest_crowding_steps = 0
         self.episode_non_carrying_nest_penalty_total = 0.0
+        self.episode_non_carrying_explore_active_steps = 0
+        self.episode_non_carrying_outward_reward = 0.0
+        self.episode_non_carrying_idle_near_nest_steps = 0
+        self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -361,6 +365,10 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_nest_loiter_steps = 0
         self.episode_non_carrying_nest_crowding_steps = 0
         self.episode_non_carrying_nest_penalty_total = 0.0
+        self.episode_non_carrying_explore_active_steps = 0
+        self.episode_non_carrying_outward_reward = 0.0
+        self.episode_non_carrying_idle_near_nest_steps = 0
+        self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -438,6 +446,8 @@ class SwarmEnv(ParallelEnv):
             "pheromone_usage": 0.0,
             "pheromone_deposit": 0.0,
             "non_carrying_nest_penalty": 0.0,
+            "non_carrying_outward": 0.0,
+            "non_carrying_idle_near_nest": 0.0,
             "post_delivery_outward": 0.0,
             "post_delivery_loiter": 0.0,
         }
@@ -511,6 +521,18 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_nest_penalty_total += float(nest_penalty_total)
         self.episode_non_carrying_nest_loiter_steps += int(nest_loiter_steps)
         self.episode_non_carrying_nest_crowding_steps += int(nest_crowding_steps)
+        (
+            non_carrying_outward_reward,
+            non_carrying_idle_penalty,
+            non_carrying_explore_active_steps,
+            non_carrying_idle_steps,
+        ) = self._apply_non_carrying_outward_shaping(rewards, prev_nest_distances, prev_positions)
+        reward_breakdown["non_carrying_outward"] += float(non_carrying_outward_reward)
+        reward_breakdown["non_carrying_idle_near_nest"] += float(non_carrying_idle_penalty)
+        self.episode_non_carrying_explore_active_steps += int(non_carrying_explore_active_steps)
+        self.episode_non_carrying_outward_reward += float(non_carrying_outward_reward)
+        self.episode_non_carrying_idle_near_nest_steps += int(non_carrying_idle_steps)
+        self.episode_non_carrying_idle_near_nest_penalty_total += float(non_carrying_idle_penalty)
         post_delivery_outward_reward, post_delivery_loiter_penalty, post_delivery_active_steps = self._apply_post_delivery_outward_shaping(
             rewards,
             prev_nest_distances,
@@ -599,6 +621,10 @@ class SwarmEnv(ParallelEnv):
             "non_carrying_nest_loiter_fraction": float(self.episode_non_carrying_nest_loiter_steps / max(self.step_count, 1)),
             "non_carrying_nest_crowding_fraction": float(self.episode_non_carrying_nest_crowding_steps / max(self.step_count, 1)),
             "non_carrying_nest_penalty_total": float(self.episode_non_carrying_nest_penalty_total),
+            "non_carrying_explore_active_fraction": float(self.episode_non_carrying_explore_active_steps / max(self.step_count, 1)),
+            "non_carrying_outward_reward_total": float(self.episode_non_carrying_outward_reward),
+            "non_carrying_idle_near_nest_fraction": float(self.episode_non_carrying_idle_near_nest_steps / max(self.step_count, 1)),
+            "non_carrying_idle_near_nest_penalty_total": float(self.episode_non_carrying_idle_near_nest_penalty_total),
             "post_delivery_active_fraction": float(self.episode_post_delivery_active_steps / max(self.step_count, 1)),
             "post_delivery_outward_reward": float(self.episode_post_delivery_outward_reward),
             "post_delivery_loiter_penalty_total": float(self.episode_post_delivery_loiter_penalty_total),
@@ -1273,6 +1299,9 @@ class SwarmEnv(ParallelEnv):
         follow_reward_total = 0.0
         nest_suppression_radius = float(max(getattr(self.cfg, "non_carrying_nest_pheromone_suppression_radius", 0.0), 0.0))
         nest_suppression_sq = nest_suppression_radius ** 2
+        non_carrying_explore_radius = float(max(getattr(self.cfg, "non_carrying_explore_radius", 0.0), 0.0))
+        non_carrying_explore_sq = non_carrying_explore_radius ** 2
+        ignore_while_exploring = bool(getattr(self.cfg, "non_carrying_explore_ignore_pheromone", False))
         post_delivery_suppression_radius = float(max(getattr(self.cfg, "post_delivery_pheromone_suppression_radius", 0.0), 0.0))
         post_delivery_suppression_sq = post_delivery_suppression_radius ** 2
         nest_x, nest_y = self.nest_position if self.cfg.nest_enabled else (0.0, 0.0)
@@ -1282,6 +1311,9 @@ class SwarmEnv(ParallelEnv):
             is_post_delivery = int(getattr(agent, "post_delivery_steps", 0)) > 0
             if self.cfg.nest_enabled and nest_suppression_radius > 0.0:
                 if (agent.x - nest_x) ** 2 + (agent.y - nest_y) ** 2 <= nest_suppression_sq:
+                    continue
+            if self.cfg.nest_enabled and ignore_while_exploring and non_carrying_explore_radius > 0.0:
+                if (agent.x - nest_x) ** 2 + (agent.y - nest_y) ** 2 <= non_carrying_explore_sq:
                     continue
             if self.cfg.nest_enabled and is_post_delivery and post_delivery_suppression_radius > 0.0:
                 if (agent.x - nest_x) ** 2 + (agent.y - nest_y) ** 2 <= post_delivery_suppression_sq:
@@ -1341,6 +1373,48 @@ class SwarmEnv(ParallelEnv):
                 total_penalty += crowding_penalty
                 crowding_steps += 1
         return total_penalty, loiter_steps, crowding_steps
+
+    def _apply_non_carrying_outward_shaping(
+        self,
+        rewards: np.ndarray,
+        prev_nest_distances: np.ndarray,
+        prev_positions: np.ndarray,
+    ) -> tuple[float, float, int, int]:
+        """Push empty agents near the nest to fan out and explore instead of idling locally."""
+        if not self.cfg.nest_enabled:
+            return 0.0, 0.0, 0, 0
+        explore_radius = float(max(getattr(self.cfg, "non_carrying_explore_radius", 0.0), 0.0))
+        if explore_radius <= 0.0:
+            return 0.0, 0.0, 0, 0
+        current_distances = self._compute_nest_distance_state()
+        outward_reward_scale = float(getattr(self.cfg, "non_carrying_outward_reward", 0.0))
+        idle_penalty = float(getattr(self.cfg, "non_carrying_idle_near_nest_penalty", 0.0))
+        low_disp_threshold = float(max(getattr(self.cfg, "non_carrying_low_displacement_threshold", 0.0), 0.0))
+        outward_reward_total = 0.0
+        idle_penalty_total = 0.0
+        active_steps = 0
+        idle_steps = 0
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food or int(getattr(agent, "post_delivery_steps", 0)) > 0:
+                continue
+            curr_dist = float(current_distances[i])
+            if not np.isfinite(curr_dist) or curr_dist > explore_radius:
+                continue
+            active_steps += 1
+            prev_dist = float(prev_nest_distances[i])
+            if np.isfinite(prev_dist) and curr_dist > prev_dist:
+                progress = np.clip((curr_dist - prev_dist) / max(float(self.cfg.lidar_max_range), 1e-6), 0.0, 1.0)
+                reward = outward_reward_scale * progress
+                rewards[i] += reward
+                outward_reward_total += reward
+            dx = float(agent.x) - float(prev_positions[i, 0])
+            dy = float(agent.y) - float(prev_positions[i, 1])
+            displacement = math.hypot(dx, dy)
+            if low_disp_threshold > 0.0 and displacement < low_disp_threshold and idle_penalty != 0.0:
+                rewards[i] += idle_penalty
+                idle_penalty_total += idle_penalty
+                idle_steps += 1
+        return outward_reward_total, idle_penalty_total, active_steps, idle_steps
 
     def _apply_post_delivery_outward_shaping(
         self,

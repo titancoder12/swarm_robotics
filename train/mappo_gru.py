@@ -155,6 +155,16 @@ def _build_env(args, stage):
         cfg.non_carrying_nest_crowding_penalty = float(stage.non_carrying_nest_crowding_penalty)
     if stage.non_carrying_nest_crowding_threshold is not None:
         cfg.non_carrying_nest_crowding_threshold = int(stage.non_carrying_nest_crowding_threshold)
+    if stage.non_carrying_explore_radius is not None:
+        cfg.non_carrying_explore_radius = float(stage.non_carrying_explore_radius)
+    if stage.non_carrying_outward_reward is not None:
+        cfg.non_carrying_outward_reward = float(stage.non_carrying_outward_reward)
+    if stage.non_carrying_idle_near_nest_penalty is not None:
+        cfg.non_carrying_idle_near_nest_penalty = float(stage.non_carrying_idle_near_nest_penalty)
+    if stage.non_carrying_low_displacement_threshold is not None:
+        cfg.non_carrying_low_displacement_threshold = float(stage.non_carrying_low_displacement_threshold)
+    if stage.non_carrying_explore_ignore_pheromone is not None:
+        cfg.non_carrying_explore_ignore_pheromone = bool(stage.non_carrying_explore_ignore_pheromone)
     if stage.post_delivery_cooldown_steps is not None:
         cfg.post_delivery_cooldown_steps = int(stage.post_delivery_cooldown_steps)
     if stage.post_delivery_exit_radius is not None:
@@ -393,6 +403,10 @@ def _evaluate(actor, critic, cfg, critic_state_dim: int, device, episodes: int, 
                     "non_carrying_nest_loiter_fraction": float(info.get("non_carrying_nest_loiter_fraction", 0.0)),
                     "non_carrying_nest_crowding_fraction": float(info.get("non_carrying_nest_crowding_fraction", 0.0)),
                     "non_carrying_nest_penalty_total": float(info.get("non_carrying_nest_penalty_total", 0.0)),
+                    "non_carrying_explore_active_fraction": float(info.get("non_carrying_explore_active_fraction", 0.0)),
+                    "non_carrying_outward_reward_total": float(info.get("non_carrying_outward_reward_total", 0.0)),
+                    "non_carrying_idle_near_nest_fraction": float(info.get("non_carrying_idle_near_nest_fraction", 0.0)),
+                    "non_carrying_idle_near_nest_penalty_total": float(info.get("non_carrying_idle_near_nest_penalty_total", 0.0)),
                     "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
                     "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
                     "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
@@ -531,6 +545,10 @@ def train(args):
             "non_carrying_nest_loiter_fraction",
             "non_carrying_nest_crowding_fraction",
             "non_carrying_nest_penalty_total",
+            "non_carrying_explore_active_fraction",
+            "non_carrying_outward_reward_total",
+            "non_carrying_idle_near_nest_fraction",
+            "non_carrying_idle_near_nest_penalty_total",
             "post_delivery_active_fraction",
             "post_delivery_outward_reward",
             "post_delivery_loiter_penalty_total",
@@ -569,6 +587,10 @@ def train(args):
             "non_carrying_nest_loiter_fraction",
             "non_carrying_nest_crowding_fraction",
             "non_carrying_nest_penalty_total",
+            "non_carrying_explore_active_fraction",
+            "non_carrying_outward_reward_total",
+            "non_carrying_idle_near_nest_fraction",
+            "non_carrying_idle_near_nest_penalty_total",
             "post_delivery_active_fraction",
             "post_delivery_outward_reward",
             "post_delivery_loiter_penalty_total",
@@ -792,6 +814,10 @@ def train(args):
                                 "non_carrying_nest_loiter_fraction": float(info.get("non_carrying_nest_loiter_fraction", 0.0)),
                                 "non_carrying_nest_crowding_fraction": float(info.get("non_carrying_nest_crowding_fraction", 0.0)),
                                 "non_carrying_nest_penalty_total": float(info.get("non_carrying_nest_penalty_total", 0.0)),
+                                "non_carrying_explore_active_fraction": float(info.get("non_carrying_explore_active_fraction", 0.0)),
+                                "non_carrying_outward_reward_total": float(info.get("non_carrying_outward_reward_total", 0.0)),
+                                "non_carrying_idle_near_nest_fraction": float(info.get("non_carrying_idle_near_nest_fraction", 0.0)),
+                                "non_carrying_idle_near_nest_penalty_total": float(info.get("non_carrying_idle_near_nest_penalty_total", 0.0)),
                                 "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
                                 "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
                                 "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
@@ -1053,6 +1079,11 @@ def train(args):
                 "non_carrying_nest_crowding_radius": float(cfg.non_carrying_nest_crowding_radius),
                 "non_carrying_nest_crowding_penalty": float(cfg.non_carrying_nest_crowding_penalty),
                 "non_carrying_nest_crowding_threshold": int(cfg.non_carrying_nest_crowding_threshold),
+                "non_carrying_explore_radius": float(cfg.non_carrying_explore_radius),
+                "non_carrying_outward_reward": float(cfg.non_carrying_outward_reward),
+                "non_carrying_idle_near_nest_penalty": float(cfg.non_carrying_idle_near_nest_penalty),
+                "non_carrying_low_displacement_threshold": float(cfg.non_carrying_low_displacement_threshold),
+                "non_carrying_explore_ignore_pheromone": bool(cfg.non_carrying_explore_ignore_pheromone),
                 "post_delivery_cooldown_steps": int(cfg.post_delivery_cooldown_steps),
                 "post_delivery_exit_radius": float(cfg.post_delivery_exit_radius),
                 "post_delivery_outward_reward": float(cfg.post_delivery_outward_reward),

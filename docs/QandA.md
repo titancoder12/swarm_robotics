@@ -2,6 +2,9 @@
 
 This file captures recurring questions and answers discussed during development so future contributors can reference decisions quickly.
 
+## Q: What did prompt 45 change to stop non-carrying agents from clustering at the nest?
+A: Prompt 45 added an explicit non-carrying fan-out mechanism. New config knobs in [env/config.py](../env/config.py) define an exploration zone around the nest, an outward-from-nest reward for empty agents moving away from it, a low-displacement idle penalty near the nest, and an option to ignore pheromone-follow shaping while those empty agents are still inside that nest-adjacent exploration zone. The behavior is applied in [_apply_non_carrying_outward_shaping()](../env/swarm_env.py) and is logged through new MAPPO metrics such as `non_carrying_explore_active_fraction` and `non_carrying_idle_near_nest_fraction`. Later curriculum stages in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py) now enable those settings so empty agents are pushed to fan out instead of orbiting the nest.
+
 ## Q: Is `ReplayBuffer` the same as a trajectory?
 A: No. The replay buffer stores **individual transitions** `(s, a, r, s', done)` and does not preserve episode order. A trajectory is an **ordered sequence** of transitions. The buffer may contain pieces of trajectories, but it is not itself a trajectory.
 
