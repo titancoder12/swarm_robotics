@@ -224,7 +224,12 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
     parser.add_argument("--reward-new-cell", type=float, default=0.01)
-    parser.add_argument("--carrying-reward-new-cell-scale", type=float, default=1.0)
+    parser.add_argument("--carrying-reward-new-cell-scale", type=float, default=0.1)
+    parser.add_argument("--carrying-no-progress-penalty", type=float, default=-0.03)
+    parser.add_argument("--carrying-low-displacement-penalty", type=float, default=-0.02)
+    parser.add_argument("--carrying-progress-epsilon", type=float, default=2.0)
+    parser.add_argument("--carrying-low-displacement-threshold", type=float, default=3.0)
+    parser.add_argument("--carrying-stall-trigger-steps", type=int, default=6)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--eval-steps", type=int, default=600)
@@ -258,7 +263,12 @@ def make_swarm_config(args) -> SwarmConfig:
         observation_noise_std=getattr(args, "observation_noise_std", 0.0),
         observation_history_steps=max(1, int(getattr(args, "observation_history_steps", 3))),
         reward_new_cell=getattr(args, "reward_new_cell", 0.01),
-        carrying_reward_new_cell_scale=getattr(args, "carrying_reward_new_cell_scale", 1.0),
+        carrying_reward_new_cell_scale=getattr(args, "carrying_reward_new_cell_scale", 0.1),
+        carrying_no_progress_penalty=getattr(args, "carrying_no_progress_penalty", -0.03),
+        carrying_low_displacement_penalty=getattr(args, "carrying_low_displacement_penalty", -0.02),
+        carrying_progress_epsilon=getattr(args, "carrying_progress_epsilon", 2.0),
+        carrying_low_displacement_threshold=getattr(args, "carrying_low_displacement_threshold", 3.0),
+        carrying_stall_trigger_steps=max(1, int(getattr(args, "carrying_stall_trigger_steps", 6))),
         reward_target=getattr(args, "reward_target", 0.0),
         reward_pickup=getattr(args, "reward_pickup", 6.0),
         reward_nest_delivery=getattr(args, "reward_nest_delivery", 30.0),

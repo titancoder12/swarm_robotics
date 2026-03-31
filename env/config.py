@@ -89,7 +89,12 @@ class SwarmConfig:
 
     reward_exploration: float = 0.0         # currently unused in env step path
     reward_new_cell: float = 0.01           # small exploration bonus
-    carrying_reward_new_cell_scale: float = 1.0  # scale exploration bonus while carrying
+    carrying_reward_new_cell_scale: float = 0.1  # heavily suppress exploration bonus while carrying
+    carrying_no_progress_penalty: float = -0.03
+    carrying_low_displacement_penalty: float = -0.02
+    carrying_progress_epsilon: float = 2.0
+    carrying_low_displacement_threshold: float = 3.0
+    carrying_stall_trigger_steps: int = 6
 
     reward_food_approach: float = 0.03      # small signed shaping only
     reward_food_detected: float = 0.15      # one-time local cue, kept modest

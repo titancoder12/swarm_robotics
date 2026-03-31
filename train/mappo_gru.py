@@ -124,6 +124,16 @@ def _build_env(args, stage):
         cfg.reward_pheromone_follow = float(stage.reward_pheromone_follow)
     if stage.carrying_reward_new_cell_scale is not None:
         cfg.carrying_reward_new_cell_scale = float(stage.carrying_reward_new_cell_scale)
+    if stage.carrying_no_progress_penalty is not None:
+        cfg.carrying_no_progress_penalty = float(stage.carrying_no_progress_penalty)
+    if stage.carrying_low_displacement_penalty is not None:
+        cfg.carrying_low_displacement_penalty = float(stage.carrying_low_displacement_penalty)
+    if stage.carrying_progress_epsilon is not None:
+        cfg.carrying_progress_epsilon = float(stage.carrying_progress_epsilon)
+    if stage.carrying_low_displacement_threshold is not None:
+        cfg.carrying_low_displacement_threshold = float(stage.carrying_low_displacement_threshold)
+    if stage.carrying_stall_trigger_steps is not None:
+        cfg.carrying_stall_trigger_steps = int(stage.carrying_stall_trigger_steps)
     if stage.pheromone_enabled is not None:
         cfg.pheromone_enabled = bool(stage.pheromone_enabled)
         cfg.render_pheromone = bool(stage.pheromone_enabled)
@@ -326,6 +336,11 @@ def _evaluate(actor, critic, cfg, critic_state_dim: int, device, episodes: int, 
                         else -1
                     ),
                     "delivery_conversion": float(delivered / max(picked_up, 1)),
+                    "carrying_stall_events": float(info.get("episode_carrying_stall_events", 0.0)),
+                    "carrying_stall_fraction": float(info.get("carrying_stall_fraction", 0.0)),
+                    "carrying_low_progress_fraction": float(info.get("carrying_low_progress_fraction", 0.0)),
+                    "carrying_low_displacement_fraction": float(info.get("carrying_low_displacement_fraction", 0.0)),
+                    "carrying_penalty_total": float(info.get("carrying_penalty_total", 0.0)),
                     "swarm_efficiency": float(delivered / max(length, 1)),
                 }
             )
@@ -453,6 +468,11 @@ def train(args):
             "first_delivery_step",
             "pickup_to_delivery_latency",
             "delivery_conversion",
+            "carrying_stall_events",
+            "carrying_stall_fraction",
+            "carrying_low_progress_fraction",
+            "carrying_low_displacement_fraction",
+            "carrying_penalty_total",
             "swarm_efficiency",
         ],
     )
@@ -480,6 +500,11 @@ def train(args):
             "first_delivery_step",
             "pickup_to_delivery_latency",
             "delivery_conversion",
+            "carrying_stall_events",
+            "carrying_stall_fraction",
+            "carrying_low_progress_fraction",
+            "carrying_low_displacement_fraction",
+            "carrying_penalty_total",
             "swarm_efficiency",
         ],
     )
@@ -570,6 +595,8 @@ def train(args):
                 f"size={cfg.width}x{cfg.height} | targets={cfg.n_targets} | obstacles={cfg.n_obstacles} | "
                 f"action_repeat={cfg.action_repeat_steps} | reward_new_cell={cfg.reward_new_cell:.4f} | "
                 f"carrying_new_cell_scale={cfg.carrying_reward_new_cell_scale:.2f} | "
+                f"carry_no_progress={cfg.carrying_no_progress_penalty:.3f} | "
+                f"carry_low_disp={cfg.carrying_low_displacement_penalty:.3f} | "
                 f"reward_step={cfg.reward_step:.4f} | reward_collision={cfg.reward_collision:.2f} | "
                 f"reward_pickup={cfg.reward_pickup:.2f} | reward_nest_approach={cfg.reward_nest_approach:.2f} | "
                 f"reward_delivery={cfg.reward_nest_delivery:.2f} | "
@@ -689,6 +716,11 @@ def train(args):
                                     else -1
                                 ),
                                 "delivery_conversion": float(episode_food_delivered / max(episode_food_picked_up, 1)),
+                                "carrying_stall_events": int(info.get("episode_carrying_stall_events", 0)),
+                                "carrying_stall_fraction": float(info.get("carrying_stall_fraction", 0.0)),
+                                "carrying_low_progress_fraction": float(info.get("carrying_low_progress_fraction", 0.0)),
+                                "carrying_low_displacement_fraction": float(info.get("carrying_low_displacement_fraction", 0.0)),
+                                "carrying_penalty_total": float(info.get("carrying_penalty_total", 0.0)),
                                 "swarm_efficiency": swarm_efficiency,
                             }
                         )
@@ -847,6 +879,9 @@ def train(args):
                             f"gap_pickup={max(0.0, (sampled_pickups_sum / max(sampled_episode_count, 1)) - eval_metrics['food_picked_up']):.2f} "
                             f"gap_delivery={max(0.0, (sampled_deliveries_sum / max(sampled_episode_count, 1)) - eval_metrics['food_retrieved']):.2f} "
                             f"deposits={eval_metrics['pheromone_deposit_events']:.2f} "
+                            f"carry_stall={eval_metrics['carrying_stall_events']:.2f} "
+                            f"carry_low_prog={eval_metrics['carrying_low_progress_fraction']:.3f} "
+                            f"carry_low_disp={eval_metrics['carrying_low_displacement_fraction']:.3f} "
                             f"respawns={eval_metrics['food_source_respawns']:.2f} "
                             f"first_pickup={eval_metrics['first_pickup_step']:.1f} "
                             f"first_delivery={eval_metrics['first_delivery_step']:.1f} "
@@ -922,6 +957,11 @@ def train(args):
                 "action_repeat_steps": int(cfg.action_repeat_steps),
                 "reward_new_cell": float(cfg.reward_new_cell),
                 "carrying_reward_new_cell_scale": float(cfg.carrying_reward_new_cell_scale),
+                "carrying_no_progress_penalty": float(cfg.carrying_no_progress_penalty),
+                "carrying_low_displacement_penalty": float(cfg.carrying_low_displacement_penalty),
+                "carrying_progress_epsilon": float(cfg.carrying_progress_epsilon),
+                "carrying_low_displacement_threshold": float(cfg.carrying_low_displacement_threshold),
+                "carrying_stall_trigger_steps": int(cfg.carrying_stall_trigger_steps),
                 "reward_step": float(cfg.reward_step),
                 "reward_collision": float(cfg.reward_collision),
                 "reward_pickup": float(cfg.reward_pickup),
@@ -1016,6 +1056,8 @@ def train(args):
                 f"greedy_pickup={greedy_pickups:.2f} | "
                 f"greedy_delivery={greedy_deliveries:.2f} | "
                 f"greedy_conversion={greedy_delivery_conversion:.2f} | "
+                f"greedy_carry_stall={float(stage_end_eval.get('carrying_stall_events', 0.0)) if stage_end_eval else 0.0:.2f} | "
+                f"greedy_carry_low_prog={float(stage_end_eval.get('carrying_low_progress_fraction', 0.0)) if stage_end_eval else 0.0:.3f} | "
                 f"gap_pickup={sampled_greedy_pickup_gap:.2f} | gap_delivery={sampled_greedy_delivery_gap:.2f} | "
                 f"hard_stop={'yes' if hard_budget_exhausted else 'no'} | "
                 f"promoted={stage_promoted} | best_eval_score={stage_best_eval_score:.2f} | "

@@ -120,6 +120,14 @@ class SwarmEnv(ParallelEnv):
         self.episode_pheromone_deposit_events = 0
         self.first_pickup_step: int | None = None
         self.first_delivery_step: int | None = None
+        self._prev_agent_positions = np.zeros((self.cfg.n_agents, 2), dtype=np.float32)
+        self._carrying_no_progress_counts = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        self.episode_carrying_stall_steps = 0
+        self.episode_carrying_stall_events = 0
+        self.episode_carrying_low_progress_steps = 0
+        self.episode_carrying_low_displacement_steps = 0
+        self.episode_carrying_progress_reward = 0.0
+        self.episode_carrying_penalty_total = 0.0
 
         self.step_count = 0
         self.terminated = False
@@ -315,11 +323,19 @@ class SwarmEnv(ParallelEnv):
         self.episode_pheromone_deposit_events = 0
         self.first_pickup_step = None
         self.first_delivery_step = None
+        self.episode_carrying_stall_steps = 0
+        self.episode_carrying_stall_events = 0
+        self.episode_carrying_low_progress_steps = 0
+        self.episode_carrying_low_displacement_steps = 0
+        self.episode_carrying_progress_reward = 0.0
+        self.episode_carrying_penalty_total = 0.0
         self._init_coverage_grid()
         self._assign_failed_agents()
         self._update_coverage()
         self._reset_food_shaping_state()
         self._prev_nest_distances = self._compute_nest_distance_state()
+        self._prev_agent_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
+        self._carrying_no_progress_counts.fill(0)
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -366,6 +382,7 @@ class SwarmEnv(ParallelEnv):
 
         current_step = self.step_count + 1
         prev_nest_distances = self._prev_nest_distances.copy()
+        prev_positions = self._prev_agent_positions.copy()
 
         # Start with per-step reward for all agents.
         rewards = np.full((self.cfg.n_agents,), self.cfg.reward_step, dtype=np.float32)
@@ -422,6 +439,21 @@ class SwarmEnv(ParallelEnv):
         reward_breakdown["delivery"] += float(delivery_reward)
         nest_approach_reward = self._apply_nest_return_shaping(rewards, prev_nest_distances)
         reward_breakdown["nest_approach"] += float(nest_approach_reward)
+        self.episode_carrying_progress_reward += float(nest_approach_reward)
+
+        (
+            carrying_penalty_total,
+            carrying_stall_steps,
+            carrying_stall_events,
+            carrying_low_progress_steps,
+            carrying_low_displacement_steps,
+        ) = self._apply_carrying_phase_penalties(rewards, prev_nest_distances, prev_positions)
+        reward_breakdown["carrying_penalty"] = float(carrying_penalty_total)
+        self.episode_carrying_penalty_total += float(carrying_penalty_total)
+        self.episode_carrying_stall_steps += int(carrying_stall_steps)
+        self.episode_carrying_stall_events += int(carrying_stall_events)
+        self.episode_carrying_low_progress_steps += int(carrying_low_progress_steps)
+        self.episode_carrying_low_displacement_steps += int(carrying_low_displacement_steps)
 
         food_approach_reward, food_detect_reward = self._apply_food_shaping(rewards)
         reward_breakdown["food_approach"] += float(food_approach_reward)
@@ -445,6 +477,7 @@ class SwarmEnv(ParallelEnv):
             pheromone_deposit_cost = 0.0
         reward_breakdown["pheromone_deposit"] += float(pheromone_deposit_cost)
         self._prev_nest_distances = self._compute_nest_distance_state()
+        self._prev_agent_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
         self.episode_targets_collected += int(picked_up)
         self.episode_pheromone_deposit_events += int(pheromone_deposit_events)
         if picked_up > 0 and self.first_pickup_step is None:
@@ -494,6 +527,19 @@ class SwarmEnv(ParallelEnv):
                 else -1
             ),
             "carrying_agents": int(sum(1 for agent in self.agent_states if agent.carrying_food)),
+            "carrying_stall_steps": int(carrying_stall_steps),
+            "carrying_stall_events": int(carrying_stall_events),
+            "carrying_low_progress_steps": int(carrying_low_progress_steps),
+            "carrying_low_displacement_steps": int(carrying_low_displacement_steps),
+            "episode_carrying_stall_steps": int(self.episode_carrying_stall_steps),
+            "episode_carrying_stall_events": int(self.episode_carrying_stall_events),
+            "episode_carrying_low_progress_steps": int(self.episode_carrying_low_progress_steps),
+            "episode_carrying_low_displacement_steps": int(self.episode_carrying_low_displacement_steps),
+            "carrying_progress_reward_total": float(self.episode_carrying_progress_reward),
+            "carrying_penalty_total": float(self.episode_carrying_penalty_total),
+            "carrying_stall_fraction": float(self.episode_carrying_stall_steps / max(self.step_count, 1)),
+            "carrying_low_progress_fraction": float(self.episode_carrying_low_progress_steps / max(self.step_count, 1)),
+            "carrying_low_displacement_fraction": float(self.episode_carrying_low_displacement_steps / max(self.step_count, 1)),
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
             "active_targets": len(self.targets),
@@ -1063,6 +1109,57 @@ class SwarmEnv(ParallelEnv):
             rewards[i] += reward
             reward_total += reward
         return reward_total
+
+    def _apply_carrying_phase_penalties(
+        self,
+        rewards: np.ndarray,
+        prev_nest_distances: np.ndarray,
+        prev_positions: np.ndarray,
+    ) -> tuple[float, int, int, int, int]:
+        """Penalize carrying agents that stall or fail to make progress toward the nest."""
+        if not (self.cfg.nest_enabled and self.cfg.require_nest_delivery):
+            return 0.0, 0, 0, 0, 0
+        current_distances = self._compute_nest_distance_state()
+        penalty_total = 0.0
+        stall_steps = 0
+        stall_events = 0
+        low_progress_steps = 0
+        low_displacement_steps = 0
+        progress_eps = float(max(self.cfg.carrying_progress_epsilon, 0.0))
+        displacement_threshold = float(max(self.cfg.carrying_low_displacement_threshold, 0.0))
+        stall_trigger = int(max(self.cfg.carrying_stall_trigger_steps, 1))
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices:
+                self._carrying_no_progress_counts[i] = 0
+                continue
+            if not agent.carrying_food:
+                self._carrying_no_progress_counts[i] = 0
+                continue
+            prev_dist = float(prev_nest_distances[i])
+            curr_dist = float(current_distances[i])
+            progress = prev_dist - curr_dist if np.isfinite(prev_dist) and np.isfinite(curr_dist) else 0.0
+            dx = float(agent.x) - float(prev_positions[i, 0])
+            dy = float(agent.y) - float(prev_positions[i, 1])
+            displacement = math.hypot(dx, dy)
+            no_progress = progress < progress_eps
+            low_displacement = displacement < displacement_threshold
+            if no_progress:
+                low_progress_steps += 1
+                rewards[i] += float(self.cfg.carrying_no_progress_penalty)
+                penalty_total += float(self.cfg.carrying_no_progress_penalty)
+            if low_displacement:
+                low_displacement_steps += 1
+                rewards[i] += float(self.cfg.carrying_low_displacement_penalty)
+                penalty_total += float(self.cfg.carrying_low_displacement_penalty)
+            if no_progress or low_displacement:
+                self._carrying_no_progress_counts[i] += 1
+            else:
+                self._carrying_no_progress_counts[i] = 0
+            if self._carrying_no_progress_counts[i] >= stall_trigger:
+                stall_steps += 1
+                if self._carrying_no_progress_counts[i] == stall_trigger:
+                    stall_events += 1
+        return penalty_total, stall_steps, stall_events, low_progress_steps, low_displacement_steps
 
     def _apply_pheromone_reward(self, rewards: np.ndarray, actions: np.ndarray) -> tuple[float, float, float]:
         """Apply conservative pheromone shaping using existing sample geometry."""

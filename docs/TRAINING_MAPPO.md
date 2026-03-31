@@ -142,6 +142,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
 - prompt 32 also adds stage-controlled target-to-nest distance and agent-near-target spawning so the guaranteed-homing stage spends much more of the episode on “pick up, then go home” instead of rediscovering the target
 - prompt 33 then focuses on the sampled-to-greedy gap in those stages: return-critical stages now use more aggressive entropy decay, greedy checkpoint scoring weights completed delivery and delivery conversion much more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
+- prompt 35 adds explicit carrying-phase anti-dithering pressure: while carrying, exploration reward stays suppressed, low nest-progress and low displacement now incur small penalties, and episode/eval logs now expose carrying-stall / low-progress / low-displacement signals directly
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -173,6 +174,7 @@ Stage progression is now greedy-eval-aware:
 - if the limit is exceeded, training advances but records that the stage did not promote cleanly
 - prompt 33 also makes the early return stages more visibly greedy-aligned by emphasizing delivery in greedy checkpoint scoring and by exposing sampled-vs-greedy gaps directly in the runtime summaries
 - prompt 34 then extends that discipline to the later stages: `--total-steps` is treated as a real hard global budget, promotion targets now include minimum delivery conversion, and later-stage greedy scoring penalizes pickup-rich / delivery-zero behavior instead of letting it appear successful
+- prompt 35 extends the visibility side as well: the environment now records carrying-phase stall events, carrying low-progress fraction, carrying low-displacement fraction, and carrying-penalty totals so carrying-to-delivery failure is easier to diagnose than before
 
 ## Example Commands
 
