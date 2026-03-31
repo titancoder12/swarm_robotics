@@ -158,6 +158,8 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
         self.episode_non_carrying_force_explore_steps = 0
         self.episode_non_carrying_force_explore_overrides = 0
+        self.episode_non_carrying_random_explore_steps = 0
+        self.episode_non_carrying_random_explore_overrides = 0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -373,6 +375,8 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
         self.episode_non_carrying_force_explore_steps = 0
         self.episode_non_carrying_force_explore_overrides = 0
+        self.episode_non_carrying_random_explore_steps = 0
+        self.episode_non_carrying_random_explore_overrides = 0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -418,6 +422,11 @@ class SwarmEnv(ParallelEnv):
 
         # One environment tick: apply actions, move agents, compute rewards/obs.
         requested_actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        requested_actions, random_explore_steps, random_explore_overrides = self._apply_non_carrying_exploration_randomness(
+            requested_actions
+        )
+        self.episode_non_carrying_random_explore_steps += int(random_explore_steps)
+        self.episode_non_carrying_random_explore_overrides += int(random_explore_overrides)
         requested_actions, force_explore_steps, force_explore_overrides = self._apply_non_carrying_force_explore_mode(
             requested_actions
         )
@@ -636,6 +645,8 @@ class SwarmEnv(ParallelEnv):
             "non_carrying_idle_near_nest_penalty_total": float(self.episode_non_carrying_idle_near_nest_penalty_total),
             "non_carrying_force_explore_fraction": float(self.episode_non_carrying_force_explore_steps / max(self.step_count, 1)),
             "non_carrying_force_explore_overrides": float(self.episode_non_carrying_force_explore_overrides),
+            "non_carrying_random_explore_fraction": float(self.episode_non_carrying_random_explore_steps / max(self.step_count, 1)),
+            "non_carrying_random_explore_overrides": float(self.episode_non_carrying_random_explore_overrides),
             "post_delivery_active_fraction": float(self.episode_post_delivery_active_steps / max(self.step_count, 1)),
             "post_delivery_outward_reward": float(self.episode_post_delivery_outward_reward),
             "post_delivery_loiter_penalty_total": float(self.episode_post_delivery_loiter_penalty_total),
@@ -818,6 +829,39 @@ class SwarmEnv(ParallelEnv):
                 adjusted[i] = int(outward_action)
                 self._hold_remaining[i] = 0
                 self._held_actions[i] = int(outward_action)
+                overrides += 1
+        return adjusted, steps, overrides
+
+    def _sample_non_carrying_exploration_action(self) -> int:
+        """Sample a movement-producing action for empty-agent exploration."""
+        candidates = [
+            action_id
+            for action_id, (throttle, _turn, deposit) in enumerate(self.action_table)
+            if deposit == 0 and throttle == 1.0
+        ]
+        if not candidates:
+            return 16
+        return int(self.rng.choice(candidates))
+
+    def _apply_non_carrying_exploration_randomness(self, requested_actions: np.ndarray) -> tuple[np.ndarray, int, int]:
+        """Inject extra stochasticity into empty-agent exploration actions."""
+        prob = float(max(0.0, min(1.0, getattr(self.cfg, "non_carrying_explore_random_action_prob", 0.0))))
+        if prob <= 0.0:
+            return requested_actions, 0, 0
+        adjusted = requested_actions.copy()
+        steps = 0
+        overrides = 0
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food:
+                continue
+            steps += 1
+            if self.rng.random() >= prob:
+                continue
+            explore_action = self._sample_non_carrying_exploration_action()
+            if int(adjusted[i]) != int(explore_action):
+                adjusted[i] = int(explore_action)
+                self._hold_remaining[i] = 0
+                self._held_actions[i] = int(explore_action)
                 overrides += 1
         return adjusted, steps, overrides
 

@@ -604,6 +604,7 @@ So the learned behavior should be: “find targets quickly without crashing.”
   - rewards
   - lidar rays
   - pheromone settings
+  - non-carrying exploration controls, including env-side random exploration overrides
   - dynamics mode (`tank`, `hover`, `mixed`)
 
 ### Want deeper details?

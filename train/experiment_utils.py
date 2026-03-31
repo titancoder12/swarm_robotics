@@ -241,6 +241,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--non-carrying-idle-near-nest-penalty", type=float, default=0.0)
     parser.add_argument("--non-carrying-low-displacement-threshold", type=float, default=0.0)
     parser.add_argument("--non-carrying-explore-ignore-pheromone", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument("--non-carrying-explore-random-action-prob", type=float, default=0.0)
     parser.add_argument("--non-carrying-force-explore-mode", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--non-carrying-force-explore-radius", type=float, default=0.0)
     parser.add_argument("--post-delivery-cooldown-steps", type=int, default=0)
@@ -291,6 +292,10 @@ def make_swarm_config(args) -> SwarmConfig:
         non_carrying_idle_near_nest_penalty=getattr(args, "non_carrying_idle_near_nest_penalty", 0.0),
         non_carrying_low_displacement_threshold=getattr(args, "non_carrying_low_displacement_threshold", 0.0),
         non_carrying_explore_ignore_pheromone=bool(getattr(args, "non_carrying_explore_ignore_pheromone", False)),
+        non_carrying_explore_random_action_prob=max(
+            0.0,
+            min(1.0, float(getattr(args, "non_carrying_explore_random_action_prob", 0.0))),
+        ),
         non_carrying_force_explore_mode=bool(getattr(args, "non_carrying_force_explore_mode", False)),
         non_carrying_force_explore_radius=getattr(args, "non_carrying_force_explore_radius", 0.0),
         post_delivery_cooldown_steps=max(0, int(getattr(args, "post_delivery_cooldown_steps", 0))),

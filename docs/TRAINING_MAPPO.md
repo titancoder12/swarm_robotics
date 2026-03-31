@@ -313,3 +313,7 @@ And a greedy-eval-selected checkpoint:
 
 The deployment-facing actor loader is in
 [algorithms/mappo/inference.py](../algorithms/mappo/inference.py).
+
+## Prompt 47
+
+Prompt 47 adds stage-configurable extra action randomness for non-carrying agents while they are exploring. The implementation is env-side, so it affects both training and demo consistently, prefers movement-producing exploration actions, and is enabled in the later pheromone-on swarm stages rather than during carrying-food return behavior.

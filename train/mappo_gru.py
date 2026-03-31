@@ -167,6 +167,8 @@ def _build_env(args, stage):
         cfg.non_carrying_low_displacement_threshold = float(stage.non_carrying_low_displacement_threshold)
     if stage.non_carrying_explore_ignore_pheromone is not None:
         cfg.non_carrying_explore_ignore_pheromone = bool(stage.non_carrying_explore_ignore_pheromone)
+    if stage.non_carrying_explore_random_action_prob is not None:
+        cfg.non_carrying_explore_random_action_prob = float(stage.non_carrying_explore_random_action_prob)
     if stage.non_carrying_force_explore_mode is not None:
         cfg.non_carrying_force_explore_mode = bool(stage.non_carrying_force_explore_mode)
     if stage.non_carrying_force_explore_radius is not None:
@@ -415,6 +417,8 @@ def _evaluate(actor, critic, cfg, critic_state_dim: int, device, episodes: int, 
                     "non_carrying_idle_near_nest_penalty_total": float(info.get("non_carrying_idle_near_nest_penalty_total", 0.0)),
                     "non_carrying_force_explore_fraction": float(info.get("non_carrying_force_explore_fraction", 0.0)),
                     "non_carrying_force_explore_overrides": float(info.get("non_carrying_force_explore_overrides", 0.0)),
+                    "non_carrying_random_explore_fraction": float(info.get("non_carrying_random_explore_fraction", 0.0)),
+                    "non_carrying_random_explore_overrides": float(info.get("non_carrying_random_explore_overrides", 0.0)),
                     "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
                     "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
                     "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
@@ -559,6 +563,8 @@ def train(args):
             "non_carrying_idle_near_nest_penalty_total",
             "non_carrying_force_explore_fraction",
             "non_carrying_force_explore_overrides",
+            "non_carrying_random_explore_fraction",
+            "non_carrying_random_explore_overrides",
             "post_delivery_active_fraction",
             "post_delivery_outward_reward",
             "post_delivery_loiter_penalty_total",
@@ -603,6 +609,8 @@ def train(args):
             "non_carrying_idle_near_nest_penalty_total",
             "non_carrying_force_explore_fraction",
             "non_carrying_force_explore_overrides",
+            "non_carrying_random_explore_fraction",
+            "non_carrying_random_explore_overrides",
             "post_delivery_active_fraction",
             "post_delivery_outward_reward",
             "post_delivery_loiter_penalty_total",
@@ -832,6 +840,8 @@ def train(args):
                                 "non_carrying_idle_near_nest_penalty_total": float(info.get("non_carrying_idle_near_nest_penalty_total", 0.0)),
                                 "non_carrying_force_explore_fraction": float(info.get("non_carrying_force_explore_fraction", 0.0)),
                                 "non_carrying_force_explore_overrides": float(info.get("non_carrying_force_explore_overrides", 0.0)),
+                                "non_carrying_random_explore_fraction": float(info.get("non_carrying_random_explore_fraction", 0.0)),
+                                "non_carrying_random_explore_overrides": float(info.get("non_carrying_random_explore_overrides", 0.0)),
                                 "post_delivery_active_fraction": float(info.get("post_delivery_active_fraction", 0.0)),
                                 "post_delivery_outward_reward": float(info.get("post_delivery_outward_reward", 0.0)),
                                 "post_delivery_loiter_penalty_total": float(info.get("post_delivery_loiter_penalty_total", 0.0)),
@@ -1099,6 +1109,7 @@ def train(args):
                 "non_carrying_idle_near_nest_penalty": float(cfg.non_carrying_idle_near_nest_penalty),
                 "non_carrying_low_displacement_threshold": float(cfg.non_carrying_low_displacement_threshold),
                 "non_carrying_explore_ignore_pheromone": bool(cfg.non_carrying_explore_ignore_pheromone),
+                "non_carrying_explore_random_action_prob": float(cfg.non_carrying_explore_random_action_prob),
                 "non_carrying_force_explore_mode": bool(cfg.non_carrying_force_explore_mode),
                 "non_carrying_force_explore_radius": float(cfg.non_carrying_force_explore_radius),
                 "post_delivery_cooldown_steps": int(cfg.post_delivery_cooldown_steps),

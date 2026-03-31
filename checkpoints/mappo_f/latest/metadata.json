@@ -23,7 +23,7 @@
   "hard_budget_exhausted": true,
   "height": 950,
   "hidden_size": 128,
-  "max_steps": 800,
+  "max_steps": 1600,
   "n_agents": 6,
   "n_obstacles": 18,
   "n_targets": 3,

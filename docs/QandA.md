@@ -19,6 +19,9 @@ A: Because these are still soft RL shaping terms, not a hard controller. If the 
 ## Q: What did prompt 46 change for non-carrying nest orbit?
 A: Prompt 46 adds an explicit env-side “leave nest zone” mode for empty agents. In [env/swarm_env.py](../env/swarm_env.py), non-carrying agents inside a configured nest-adjacent radius can now have their chosen action overridden with an outward-moving action that turns them away from the nest, and the action-hold state is cleared when that happens so a previously held orbit-friendly action does not persist. The current late swarm stages in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py) are the intended place to enable this mode, and trainer/demo metadata now carry the mode settings and metrics.
 
+## Q: Why do demo resets look random within a run but repeat across separate demo runs?
+A: Because [train/demo.py](../train/demo.py) is deterministic by default. The CLI `--seed` defaults to `0`, the initial `env.reset(...)` uses that seed, and later resets in the same demo run use `next_reset_seed = args.seed + 1`, then increment it (`1`, `2`, `3`, ...). So resets are different within one run, but if you start the demo again with the same seed you get the same reset sequence again. If you want a different sequence across demo runs, change `--seed`.
+
 ## Q: Is `ReplayBuffer` the same as a trajectory?
 A: No. The replay buffer stores **individual transitions** `(s, a, r, s', done)` and does not preserve episode order. A trajectory is an **ordered sequence** of transitions. The buffer may contain pieces of trajectories, but it is not itself a trajectory.
 
@@ -917,3 +920,9 @@ A: Prompt 43 added a short post-delivery cooldown that rewards recently delivere
 
 ## Q: What should prompt 45 focus on for the remaining nest-clustering problem?
 A: Prompt 45 should stop treating this only as a “don’t stay near the nest” problem and instead make it an explicit “fan out and explore when not carrying food” problem. The next fix should add outward-search shaping for empty agents near the nest, stronger low-motion penalties for empty agents lingering in the nest zone, and metrics that show whether non-carrying agents are actually dispersing across the map instead of merely being punished while still hovering near the nest.
+
+## Q: Why do demo resets look different within one run but repeat across separate demo runs?
+A: Because `train/demo.py` seeds the environment deterministically by default. The CLI flag `--seed` defaults to `0`, the first reset uses `env.reset(seed=args.seed)`, and later episode resets use `next_reset_seed = args.seed + 1` and then increment from there. So inside a single demo run, resets do change (`0`, `1`, `2`, ...), but if you re-run the same command, you replay the same seed sequence and therefore get the same sequence of environment layouts again. If you want a different sequence on the next run, pass a different `--seed`.
+
+## Q: What changed in prompt 47?
+A: Prompt 47 adds env-side extra action randomness for non-carrying agents while they are exploring. It introduces `non_carrying_explore_random_action_prob`, applies it only to empty agents, samples movement-producing non-deposit actions so the randomness still looks like search behavior, and leaves carrying-food return behavior untouched. The setting is enabled in the later swarm curriculum stages, logged in MAPPO episode/eval metrics, and saved into checkpoint `metadata.json` so demos reproduce the same exploration-mode behavior.

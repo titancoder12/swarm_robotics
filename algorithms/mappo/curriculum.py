@@ -49,6 +49,7 @@ class CurriculumStage:
     non_carrying_idle_near_nest_penalty: float | None = None
     non_carrying_low_displacement_threshold: float | None = None
     non_carrying_explore_ignore_pheromone: bool | None = None
+    non_carrying_explore_random_action_prob: float | None = None
     non_carrying_force_explore_mode: bool | None = None
     non_carrying_force_explore_radius: float | None = None
     post_delivery_cooldown_steps: int | None = None
@@ -550,6 +551,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_idle_near_nest_penalty=-0.14,
             non_carrying_low_displacement_threshold=4.0,
             non_carrying_explore_ignore_pheromone=True,
+            non_carrying_explore_random_action_prob=0.10,
             non_carrying_force_explore_mode=True,
             non_carrying_force_explore_radius=220.0,
             post_delivery_cooldown_steps=18,
@@ -609,6 +611,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_idle_near_nest_penalty=-0.18,
             non_carrying_low_displacement_threshold=4.2,
             non_carrying_explore_ignore_pheromone=True,
+            non_carrying_explore_random_action_prob=0.12,
             non_carrying_force_explore_mode=True,
             non_carrying_force_explore_radius=260.0,
             post_delivery_cooldown_steps=22,
@@ -668,6 +671,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             non_carrying_idle_near_nest_penalty=-0.22,
             non_carrying_low_displacement_threshold=4.5,
             non_carrying_explore_ignore_pheromone=True,
+            non_carrying_explore_random_action_prob=0.15,
             non_carrying_force_explore_mode=True,
             non_carrying_force_explore_radius=320.0,
             post_delivery_cooldown_steps=28,

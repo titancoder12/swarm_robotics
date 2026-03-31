@@ -218,6 +218,12 @@ def _build_demo_env(args):
                     getattr(args_copy, "non_carrying_explore_ignore_pheromone", False),
                 )
             )
+            args_copy.non_carrying_explore_random_action_prob = float(
+                metadata.get(
+                    "non_carrying_explore_random_action_prob",
+                    getattr(args_copy, "non_carrying_explore_random_action_prob", 0.0),
+                )
+            )
             args_copy.non_carrying_force_explore_mode = bool(
                 metadata.get(
                     "non_carrying_force_explore_mode",
