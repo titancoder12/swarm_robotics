@@ -89,7 +89,7 @@ The current default task settings now make that loop more explicit:
 Recommended full training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_600k
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_600k
 ```
 
 Recommended demo checkpoint after training:
@@ -132,6 +132,10 @@ What the main arguments mean:
 - `--eval-episodes 5`
   - use five episodes for each scheduled evaluation so eval is less noisy
 
+- `--stage-repeat-limit 1`
+  - allow one retry when a stage still fails its minimum greedy pickup/delivery target
+  - this helps prevent weak early stages from being silently promoted
+
 - `--reward-pickup 6`
   - keep pickup meaningful, but not as important as completed delivery
 
@@ -149,10 +153,12 @@ Why this is the recommended starting point:
 
 - the current curriculum spreads learning across many stages
 - the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
+- the early stages now deliberately simplify the task: pheromone is disabled in stage 1, movement penalties are softened, and pickup/delivery cues are stronger so greedy `pickup -> return -> deliver` behavior can form first
+- the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes
 - stage progression is now greedy-eval-aware, with optional repeats when pickup/delivery remain below minimum promotion targets
-- the trainer now saves `best_greedy_eval/` so demo can use the strongest greedy checkpoint instead of assuming `latest/` is best
+- the trainer now prints sampled-vs-greedy pickup/delivery gaps and saves `best_greedy_eval/` so demo can use the strongest greedy checkpoint instead of assuming `latest/` is best
 - the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
 - a shorter run can finish, but often leaves the later full-swarm stages undertrained
 - `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo

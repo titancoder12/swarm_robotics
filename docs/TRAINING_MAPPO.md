@@ -97,6 +97,8 @@ The current curriculum stages the following environment variables:
 - `target_respawn`
 - `action_repeat_steps`
 - `reward_new_cell`
+- staged reward/pheromone simplifications for early greedy behavior
+- stage-wise entropy start/end values used for within-stage entropy decay
 
 Intended teaching progression:
 
@@ -127,6 +129,16 @@ Control/reward staging now also changes with difficulty:
 - later swarm stages use `action_repeat_steps = 2` for smoother execution
 - early stages keep a slightly stronger `reward_new_cell`
 - later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
+- stage 1 now disables pheromone entirely so pickup/return/delivery is learned before trail exploitation is introduced
+- stage 1 softens `reward_step` and `reward_collision`, and strengthens pickup/delivery cues, so freezing is less attractive than useful movement
+- later stages progressively restore the full pheromone-enabled trail-building setting
+
+Prompt 29 also changes entropy handling:
+
+- entropy is no longer effectively one fixed pressure throughout a stage
+- each curriculum stage now defines `entropy_start` and `entropy_end`
+- the trainer linearly decays entropy regularization within the stage so early updates explore more and late updates in the same stage become more greedy
+- this is meant to reduce the sampled-success / greedy-failure gap seen after prompt 28
 
 Mode semantics:
 
@@ -178,6 +190,7 @@ python train/train.py --backend mappo --headless --curriculum full --n-agents 6 
 
 - `--stage-repeat-limit 1`
   - allows one additional attempt for a stage if stage-end greedy evaluation still fails the promotion target
+  - this matters more now because early-stage greedy behavior, not just sampled success, is the promotion target
 
 Resume from a checkpoint:
 
@@ -199,6 +212,24 @@ Checkpoint recommendation:
   - last explicit final-stage checkpoint
 - `best_greedy_eval/`
   - recommended demo checkpoint because it is selected by greedy evaluation quality rather than recency
+
+What prompt 28 fixed structurally:
+
+- fixed padded critic state across the selected curriculum
+- critic/optimizer carryover across stage boundaries
+- stage-end greedy promotion checks
+- `best_greedy_eval/` checkpoint saving
+
+What still remained broken after prompt 28:
+
+- early stages could still get sampled training-time pickup/delivery without learning a greedy policy that repeated that behavior in evaluation
+
+What prompt 29 changes:
+
+- stage 1 is intentionally simplified and de-pheromonized
+- reward/control pressure is eased in stage 1 so movement and task completion dominate freezing
+- entropy decays within a stage instead of staying fixed
+- trainer runtime prints now call out sampled-vs-greedy gaps, making it obvious when lucky sampled behavior is not surviving into greedy eval
 
 Headless MAPPO evaluation:
 
