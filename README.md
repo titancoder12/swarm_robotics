@@ -92,6 +92,12 @@ Recommended full training run:
 python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_600k
 ```
 
+Recommended demo checkpoint after training:
+
+```bash
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_600k/best_greedy_eval --max-steps 300
+```
+
 What the main arguments mean:
 
 - `--backend mappo`
@@ -144,6 +150,9 @@ Why this is the recommended starting point:
 - the current curriculum spreads learning across many stages
 - the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
+- the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes
+- stage progression is now greedy-eval-aware, with optional repeats when pickup/delivery remain below minimum promotion targets
+- the trainer now saves `best_greedy_eval/` so demo can use the strongest greedy checkpoint instead of assuming `latest/` is best
 - the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
 - a shorter run can finish, but often leaves the later full-swarm stages undertrained
 - `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo
@@ -157,7 +166,7 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Render the trained MAPPO policy:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/best_greedy_eval --max-steps 300
 ```
 
 In demo mode, agents now switch to a distinct carrying-food color after pickup

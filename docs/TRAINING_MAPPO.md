@@ -17,7 +17,7 @@ The implementation uses:
 
 - parameter-shared recurrent actor
 - GRU actor over local observations
-- recurrent centralized critic over the env training-time state
+- recurrent centralized critic over a fixed padded training-time state dimension across the selected curriculum
 - PPO-style clipped policy updates
 - GAE
 - entropy regularization
@@ -134,13 +134,20 @@ Mode semantics:
 - `stage1_to_2` runs the four single-agent stages plus the two small-swarm stages
 - `full` runs all eight stages
 
-Actor weights are carried across stages.
+Actor and critic weights are now both carried across stages.
 
-Important current limitation:
+The current implementation avoids the old critic-reset instability by:
 
-- the centralized critic input size changes with `n_agents`
-- so critic weights are not reused across stage boundaries when the state shape changes
-- actor transfer is preserved; critic reset is explicit and recorded in checkpoint metadata
+- computing one fixed critic input size for the selected curriculum
+- padding each stage's centralized state into that fixed size
+- keeping the same critic and optimizer state across stage boundaries
+
+Stage progression is now greedy-eval-aware:
+
+- each stage always runs a stage-end greedy evaluation
+- each stage has a minimum pickup/delivery promotion target
+- if the target is not met, the stage can repeat up to `--stage-repeat-limit` times
+- if the limit is exceeded, training advances but records that the stage did not promote cleanly
 
 ## Example Commands
 
@@ -163,6 +170,15 @@ Why this command is more realistic than the older shorter examples:
 - the stronger undelivered-food penalty makes `picked up but never returned` less acceptable
 - the later full-swarm stages are still hard enough that `180k` or `200k` often remains undertrained
 
+Useful additional control:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --stage-repeat-limit 1 --folder-name mappo_trail_full
+```
+
+- `--stage-repeat-limit 1`
+  - allows one additional attempt for a stage if stage-end greedy evaluation still fails the promotion target
+
 Resume from a checkpoint:
 
 ```bash
@@ -172,8 +188,17 @@ python train/train.py --backend mappo --headless --curriculum full --resume-chec
 Rendered MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/best_greedy_eval --max-steps 300
 ```
+
+Checkpoint recommendation:
+
+- `latest/`
+  - most recently written checkpoint
+- `stage3b_full_swarm_final/`
+  - last explicit final-stage checkpoint
+- `best_greedy_eval/`
+  - recommended demo checkpoint because it is selected by greedy evaluation quality rather than recency
 
 Headless MAPPO evaluation:
 
@@ -193,6 +218,10 @@ Each stage writes:
 There is also a rolling:
 
 - `latest/`
+
+And a greedy-eval-selected checkpoint:
+
+- `best_greedy_eval/`
 
 The deployment-facing actor loader is in
 [algorithms/mappo/inference.py](../algorithms/mappo/inference.py).

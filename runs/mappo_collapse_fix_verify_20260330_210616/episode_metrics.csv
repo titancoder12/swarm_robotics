@@ -1,0 +1,2 @@
+stage,stage_index,stage_attempt,global_step,episode,n_agents,width,height,n_targets,n_obstacles,mean_episode_reward,food_discovered,food_picked_up,food_retrieved,exploration_coverage,pheromone_usage,pheromone_deposit_events,food_source_respawns,food_units_remaining,episode_length,first_pickup_step,first_delivery_step,pickup_to_delivery_latency,swarm_efficiency
+stage1d_single_agent_delivery_obstacles,4,1,90,1,1,420,320,1,2,22.259511947631836,4.0,4.0,0.0,0.015873015873015872,0.07349083338243266,2,0,0,15,3,-1,-1,0.0
