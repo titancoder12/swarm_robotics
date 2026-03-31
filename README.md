@@ -8,6 +8,93 @@ By coupling learned behaviours with shared “digital pheromone” fields, the s
 
 Decentralized swarm systems have applications in environments where communication infrastructure is unreliable or centralized control is fragile, such as planetary exploration and disaster response. By leveraging local decision-making and redundancy, stigmergic swarm systems provide resilience, adaptability, and robustness under uncertainty.
 
+## Documentation Guide
+
+This repo has a large `docs/` tree. Use this table of contents to jump to the right document quickly.
+
+### Core Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+  - High-level system structure. Use this first if you want to understand how environment, training, evaluation, and deployment pieces fit together.
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md)
+  - Implementation-grounded API reference for the environment and surrounding tooling. Best when you need exact interfaces and object behavior.
+- [docs/CONFIG_REFERENCE.md](docs/CONFIG_REFERENCE.md)
+  - Reference for `SwarmConfig` and the shared CLI-to-config mapping. Use this when changing environment or reward settings.
+- [docs/TRAINING_MAPPO.md](docs/TRAINING_MAPPO.md)
+  - The current main training-path document. Explains the recurrent MAPPO curriculum, stage design, recommended commands, and checkpoint usage.
+- [docs/TRAINING_CUSTOM.md](docs/TRAINING_CUSTOM.md)
+  - The older custom DQN training path. Useful if you want the baseline trainer rather than the current MAPPO path.
+- [docs/EVALUATE.md](docs/EVALUATE.md)
+  - Practical evaluation guide for single-checkpoint and comparison runs. Use this for `analysis/evaluate.py` and `analysis/evaluate_comparison.py`.
+- [docs/EVALUATION_CUSTOM.md](docs/EVALUATION_CUSTOM.md)
+  - Older evaluation notes focused on the custom DQN workflow. Useful when working with legacy baseline runs.
+- [docs/EXPERIMENT_API.md](docs/EXPERIMENT_API.md)
+  - Reference for the experiment framework and benchmark entry points. Use this when running repeatable sweeps.
+- [docs/ONBOARDING.md](docs/ONBOARDING.md)
+  - Main “how do I run this repo?” guide. Best starting point for a new developer who wants current commands and key files.
+- [docs/QandA.md](docs/QandA.md)
+  - Rolling question-and-answer file. Newer entries are current; older lower entries are historical context.
+- [docs/PROJECT_LOG.md](docs/PROJECT_LOG.md)
+  - Chronological change log and work journal. Useful for understanding why the current system looks the way it does.
+- [docs/curriculum_training.md](docs/curriculum_training.md)
+  - Walkthrough of training in general and the curriculum path specifically. Good for understanding the control flow in code.
+- [docs/trail.md](docs/trail.md)
+  - Conceptual note on the intended trail behavior: discover, return, deposit, and exploit. Use this for the high-level research idea.
+- [docs/best_rl.md](docs/best_rl.md)
+  - Higher-level RL strategy discussion. Useful if you want to compare the current stack with stronger alternatives.
+- [docs/CTDE_STATE.md](docs/CTDE_STATE.md)
+  - Notes on centralized-training/decentralized-execution state design. Helpful when reasoning about the MAPPO critic state.
+- [docs/OBSERVATION_SPEC.md](docs/OBSERVATION_SPEC.md)
+  - Observation layout reference. Use this if you need the exact policy input contract.
+- [docs/ACTION_SPEC.md](docs/ACTION_SPEC.md)
+  - Action-space reference. Use this when checking how discrete action ids map to simulator behavior.
+- [docs/UML.md](docs/UML.md)
+  - UML-style diagrams for the environment and system structure. Useful when you want a visual mental model.
+- [docs/DQN_EXPLAINED.md](docs/DQN_EXPLAINED.md)
+  - Plain-language DQN walkthrough grounded in this repo’s code. Best for learning the baseline trainer.
+- [docs/RESOURCES.md](docs/RESOURCES.md)
+  - External learning and reference links. Useful when you want supporting RL or framework material.
+- [docs/audit.md](docs/audit.md)
+  - Historical review and audit-style notes. This is more for project history than day-to-day use.
+- [docs/ToDo.md](docs/ToDo.md)
+  - Open tasks and future work ideas. Use it as a backlog rather than a source of truth for current behavior.
+
+### Deployment And Hardware
+
+- [docs/SimToReal.md](docs/SimToReal.md)
+  - Sim-to-real deployment design notes. Useful when mapping the simulator policy contract onto a physical robot.
+- [docs/PI_MIGRATION.md](docs/PI_MIGRATION.md)
+  - Raspberry Pi migration notes. Best when moving from the preserved rule-based runtime toward model-driven control.
+- [docs/BLUETOOTH_FIRMWARE_NOTES.md](docs/BLUETOOTH_FIRMWARE_NOTES.md)
+  - Notes on the BLE / firmware-side communication path. Useful for the live robot stack.
+- [docs/MISSION_CONTROL.md](docs/MISSION_CONTROL.md)
+  - Mission Control system overview. Use this when working on desktop-side multi-robot coordination infrastructure.
+- [docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md](docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md)
+  - Pseudocode-level view of the Mission Control firmware path. Helpful before editing the runtime code.
+- [docs/CAMERA_PROPOSAL.md](docs/CAMERA_PROPOSAL.md)
+  - Camera-based extension idea. This is a design proposal, not current runtime behavior.
+
+### Manuals
+
+- [docs/manual/QUICK_START.md](docs/manual/QUICK_START.md)
+  - Minimal command-focused quick start. Best if you want the shortest path to a working run.
+- [docs/manual/PROJECT_STRUCTURE.md](docs/manual/PROJECT_STRUCTURE.md)
+  - Short project layout guide. Useful when you need to orient yourself in the repo.
+- [docs/manual/EXPERIMENT_GUIDE.md](docs/manual/EXPERIMENT_GUIDE.md)
+  - Manual for running experiments and interpreting experiment outputs. Good companion to `train/run_experiments.py`.
+- [docs/manual/RESULTS_INTERPRETATION.md](docs/manual/RESULTS_INTERPRETATION.md)
+  - How to read metrics and results artifacts. Useful after training or evaluation finishes.
+
+### Presentation And Misc
+
+- [docs/swarm_robotics_presentation.md](docs/swarm_robotics_presentation.md)
+  - Presentation-style summary material. Useful for talks or science-fair communication.
+
+### Prompt Archive
+
+- [docs/prompts/](docs/prompts/)
+  - Implementation prompt history used to iteratively build the current system. These files are historical build records, not the current source of truth for behavior.
+
 
 # Swarm RL PyGame Environment (Stigmergy)
 
