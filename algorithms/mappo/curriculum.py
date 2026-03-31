@@ -161,8 +161,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             reward_step=-0.004,
             reward_collision=-0.40,
             reward_pickup=7.0,
-            reward_nest_approach=0.32,
-            reward_nest_delivery=46.0,
+            reward_nest_approach=0.34,
+            reward_nest_delivery=48.0,
             reward_undelivered_food=-16.0,
             reward_food_approach=0.04,
             reward_food_detected=0.18,
@@ -175,31 +175,61 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
     )
     stages.append(
         CurriculumStage(
-            name="stage1e_single_agent_delivery_obstacles",
+            name="stage1e_single_agent_delivery_bridge",
             n_agents=1,
             total_steps=0,
             budget_weight=2,
-            width=320,
+            width=300,
             height=240,
             n_targets=1,
             n_obstacles=1,
-            max_steps=220,
+            max_steps=190,
             active_targets=1,
             target_respawn=False,
             action_repeat_steps=1,
             reward_new_cell=0.004,
-            reward_step=-0.004,
-            reward_collision=-0.45,
+            reward_step=-0.003,
+            reward_collision=-0.35,
             reward_pickup=7.0,
-            reward_nest_approach=0.34,
-            reward_nest_delivery=48.0,
+            reward_nest_approach=0.38,
+            reward_nest_delivery=52.0,
             reward_undelivered_food=-16.0,
-            reward_food_approach=0.03,
+            reward_food_approach=0.025,
             reward_food_detected=0.16,
             reward_pheromone_follow=0.0,
             carrying_reward_new_cell_scale=0.0,
             pheromone_enabled=False,
             entropy_start=0.012,
+            entropy_end=0.0015,
+        )
+    )
+    stages.append(
+        CurriculumStage(
+            name="stage1f_single_agent_delivery_obstacles",
+            n_agents=1,
+            total_steps=0,
+            budget_weight=2,
+            width=360,
+            height=280,
+            n_targets=1,
+            n_obstacles=2,
+            max_steps=220,
+            active_targets=1,
+            target_respawn=False,
+            action_repeat_steps=1,
+            reward_new_cell=0.004,
+            reward_step=-0.003,
+            reward_collision=-0.40,
+            reward_pickup=7.0,
+            reward_nest_approach=0.36,
+            reward_nest_delivery=50.0,
+            reward_undelivered_food=-16.0,
+            reward_food_approach=0.025,
+            reward_food_detected=0.16,
+            reward_pheromone_follow=0.0,
+            carrying_reward_new_cell_scale=0.0,
+            pheromone_enabled=False,
+            entropy_start=0.010,
             entropy_end=0.0015,
         )
     )
@@ -329,9 +359,9 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
 def select_curriculum(stages: list[CurriculumStage], mode: str, total_steps: int) -> list[CurriculumStage]:
     """Select a curriculum slice and assign the requested total budget across that slice."""
     if mode == "stage1":
-        selected = stages[:5]
+        selected = stages[:6]
     elif mode == "stage1_to_2":
-        selected = stages[:7]
+        selected = stages[:8]
     elif mode == "full":
         selected = stages
     else:

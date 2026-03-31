@@ -154,7 +154,7 @@ Why this is the recommended starting point:
 - the current curriculum spreads learning across many stages
 - the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
 - the early stages now deliberately simplify the task: pheromone is disabled in stage 1, movement penalties are softened, and pickup/delivery cues are stronger so greedy `pickup -> return -> deliver` behavior can form first
-- prompt 30 now also suppresses exploration reward while carrying in the return-focused stages, and adds a dedicated single-agent return stage before the first obstacle-delivery stage so carrying-food nest return is taught more directly
+- prompts 30 and 31 now suppress exploration reward while carrying in the return-focused stages, add a dedicated single-agent homing stage, and split the first cluttered return challenge into a mild bridge stage plus a later true obstacle-return stage
 - the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes

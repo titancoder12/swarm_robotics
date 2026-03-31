@@ -80,11 +80,12 @@ The default `full` schedule is:
 2. `stage1b_single_agent_tiny`
 3. `stage1c_single_agent_small`
 4. `stage1d_single_agent_return_medium`
-5. `stage1e_single_agent_delivery_obstacles`
-6. `stage2a_small_swarm_medium`
-7. `stage2b_small_swarm_large`
-8. `stage3a_full_swarm_large`
-9. `stage3b_full_swarm_final`
+5. `stage1e_single_agent_delivery_bridge`
+6. `stage1f_single_agent_delivery_obstacles`
+7. `stage2a_small_swarm_medium`
+8. `stage2b_small_swarm_large`
+9. `stage3a_full_swarm_large`
+10. `stage3b_full_swarm_final`
 
 The current curriculum stages the following environment variables:
 
@@ -106,8 +107,9 @@ The current curriculum stages the following environment variables:
 Intended teaching progression:
 
 - Stage 1A-1C: one agent, increasingly larger empty worlds with one target
-- Stage 1D: one agent, medium world, one target, no obstacles; this stage isolates carrying-food return-to-nest before clutter is introduced
-- Stage 1E: one agent, one target, one obstacle, no respawn; this is the first obstacle delivery stage
+- Stage 1D: one agent, medium world, one target, no obstacles; this is now the stricter homing stage and must show clearer greedy delivery before promotion
+- Stage 1E: one agent, one target, one obstacle, no respawn; this is now a mild clutter bridge stage for carried return instead of the full obstacle challenge
+- Stage 1F: one agent, one target, two obstacles, no respawn; this is the first true single-agent obstacle-return stage
 - Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet, with pheromone still disabled so early swarm delivery is learned before trail exploitation returns
 - Stage 2B: small swarm, large but not final environment, now with respawn enabled
 - Stage 3A: full swarm, same large but not final environment
@@ -117,15 +119,15 @@ The stage-budget bug fixed in the current version was that the old curriculum
 reused early budget buckets and left later stages more starved than intended.
 The schedule now assigns one explicit weight per actual stage:
 
-- `1, 1, 1, 2, 2, 3, 4, 6`
+- `1, 1, 1, 2, 2, 2, 2, 3, 4, 6`
 
 This keeps the hardest full-swarm stages from receiving only accidental
 fine-tuning time.
 
 `--total-steps` now applies to the curriculum slice you actually selected. For
 example, `--curriculum stage1 --total-steps 32000` distributes that full
-`32000` budget across the four single-agent stages instead of first splitting
-it across all eight full-schedule stages and then discarding the unused ones.
+`32000` budget across the six single-agent stages instead of first splitting
+it across all ten full-schedule stages and then discarding the unused ones.
 
 Control/reward staging now also changes with difficulty:
 
@@ -135,8 +137,9 @@ Control/reward staging now also changes with difficulty:
 - later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
 - stage 1 now disables pheromone entirely so pickup/return/delivery is learned before trail exploitation is introduced
 - stage 1 softens `reward_step` and `reward_collision`, and strengthens pickup/delivery cues, so freezing is less attractive than useful movement
-- prompt 30 also suppresses or strongly reduces exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
+- prompts 30 and 31 suppress or strongly reduce exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
 - `reward_nest_approach` is now staged explicitly, with stronger values in the return-focused single-agent stages than in the final full-swarm stages
+- prompt 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -148,9 +151,9 @@ Prompt 29 also changes entropy handling:
 
 Mode semantics:
 
-- `stage1` runs all five single-agent stages
-- `stage1_to_2` runs the five single-agent stages plus the two small-swarm stages
-- `full` runs all nine stages
+- `stage1` runs all six single-agent stages
+- `stage1_to_2` runs the six single-agent stages plus the two small-swarm stages
+- `full` runs all ten stages
 
 Actor and critic weights are now both carried across stages.
 

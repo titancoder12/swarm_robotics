@@ -151,8 +151,16 @@ def _pad_state(state: np.ndarray, target_dim: int) -> np.ndarray:
 
 
 def _stage_promotion_target(stage) -> StagePromotionTarget:
-    if int(stage.n_agents) == 1 and int(stage.n_obstacles) == 0 and int(stage.width) <= 160:
+    if stage.name == "stage1a_single_agent_miniscule":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+    if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+    if stage.name == "stage1d_single_agent_return_medium":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.5)
+    if stage.name == "stage1e_single_agent_delivery_bridge":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+    if stage.name == "stage1f_single_agent_delivery_obstacles":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.8)
     if int(stage.n_agents) == 1:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
     if not bool(stage.target_respawn):
