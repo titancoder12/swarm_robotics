@@ -31,15 +31,39 @@ def default_curriculum(total_steps: int, full_agents: int) -> list[CurriculumSta
     total_steps = max(6, int(total_steps))
     full_agents = max(5, int(full_agents))
     small_agents = max(2, min(5, max(2, full_agents // 2)))
-    stage_steps = _split_stage_steps(total_steps, [2, 1, 1, 1, 1, 2])
+    stage_steps = _split_stage_steps(total_steps, [1, 1, 1, 1, 1, 1, 1, 2])
     return [
         CurriculumStage(
-            name="stage1a_single_agent_tiny",
+            name="stage1a_single_agent_miniscule",
+            n_agents=1,
+            total_steps=stage_steps[0],
+            width=50,#220,
+            height=50,#220,
+            n_targets=1,
+            n_obstacles=0,
+            max_steps=120,
+            active_targets=1,
+            target_respawn=False,
+        ),
+        CurriculumStage(
+            name="stage1b_single_agent_tiny",
             n_agents=1,
             total_steps=stage_steps[0],
             width=75,#220,
             height=75,#220,
-            n_targets=2,
+            n_targets=1,
+            n_obstacles=0,
+            max_steps=120,
+            active_targets=1,
+            target_respawn=False,
+        ),
+        CurriculumStage(
+            name="stage1c_single_agent_small",
+            n_agents=1,
+            total_steps=stage_steps[0],
+            width=100,#220,
+            height=100,#220,
+            n_targets=1,
             n_obstacles=0,
             max_steps=120,
             active_targets=1,

@@ -7,15 +7,15 @@
   "decentralized_execution": true,
   "food_source_capacity": 4,
   "global_step": 50000,
-  "height": 75,
+  "height": 100,
   "hidden_size": 128,
   "max_steps": 120,
   "n_agents": 1,
   "n_obstacles": 0,
-  "n_targets": 2,
+  "n_targets": 1,
   "obs_dim": 69,
   "stage": "stage1a_single_agent_tiny",
-  "state_dim": 22,
+  "state_dim": 18,
   "target_respawn": false,
-  "width": 75
+  "width": 100
 }
