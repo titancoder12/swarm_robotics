@@ -237,6 +237,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--non-carrying-explore-radius", type=float, default=0.0)
     parser.add_argument("--non-carrying-outward-reward", type=float, default=0.0)
+    parser.add_argument("--non-carrying-no-outward-progress-penalty", type=float, default=0.0)
     parser.add_argument("--non-carrying-idle-near-nest-penalty", type=float, default=0.0)
     parser.add_argument("--non-carrying-low-displacement-threshold", type=float, default=0.0)
     parser.add_argument("--non-carrying-explore-ignore-pheromone", action=argparse.BooleanOptionalAction, default=False)
@@ -284,6 +285,7 @@ def make_swarm_config(args) -> SwarmConfig:
         non_carrying_nest_crowding_threshold=max(1, int(getattr(args, "non_carrying_nest_crowding_threshold", 2))),
         non_carrying_explore_radius=getattr(args, "non_carrying_explore_radius", 0.0),
         non_carrying_outward_reward=getattr(args, "non_carrying_outward_reward", 0.0),
+        non_carrying_no_outward_progress_penalty=getattr(args, "non_carrying_no_outward_progress_penalty", 0.0),
         non_carrying_idle_near_nest_penalty=getattr(args, "non_carrying_idle_near_nest_penalty", 0.0),
         non_carrying_low_displacement_threshold=getattr(args, "non_carrying_low_displacement_threshold", 0.0),
         non_carrying_explore_ignore_pheromone=bool(getattr(args, "non_carrying_explore_ignore_pheromone", False)),

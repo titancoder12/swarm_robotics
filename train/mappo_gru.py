@@ -159,6 +159,8 @@ def _build_env(args, stage):
         cfg.non_carrying_explore_radius = float(stage.non_carrying_explore_radius)
     if stage.non_carrying_outward_reward is not None:
         cfg.non_carrying_outward_reward = float(stage.non_carrying_outward_reward)
+    if stage.non_carrying_no_outward_progress_penalty is not None:
+        cfg.non_carrying_no_outward_progress_penalty = float(stage.non_carrying_no_outward_progress_penalty)
     if stage.non_carrying_idle_near_nest_penalty is not None:
         cfg.non_carrying_idle_near_nest_penalty = float(stage.non_carrying_idle_near_nest_penalty)
     if stage.non_carrying_low_displacement_threshold is not None:
@@ -1081,6 +1083,7 @@ def train(args):
                 "non_carrying_nest_crowding_threshold": int(cfg.non_carrying_nest_crowding_threshold),
                 "non_carrying_explore_radius": float(cfg.non_carrying_explore_radius),
                 "non_carrying_outward_reward": float(cfg.non_carrying_outward_reward),
+                "non_carrying_no_outward_progress_penalty": float(cfg.non_carrying_no_outward_progress_penalty),
                 "non_carrying_idle_near_nest_penalty": float(cfg.non_carrying_idle_near_nest_penalty),
                 "non_carrying_low_displacement_threshold": float(cfg.non_carrying_low_displacement_threshold),
                 "non_carrying_explore_ignore_pheromone": bool(cfg.non_carrying_explore_ignore_pheromone),

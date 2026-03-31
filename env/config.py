@@ -74,6 +74,7 @@ class SwarmConfig:
     non_carrying_nest_crowding_threshold: int = 2
     non_carrying_explore_radius: float = 0.0
     non_carrying_outward_reward: float = 0.0
+    non_carrying_no_outward_progress_penalty: float = 0.0
     non_carrying_idle_near_nest_penalty: float = 0.0
     non_carrying_low_displacement_threshold: float = 0.0
     non_carrying_explore_ignore_pheromone: bool = False

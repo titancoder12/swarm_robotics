@@ -1369,8 +1369,10 @@ class SwarmEnv(ParallelEnv):
                 total_penalty += loiter_penalty
                 loiter_steps += 1
             if crowding_radius > 0.0 and dist_sq <= crowd_sq and len(eligible) >= crowding_threshold and crowding_penalty != 0.0:
-                rewards[i] += crowding_penalty
-                total_penalty += crowding_penalty
+                crowd_multiplier = 1.0 + float(max(0, len(eligible) - crowding_threshold))
+                scaled_penalty = crowding_penalty * crowd_multiplier
+                rewards[i] += scaled_penalty
+                total_penalty += scaled_penalty
                 crowding_steps += 1
         return total_penalty, loiter_steps, crowding_steps
 
@@ -1388,8 +1390,10 @@ class SwarmEnv(ParallelEnv):
             return 0.0, 0.0, 0, 0
         current_distances = self._compute_nest_distance_state()
         outward_reward_scale = float(getattr(self.cfg, "non_carrying_outward_reward", 0.0))
+        no_progress_penalty = float(getattr(self.cfg, "non_carrying_no_outward_progress_penalty", 0.0))
         idle_penalty = float(getattr(self.cfg, "non_carrying_idle_near_nest_penalty", 0.0))
         low_disp_threshold = float(max(getattr(self.cfg, "non_carrying_low_displacement_threshold", 0.0), 0.0))
+        progress_epsilon = float(max(getattr(self.cfg, "carrying_progress_epsilon", 0.0), 0.0))
         outward_reward_total = 0.0
         idle_penalty_total = 0.0
         active_steps = 0
@@ -1407,6 +1411,9 @@ class SwarmEnv(ParallelEnv):
                 reward = outward_reward_scale * progress
                 rewards[i] += reward
                 outward_reward_total += reward
+            elif np.isfinite(prev_dist) and no_progress_penalty != 0.0 and curr_dist <= prev_dist + progress_epsilon:
+                rewards[i] += no_progress_penalty
+                idle_penalty_total += no_progress_penalty
             dx = float(agent.x) - float(prev_positions[i, 0])
             dy = float(agent.y) - float(prev_positions[i, 1])
             displacement = math.hypot(dx, dy)

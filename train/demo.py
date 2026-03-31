@@ -194,6 +194,12 @@ def _build_demo_env(args):
                     getattr(args_copy, "non_carrying_outward_reward", 0.0),
                 )
             )
+            args_copy.non_carrying_no_outward_progress_penalty = float(
+                metadata.get(
+                    "non_carrying_no_outward_progress_penalty",
+                    getattr(args_copy, "non_carrying_no_outward_progress_penalty", 0.0),
+                )
+            )
             args_copy.non_carrying_idle_near_nest_penalty = float(
                 metadata.get(
                     "non_carrying_idle_near_nest_penalty",
