@@ -941,3 +941,6 @@ A: Prompt 48 implemented the proper scaling path. `env/swarm_env.py` now renders
 
 ## Q: Why did the pheromone heatmap disappear after the render-scaling change?
 A: Because the first scaling patch moved most world drawing to an off-screen world surface, but `_draw_pheromone()` was still drawing directly to the display surface. The scaled world surface was then blitted over it, hiding the pheromone layer. The fix is to draw the pheromone heatmap onto the same off-screen world surface as the rest of the world before scaling/blitting to the display.
+
+## Q: If training reaches a stage goal before max steps, does it stop?
+A: Not the whole run. In the current MAPPO trainer, meeting a stage goal causes promotion to the next curriculum stage, not immediate termination of training. The overall run stops when either the curriculum is exhausted or the hard global `--total-steps` cap is reached. So early success in one stage saves time inside that stage, but training still continues into later stages unless there are no stages left.
