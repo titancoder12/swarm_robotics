@@ -5,6 +5,7 @@
   "critic_reset_reason": "centralized_state_dim_changes_with_stage",
   "curriculum_actor_transfer": true,
   "decentralized_execution": true,
+  "food_source_capacity": 4,
   "global_step": 142858,
   "height": 700,
   "hidden_size": 128,
@@ -14,7 +15,7 @@
   "n_targets": 3,
   "obs_dim": 69,
   "stage": "stage3a_full_swarm_large",
-  "state_dim": 90,
-  "target_respawn": false,
+  "state_dim": 93,
+  "target_respawn": true,
   "width": 950
 }

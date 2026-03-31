@@ -87,11 +87,14 @@ def _build_demo_env(args):
         metadata = _load_checkpoint_metadata(args.checkpoint_dir)
         if metadata:
             args_copy.n_agents = int(metadata.get("n_agents", args_copy.n_agents))
-            args_copy.n_targets = int(metadata.get("n_targets", getattr(args_copy, "n_targets", 4)))
+            args_copy.n_targets = int(metadata.get("n_targets", getattr(args_copy, "n_targets", 3)))
             args_copy.n_obstacles = int(metadata.get("n_obstacles", getattr(args_copy, "n_obstacles", 6)))
             args_copy.max_steps_per_episode = int(metadata.get("max_steps", getattr(args_copy, "max_steps_per_episode", 600)))
-            args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 4)))
-            args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", False)))
+            args_copy.active_targets = int(metadata.get("active_targets", getattr(args_copy, "active_targets", 3)))
+            args_copy.target_respawn = bool(metadata.get("target_respawn", getattr(args_copy, "target_respawn", True)))
+            args_copy.food_source_capacity = int(
+                metadata.get("food_source_capacity", getattr(args_copy, "food_source_capacity", 4))
+            )
 
     cfg = make_swarm_config(args_copy)
     if metadata:

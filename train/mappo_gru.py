@@ -117,6 +117,8 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
             picked_up = 0
             delivered = 0
             pheromone_deposits = 0
+            source_respawns = 0
+            food_units_remaining = 0
             first_pickup_step = -1
             first_delivery_step = -1
             while True:
@@ -136,6 +138,8 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                 picked_up += int(info.get("targets_collected", 0))
                 delivered += int(info.get("food_delivered", 0))
                 pheromone_deposits += int(info.get("pheromone_deposit_events", 0))
+                source_respawns = int(info.get("food_source_respawns", source_respawns))
+                food_units_remaining = int(info.get("food_units_remaining", food_units_remaining))
                 if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
                     first_pickup_step = int(info.get("first_pickup_step", -1))
                 if first_delivery_step < 0 and int(info.get("first_delivery_step", -1)) >= 0:
@@ -152,6 +156,8 @@ def _evaluate(actor, critic, cfg, device, episodes: int, seed: int):
                     "exploration_coverage": float(coverage),
                     "pheromone_usage": float(np.mean(pheromone)) if pheromone else 0.0,
                     "pheromone_deposit_events": float(pheromone_deposits),
+                    "food_source_respawns": float(source_respawns),
+                    "food_units_remaining": float(food_units_remaining),
                     "episode_length": float(length),
                     "first_pickup_step": float(first_pickup_step),
                     "first_delivery_step": float(first_delivery_step),
@@ -278,6 +284,8 @@ def train(args):
             "exploration_coverage",
             "pheromone_usage",
             "pheromone_deposit_events",
+            "food_source_respawns",
+            "food_units_remaining",
             "episode_length",
             "first_pickup_step",
             "first_delivery_step",
@@ -301,6 +309,8 @@ def train(args):
             "exploration_coverage",
             "pheromone_usage",
             "pheromone_deposit_events",
+            "food_source_respawns",
+            "food_units_remaining",
             "episode_length",
             "first_pickup_step",
             "first_delivery_step",
@@ -326,6 +336,7 @@ def train(args):
             "rollout_steps": args.rollout_steps,
             "update_epochs": args.update_epochs,
             "minibatch_size": args.minibatch_size,
+            "food_source_capacity": args.food_source_capacity,
             "domain_randomization_note": "Environment resets already randomize layout/configuration.",
         },
     )
@@ -361,6 +372,8 @@ def train(args):
         episode_food_picked_up = 0
         episode_food_delivered = 0
         episode_pheromone_deposit_events = 0
+        episode_food_source_respawns = 0
+        episode_food_units_remaining = 0
         episode_length = 0
         first_pickup_step = -1
         first_delivery_step = -1
@@ -434,6 +447,8 @@ def train(args):
                 episode_food_picked_up += int(info.get("targets_collected", 0))
                 episode_food_delivered += int(info.get("food_delivered", 0))
                 episode_pheromone_deposit_events += int(info.get("pheromone_deposit_events", 0))
+                episode_food_source_respawns = int(info.get("food_source_respawns", episode_food_source_respawns))
+                episode_food_units_remaining = int(info.get("food_units_remaining", episode_food_units_remaining))
                 episode_length = int(info.get("episode_length", episode_length + 1))
                 if first_pickup_step < 0 and int(info.get("first_pickup_step", -1)) >= 0:
                     first_pickup_step = int(info.get("first_pickup_step", -1))
@@ -464,6 +479,8 @@ def train(args):
                             "exploration_coverage": float(episode_coverage),
                             "pheromone_usage": pheromone_usage,
                             "pheromone_deposit_events": int(episode_pheromone_deposit_events),
+                            "food_source_respawns": int(episode_food_source_respawns),
+                            "food_units_remaining": int(episode_food_units_remaining),
                             "episode_length": int(episode_length),
                             "first_pickup_step": int(first_pickup_step),
                             "first_delivery_step": int(first_delivery_step),
@@ -483,7 +500,7 @@ def train(args):
                         f"[MAPPO] {stage.name} ep={completed_episodes} stage_ep={stage_episode} "
                         f"step={global_step}/{args.total_steps} reward={mean_episode_reward:.2f} "
                         f"picked_up={episode_food_picked_up} delivered={episode_food_delivered} "
-                        f"deposits={episode_pheromone_deposit_events} "
+                        f"deposits={episode_pheromone_deposit_events} respawns={episode_food_source_respawns} "
                         f"first_pickup={first_pickup_step} first_delivery={first_delivery_step} "
                         f"coverage={episode_coverage:.3f} "
                         f"pheromone={pheromone_usage:.3f} len={episode_length} "
@@ -501,6 +518,8 @@ def train(args):
                     episode_food_picked_up = 0
                     episode_food_delivered = 0
                     episode_pheromone_deposit_events = 0
+                    episode_food_source_respawns = 0
+                    episode_food_units_remaining = 0
                     episode_length = 0
                     first_pickup_step = -1
                     first_delivery_step = -1
@@ -604,6 +623,7 @@ def train(args):
                         f"picked_up={eval_metrics['food_picked_up']:.2f} "
                         f"delivered={eval_metrics['food_retrieved']:.2f} "
                         f"deposits={eval_metrics['pheromone_deposit_events']:.2f} "
+                        f"respawns={eval_metrics['food_source_respawns']:.2f} "
                         f"first_pickup={eval_metrics['first_pickup_step']:.1f} "
                         f"first_delivery={eval_metrics['first_delivery_step']:.1f} "
                         f"coverage={eval_metrics['exploration_coverage']:.3f} "
@@ -613,31 +633,32 @@ def train(args):
 
         stage_ckpt_dir = os.path.join(checkpoint_root, stage.name)
         _save_checkpoint(stage_ckpt_dir, actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
-        _save_checkpoint(os.path.join(checkpoint_root, "latest"), actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
+        latest_ckpt_dir = os.path.join(checkpoint_root, "latest")
+        _save_checkpoint(latest_ckpt_dir, actor, critic, actor_opt, critic_opt, cfg, stage.name, global_step, mappo_cfg.hidden_size)
         carried_actor_state = actor.state_dict()
-        write_json(
-            os.path.join(stage_ckpt_dir, "metadata.json"),
-            {
-                "algorithm": "recurrent_mappo_gru",
-                "stage": stage.name,
-                "global_step": global_step,
-                "n_agents": cfg.n_agents,
-                "width": cfg.width,
-                "height": cfg.height,
-                "n_targets": cfg.n_targets,
-                "n_obstacles": cfg.n_obstacles,
-                "max_steps": cfg.max_steps,
-                "active_targets": cfg.active_targets,
-                "target_respawn": bool(cfg.target_respawn),
-                "obs_dim": spaces.obs_dim,
-                "action_dim": spaces.action_dim,
-                "state_dim": spaces.state_dim,
-                "hidden_size": mappo_cfg.hidden_size,
-                "decentralized_execution": True,
-                "curriculum_actor_transfer": True,
-                "critic_reset_reason": "centralized_state_dim_changes_with_stage" if stage_index < len(curriculum) else "",
-            },
-        )
+        metadata = {
+            "algorithm": "recurrent_mappo_gru",
+            "stage": stage.name,
+            "global_step": global_step,
+            "n_agents": cfg.n_agents,
+            "width": cfg.width,
+            "height": cfg.height,
+            "n_targets": cfg.n_targets,
+            "n_obstacles": cfg.n_obstacles,
+            "max_steps": cfg.max_steps,
+            "active_targets": cfg.active_targets,
+            "target_respawn": bool(cfg.target_respawn),
+            "food_source_capacity": int(cfg.food_source_capacity),
+            "obs_dim": spaces.obs_dim,
+            "action_dim": spaces.action_dim,
+            "state_dim": spaces.state_dim,
+            "hidden_size": mappo_cfg.hidden_size,
+            "decentralized_execution": True,
+            "curriculum_actor_transfer": True,
+            "critic_reset_reason": "centralized_state_dim_changes_with_stage" if stage_index < len(curriculum) else "",
+        }
+        write_json(os.path.join(stage_ckpt_dir, "metadata.json"), metadata)
+        write_json(os.path.join(latest_ckpt_dir, "metadata.json"), metadata)
         stage_elapsed = time.time() - stage_start_time
         print(
             f"[MAPPO] Completed {stage.name} | "

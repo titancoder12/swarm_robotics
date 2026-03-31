@@ -198,7 +198,7 @@ def add_env_config_args(parser) -> None:
     """Add shared environment override flags to a CLI parser."""
     parser.add_argument("--folder-name", type=str, default="", help="Preferred enclosing output/checkpoint folder name.")
     parser.add_argument("--filename", type=str, default="")
-    parser.add_argument("--n-targets", type=int, default=4)
+    parser.add_argument("--n-targets", type=int, default=3)
     parser.add_argument("--n-obstacles", type=int, default=6)
     parser.add_argument("--max-steps-per-episode", type=int, default=600)
     parser.add_argument("--dynamics-mode", choices=["tank", "hover", "mixed"], default="tank")
@@ -223,18 +223,19 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--eval-steps", type=int, default=600)
-    parser.add_argument("--active-targets", type=int, default=4)
+    parser.add_argument("--active-targets", type=int, default=3)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--food-source-capacity", type=int, default=4)
 
 
 def make_swarm_config(args) -> SwarmConfig:
     """Build a SwarmConfig from parsed CLI args without changing defaults elsewhere."""
     pheromone_enabled = bool(getattr(args, "use_pheromone", True)) and not getattr(args, "pheromone_disabled", False)
     target_respawn = bool(getattr(args, "target_respawn", False))
-    active_targets = max(1, int(getattr(args, "active_targets", getattr(args, "n_targets", 4))))
+    active_targets = max(1, int(getattr(args, "active_targets", getattr(args, "n_targets", 3))))
     return SwarmConfig(
         n_agents=getattr(args, "n_agents", 6),
-        n_targets=getattr(args, "n_targets", 4),
+        n_targets=getattr(args, "n_targets", 3),
         n_obstacles=getattr(args, "n_obstacles", 6),
         max_steps=getattr(args, "max_steps_per_episode", 600),
         dynamics_mode=getattr(args, "dynamics_mode", "tank"),
@@ -261,6 +262,7 @@ def make_swarm_config(args) -> SwarmConfig:
         pheromone_follow_min_gradient=getattr(args, "pheromone_follow_min_gradient", 0.05),
         active_targets=active_targets,
         target_respawn=target_respawn,
+        food_source_capacity=max(1, int(getattr(args, "food_source_capacity", 4))),
     )
 
 

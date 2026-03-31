@@ -71,20 +71,31 @@ curriculum. The intended behavior is:
 
 - explore to discover a target
 - pick it up
+- visibly switch into a carrying-food state
 - return to the nest
 - deposit pheromone on the successful return route
+- complete one delivery by reaching the nest while carrying
 - let later agents exploit that trail
+
+The current default task settings now make that loop more explicit:
+
+- there are `3` food sources in play
+- each source has `4` uses
+- a source loses one use on pickup
+- when a source is exhausted, it respawns somewhere else if target respawn is enabled
+- agents can carry only one food item at a time
+- carrying agents render in a distinct green-highlighted color in demo mode
 
 Main training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_full
 ```
 
 Short smoke test:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_smoke
 ```
 
 Render the trained MAPPO policy:
@@ -93,10 +104,13 @@ Render the trained MAPPO policy:
 python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --max-steps 300
 ```
 
+In demo mode, agents now switch to a distinct carrying-food color after pickup
+and return to the normal agent color after a completed nest delivery.
+
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval --active-targets 3 --food-source-capacity 4
 ```
 
 Pheromone comparison example:

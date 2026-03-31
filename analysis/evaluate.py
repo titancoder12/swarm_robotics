@@ -69,7 +69,7 @@ def run(args):
     args.checkpoint_dir = resolve_repo_path(args.checkpoint_dir)
     os.makedirs(args.output_dir, exist_ok=True)
     args.max_steps_per_episode = int(getattr(args, "eval_steps", getattr(args, "max_steps_per_episode", 600)))
-    args.n_targets = int(getattr(args, "active_targets", getattr(args, "n_targets", 4)))
+    args.n_targets = int(getattr(args, "active_targets", getattr(args, "n_targets", 3)))
     args.target_respawn = True
     cfg = make_swarm_config(args)
     env = SwarmEnv(cfg, headless=bool(args.headless))
@@ -119,6 +119,8 @@ def run(args):
             "new_cells_visited",
             "episode_done_reason",
             "swarm_efficiency",
+            "food_source_respawns",
+            "food_units_remaining",
         ],
     )
     summaries = []
@@ -143,6 +145,8 @@ def run(args):
             episode_length = 0
             collisions = 0
             new_cells_visited = 0
+            food_source_respawns = 0
+            food_units_remaining = 0
             time_to_first_discovery = -1
             done_reason = ""
             prev_rewards = None
@@ -236,6 +240,8 @@ def run(args):
                 episode_length = int(info.get("episode_length", episode_length + 1))
                 collisions += int(info.get("collisions", 0))
                 new_cells_visited += int(info.get("new_cells_visited", 0))
+                food_source_respawns = int(info.get("food_source_respawns", food_source_respawns))
+                food_units_remaining = int(info.get("food_units_remaining", food_units_remaining))
                 if time_to_first_discovery < 0 and int(info.get("targets_collected", 0)) > 0:
                     time_to_first_discovery = episode_length
                 done_reason = str(info.get("episode_done_reason", done_reason))
@@ -279,6 +285,8 @@ def run(args):
                 "new_cells_visited": new_cells_visited,
                 "episode_done_reason": done_reason,
                 "swarm_efficiency": efficiency,
+                "food_source_respawns": food_source_respawns,
+                "food_units_remaining": food_units_remaining,
             }
             logger.log(row)
             summaries.append(row)
@@ -315,6 +323,8 @@ def run(args):
                 "mean_time_to_first_discovery": float(np.mean(valid_discovery_times)) if valid_discovery_times else -1.0,
                 "mean_pheromone_usage": float(np.mean([row["pheromone_usage"] for row in summaries])) if summaries else 0.0,
                 "mean_episode_length": float(np.mean([row["episode_length"] for row in summaries])) if summaries else 0.0,
+                "mean_food_source_respawns": float(np.mean([row["food_source_respawns"] for row in summaries])) if summaries else 0.0,
+                "mean_food_units_remaining": float(np.mean([row["food_units_remaining"] for row in summaries])) if summaries else 0.0,
             },
         },
     )

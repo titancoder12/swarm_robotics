@@ -32,7 +32,7 @@ The centralized state dimension depends on the config:
 ```python
 state_dim = (
     n_agents * 7
-    + max(n_targets, active_targets) * 3
+    + max(n_targets, active_targets) * 4
     + n_obstacles * 4
     + 2
     + 5
@@ -42,14 +42,14 @@ state_dim = (
 With the current defaults:
 
 - `n_agents = 6`
-- `n_targets = 4`
-- `active_targets = 4`
+- `n_targets = 3`
+- `active_targets = 3`
 - `n_obstacles = 6`
 
 the default centralized state size is:
 
 ```text
-6 * 7 + 4 * 3 + 6 * 4 + 2 + 5 = 85
+6 * 7 + 3 * 4 + 6 * 4 + 2 + 5 = 85
 ```
 
 So the default centralized state space is:
@@ -73,6 +73,7 @@ The state vector is concatenated in this order:
    - normalized `x`
    - normalized `y`
    - present flag
+   - normalized remaining-use ratio
 
 3. Obstacle block repeated `n_obstacles` times:
    - normalized `x`

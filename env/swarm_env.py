@@ -101,9 +101,11 @@ class SwarmEnv(ParallelEnv):
         self.agents = self.possible_agents[:]
         self.agent_states: List[AgentState] = []
         self.targets: List[Tuple[float, float]] = []
+        self.target_remaining_uses: List[int] = []
         self.obstacles: List[pygame.Rect] = []
         self.nest_position: Tuple[float, float] = (self.width * 0.5, self.height * 0.5)
         self.food_delivered = 0
+        self.episode_food_source_respawns = 0
         self.coverage_grid = None
         self.covered_cells = 0
         self.total_cover_cells = 1
@@ -185,7 +187,7 @@ class SwarmEnv(ParallelEnv):
         target_slots = max(int(self.cfg.n_targets), int(self.cfg.active_targets))
         return (
             self.cfg.n_agents * 7
-            + target_slots * 3
+            + target_slots * 4
             + self.cfg.n_obstacles * 4
             + 2
             + 5
@@ -220,21 +222,24 @@ class SwarmEnv(ParallelEnv):
             else:
                 parts.append(np.full((7,), -1.0, dtype=np.float32))
 
+        source_capacity = max(float(self.cfg.food_source_capacity), 1.0)
         for idx in range(target_slots):
             if idx < len(self.targets):
                 tx, ty = self.targets[idx]
+                remaining_uses = float(self.target_remaining_uses[idx]) if idx < len(self.target_remaining_uses) else 0.0
                 parts.append(
                     np.array(
                         [
                             np.clip((float(tx) / width) * 2.0 - 1.0, -1.0, 1.0),
                             np.clip((float(ty) / height) * 2.0 - 1.0, -1.0, 1.0),
                             1.0,
+                            np.clip(remaining_uses / source_capacity, 0.0, 1.0),
                         ],
                         dtype=np.float32,
                     )
                 )
             else:
-                parts.append(np.array([-1.0, -1.0, -1.0], dtype=np.float32))
+                parts.append(np.array([-1.0, -1.0, -1.0, -1.0], dtype=np.float32))
 
         for idx in range(self.cfg.n_obstacles):
             if idx < len(self.obstacles):
@@ -305,6 +310,7 @@ class SwarmEnv(ParallelEnv):
         self._spawn_targets()
         self._spawn_agents()
         self.food_delivered = 0
+        self.episode_food_source_respawns = 0
         self.episode_targets_collected = 0
         self.episode_pheromone_deposit_events = 0
         self.first_pickup_step = None
@@ -329,6 +335,9 @@ class SwarmEnv(ParallelEnv):
             "n_targets": len(self.targets),
             "food_delivered": self.food_delivered,
             "exploration_coverage": self._coverage_ratio(),
+            "food_source_respawns": self.episode_food_source_respawns,
+            "food_source_capacity": int(self.cfg.food_source_capacity),
+            "food_units_remaining": int(sum(self.target_remaining_uses)),
         }
         info_dict = {agent: info for agent in self.possible_agents}
         return obs_dict, info_dict
@@ -481,6 +490,10 @@ class SwarmEnv(ParallelEnv):
             "episode_length": self.step_count,
             "failed_agents": len(self.failed_agent_indices),
             "active_targets": len(self.targets),
+            "food_source_respawns": self.episode_food_source_respawns,
+            "food_source_capacity": int(self.cfg.food_source_capacity),
+            "food_units_remaining": int(sum(self.target_remaining_uses)),
+            "food_source_uses_remaining": [int(value) for value in self.target_remaining_uses],
             "episode_done_reason": (
                 "max_steps"
                 if self.truncated
@@ -513,8 +526,17 @@ class SwarmEnv(ParallelEnv):
             pygame.draw.rect(self._screen, (70, 70, 80), rect)
 
         # Targets.
-        for tx, ty in self.targets:
-            pygame.draw.circle(self._screen, (80, 200, 80), (int(tx), int(ty)), int(self.cfg.target_radius))
+        source_capacity = max(int(self.cfg.food_source_capacity), 1)
+        for idx, (tx, ty) in enumerate(self.targets):
+            remaining_uses = self.target_remaining_uses[idx] if idx < len(self.target_remaining_uses) else source_capacity
+            ratio = np.clip(float(remaining_uses) / float(source_capacity), 0.0, 1.0)
+            target_color = (
+                int(70 + 40 * (1.0 - ratio)),
+                int(150 + 70 * ratio),
+                int(70 + 20 * ratio),
+            )
+            pygame.draw.circle(self._screen, target_color, (int(tx), int(ty)), int(self.cfg.target_radius))
+            pygame.draw.circle(self._screen, (30, 30, 30), (int(tx), int(ty)), int(self.cfg.target_radius), 1)
 
         # Nest.
         if self.cfg.nest_enabled:
@@ -528,8 +550,10 @@ class SwarmEnv(ParallelEnv):
             if i in self.failed_agent_indices:
                 body_color = (120, 120, 120)
             else:
-                body_color = (220, 120, 60) if agent.carrying_food else (200, 160, 50)
+                body_color = (70, 220, 140) if agent.carrying_food else (200, 160, 50)
             pygame.draw.circle(self._screen, body_color, (x, y), int(self.cfg.agent_radius))
+            if agent.carrying_food:
+                pygame.draw.circle(self._screen, (240, 255, 200), (x, y), max(2, int(self.cfg.agent_radius // 2)))
             hx = x + int(math.cos(agent.theta) * self.cfg.agent_radius)
             hy = y + int(math.sin(agent.theta) * self.cfg.agent_radius)
             pygame.draw.line(self._screen, (255, 240, 180), (x, y), (hx, hy), 2)
@@ -592,6 +616,7 @@ class SwarmEnv(ParallelEnv):
         """Randomly place targets in non-colliding free space."""
         # Randomly place targets in free space.
         self.targets = []
+        self.target_remaining_uses = []
         self._respawn_targets(target_count=self._target_spawn_count())
 
     def _spawn_nest(self):
@@ -659,6 +684,7 @@ class SwarmEnv(ParallelEnv):
         while len(self.targets) < desired:
             pos = self._sample_free_position(self.cfg.target_radius)
             self.targets.append(pos)
+            self.target_remaining_uses.append(int(self.cfg.food_source_capacity))
             spawned += 1
         return spawned
 
@@ -774,10 +800,15 @@ class SwarmEnv(ParallelEnv):
         """Handle food pickup and optional nest delivery."""
         picked_up = 0
         pickup_reward = 0.0
-        remaining = []
-        for tx, ty in self.targets:
+        remaining_targets = []
+        remaining_uses = []
+        respawns = 0
+        for source_index, (tx, ty) in enumerate(self.targets):
+            uses_left = int(self.target_remaining_uses[source_index]) if source_index < len(self.target_remaining_uses) else int(self.cfg.food_source_capacity)
             collected_by = None
             for i, agent in enumerate(self.agent_states):
+                if agent.carrying_food:
+                    continue
                 if (agent.x - tx) ** 2 + (agent.y - ty) ** 2 <= (self.cfg.target_radius + self.cfg.agent_radius) ** 2:
                     collected_by = i
                     break
@@ -790,11 +821,18 @@ class SwarmEnv(ParallelEnv):
                     rewards[collected_by] += self.cfg.reward_target
                     pickup_reward += float(self.cfg.reward_target)
                 picked_up += 1
+                uses_left -= 1
+                if uses_left > 0:
+                    remaining_targets.append((tx, ty))
+                    remaining_uses.append(uses_left)
             else:
-                remaining.append((tx, ty))
-        self.targets = remaining
+                remaining_targets.append((tx, ty))
+                remaining_uses.append(uses_left)
+        self.targets = remaining_targets
+        self.target_remaining_uses = remaining_uses
         if self.cfg.target_respawn:
-            self._respawn_targets()
+            respawns = self._respawn_targets()
+            self.episode_food_source_respawns += int(respawns)
         delivered, delivery_reward = self._handle_nest_delivery(rewards)
         return picked_up, delivered, pickup_reward, delivery_reward
 

@@ -48,6 +48,21 @@ This is reflected in the default reward ordering and pheromone behavior:
 - pheromone following remains a small supportive signal
 - pheromone deposition is gated so it is tied to carrying-food return behavior by default
 
+The current default delivery mechanic is:
+
+- agents may carry at most one food item at a time
+- pickup sets an explicit carrying-food state
+- reaching the nest while carrying counts as one completed delivery
+- delivery clears the carrying state and returns the agent to its normal render color
+- carrying agents render with a distinct green-highlighted body in demo mode
+
+Food sources are now repeated-use sources instead of immediate single-use pickups:
+
+- default total sources: `3`
+- default source capacity: `4` uses each
+- current semantics decrement capacity on pickup
+- exhausted sources respawn elsewhere when target respawn is enabled
+
 ## Curriculum
 
 The current implementation supports three curriculum modes:
@@ -78,6 +93,7 @@ The current curriculum stages the following environment variables:
 - `max_steps`
 - `active_targets`
 - `target_respawn`
+- `food_source_capacity`
 
 Intended teaching progression:
 
@@ -107,13 +123,13 @@ Important current limitation:
 Single-agent smoke test:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --folder-name mappo_trail_smoke
+python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 6 --total-steps 2400 --rollout-steps 64 --update-epochs 2 --minibatch-size 128 --eval-every 0 --no-plots --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_smoke
 ```
 
 Main trail-learning run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_full
 ```
 
 Resume from a checkpoint:
@@ -131,7 +147,7 @@ python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_trail_fu
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_trail_full/latest --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_trail_full_eval --active-targets 3 --food-source-capacity 4
 ```
 
 ## Checkpoints

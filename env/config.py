@@ -9,7 +9,7 @@ class SwarmConfig:
     width: int = 900
     height: int = 600
     n_agents: int = 6
-    n_targets: int = 4
+    n_targets: int = 3
     n_obstacles: int = 6
     agent_radius: float = 7.0
     target_radius: float = 5.0
@@ -98,8 +98,9 @@ class SwarmConfig:
     # Task
     nest_enabled: bool = True
     require_nest_delivery: bool = True
-    active_targets: int = 4
-    target_respawn: bool = False
+    active_targets: int = 3
+    target_respawn: bool = True
+    food_source_capacity: int = 4
     coverage_cell_size: int = 24
     failed_agent_count: int = 0
     observation_noise_std: float = 0.0

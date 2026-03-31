@@ -26,7 +26,7 @@ CLI-to-config mapping helpers:
 | `width` | `int` | `900` | positive integer | world width, obstacle and target placement, pheromone grid width, render window size |
 | `height` | `int` | `600` | positive integer | world height, placement, pheromone grid height, render window size |
 | `n_agents` | `int` | `6` | non-negative integer | number of agents, `possible_agents`, observation batch shape, number of Q-networks in independent mode |
-| `n_targets` | `int` | `4` | non-negative integer | number of food targets spawned in `reset()` |
+| `n_targets` | `int` | `3` | non-negative integer | number of food sources spawned in `reset()` |
 | `n_obstacles` | `int` | `6` | non-negative integer | number of random rectangular obstacles |
 | `agent_radius` | `float` | `7.0` | positive | collision bounds, render radius, pheromone sampling spacing, target pickup reach, nest delivery reach |
 | `target_radius` | `float` | `5.0` | positive | target render radius and pickup reach |
@@ -82,8 +82,9 @@ CLI-to-config mapping helpers:
 | `pheromone_follow_min_gradient` | `float` | `0.05` | non-negative | minimum forward pheromone gradient for follow shaping |
 | `nest_enabled` | `bool` | `True` | boolean | enables nest spawn, render, and nest-direction observation |
 | `require_nest_delivery` | `bool` | `True` | boolean | if true, food must be carried to the nest for full task completion |
-| `active_targets` | `int` | `4` | positive integer | target count maintained when `target_respawn` is enabled |
-| `target_respawn` | `bool` | `False` | boolean | when true, targets are respawned back up to `active_targets` |
+| `active_targets` | `int` | `3` | positive integer | food-source count maintained when `target_respawn` is enabled |
+| `target_respawn` | `bool` | `True` | boolean | when true, exhausted food sources are respawned back up to `active_targets` |
+| `food_source_capacity` | `int` | `4` | positive integer | number of pickup uses each food source has before it respawns |
 | `coverage_cell_size` | `int` | `24` | positive integer | exploration-grid resolution |
 | `failed_agent_count` | `int` | `0` | non-negative integer | number of agents randomly disabled per episode |
 | `observation_noise_std` | `float` | `0.0` | non-negative | std of additive Gaussian observation noise |
@@ -174,6 +175,7 @@ The shared CLI config layer is implemented in [train/experiment_utils.py](../tra
 - `--pheromone-deposit-requires-nest-progress` / `--no-pheromone-deposit-requires-nest-progress`
 - `--active-targets`
 - `--target-respawn` / `--no-target-respawn`
+- `--food-source-capacity`
 
 ### `make_swarm_config(args)`
 
