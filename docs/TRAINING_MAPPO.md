@@ -79,13 +79,14 @@ The default `full` schedule is:
 1. `stage1a_single_agent_miniscule`
 2. `stage1b_single_agent_tiny`
 3. `stage1c_single_agent_small`
-4. `stage1d_single_agent_guaranteed_homing`
-5. `stage1e_single_agent_delivery_bridge`
-6. `stage1f_single_agent_delivery_obstacles`
-7. `stage2a_small_swarm_medium`
-8. `stage2b_small_swarm_large`
-9. `stage3a_full_swarm_large`
-10. `stage3b_full_swarm_final`
+4. `stage1d_single_agent_carry_bootstrap`
+5. `stage1e_single_agent_guaranteed_homing`
+6. `stage1f_single_agent_delivery_bridge`
+7. `stage1g_single_agent_delivery_obstacles`
+8. `stage2a_small_swarm_medium`
+9. `stage2b_small_swarm_large`
+10. `stage3a_full_swarm_large`
+11. `stage3b_full_swarm_final`
 
 The current curriculum stages the following environment variables:
 
@@ -107,9 +108,10 @@ The current curriculum stages the following environment variables:
 Intended teaching progression:
 
 - Stage 1A-1C: one agent, increasingly larger empty worlds with one target
-- Stage 1D: one agent, one target, no obstacles, controlled target distance from the nest, and agent spawn near the target; this is now the guaranteed post-pickup homing stage
-- Stage 1E: one agent, one target, one obstacle, controlled target distance, and near-target spawn; this is now the mild clutter bridge stage for carried return instead of the full obstacle challenge
-- Stage 1F: one agent, one target, two obstacles, no respawn; this is the first true single-agent obstacle-return stage
+- Stage 1D: one agent starts already carrying food and learns pure homing to the nest before pickup is reintroduced
+- Stage 1E: one agent, one target, no obstacles, controlled target distance from the nest, and near-target spawn; this is the first normal pickup-plus-delivery homing stage after the bootstrap lesson
+- Stage 1F: one agent, one target, one obstacle, controlled target distance, and near-target spawn; this is the mild clutter bridge stage for carried return
+- Stage 1G: one agent, one target, two obstacles, no respawn; this is the first true single-agent obstacle-return stage
 - Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet, with pheromone still disabled so early swarm delivery is learned before trail exploitation returns
 - Stage 2B: small swarm, large but not final environment, now with respawn enabled
 - Stage 3A: full swarm, same large but not final environment
@@ -126,8 +128,8 @@ fine-tuning time.
 
 `--total-steps` now applies to the curriculum slice you actually selected. For
 example, `--curriculum stage1 --total-steps 32000` distributes that full
-`32000` budget across the six single-agent stages instead of first splitting
-it across all ten full-schedule stages and then discarding the unused ones.
+`32000` budget across the seven single-agent stages instead of first splitting
+it across all eleven full-schedule stages and then discarding the unused ones.
 
 Control/reward staging now also changes with difficulty:
 
@@ -144,6 +146,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 33 then focuses on the sampled-to-greedy gap in those stages: return-critical stages now use more aggressive entropy decay, greedy checkpoint scoring weights completed delivery and delivery conversion much more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
 - prompt 35 adds explicit carrying-phase anti-dithering pressure: while carrying, exploration reward stays suppressed, low nest-progress and low displacement now incur small penalties, and episode/eval logs now expose carrying-stall / low-progress / low-displacement signals directly
 - prompt 36 adds sustained carrying-progress shaping and pushes the return-critical stages to become more deterministic: the guaranteed-homing / bridge / obstacle-return stages now use even lower entropy schedules, slightly larger stage budgets for the bridge and obstacle-return lessons, and stronger delivery/conversion promotion targets
+- prompt 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -155,9 +158,9 @@ Prompt 29 also changes entropy handling:
 
 Mode semantics:
 
-- `stage1` runs all six single-agent stages
-- `stage1_to_2` runs the six single-agent stages plus the two small-swarm stages
-- `full` runs all ten stages
+- `stage1` runs all seven single-agent stages
+- `stage1_to_2` runs the seven single-agent stages plus the two small-swarm stages
+- `full` runs all eleven stages
 
 Actor and critic weights are now both carried across stages.
 
@@ -177,6 +180,13 @@ Stage progression is now greedy-eval-aware:
 - prompt 34 then extends that discipline to the later stages: `--total-steps` is treated as a real hard global budget, promotion targets now include minimum delivery conversion, and later-stage greedy scoring penalizes pickup-rich / delivery-zero behavior instead of letting it appear successful
 - prompt 35 extends the visibility side as well: the environment now records carrying-phase stall events, carrying low-progress fraction, carrying low-displacement fraction, and carrying-penalty totals so carrying-to-delivery failure is easier to diagnose than before
 - prompt 36 also adds a short-horizon persistent homing signal: while carrying, repeated meaningful nest-distance reduction now earns a separate sustained-progress bonus instead of relying only on one-step signed nest progress
+- prompt 37 adds a more explicit homing lesson before normal pickup-plus-clutter return. The `stage1d_single_agent_carry_bootstrap` stage can repeat even when the CLI repeat limit is low, and the trainer now carries `start_carrying_food` through stage config and checkpoint metadata
+
+Prompt 37 verification was the first short smoke run to produce nonzero greedy delivery in the dedicated homing stack:
+
+- `stage1d_single_agent_carry_bootstrap` reached nonzero greedy delivery in `runs/mappo_prompt37_verify_fix_20260330_225802/eval_metrics.csv`
+- `stage1e_single_agent_guaranteed_homing` also reached nonzero greedy pickup and delivery and promoted in that run
+- `stage1f_single_agent_delivery_bridge` still collapsed back to zero greedy delivery, so the next bottleneck is now maintaining greedy delivery once mild clutter is reintroduced
 
 ## Example Commands
 

@@ -38,6 +38,8 @@ class CurriculumStage:
     target_nest_distance_min: float | None = None
     target_nest_distance_max: float | None = None
     agent_spawn_near_target_radius: float | None = None
+    start_carrying_food: bool = False
+    repeat_limit_override: int | None = None
     entropy_start: float = 0.01
     entropy_end: float = 0.001
 
@@ -178,7 +180,48 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
     )
     stages.append(
         CurriculumStage(
-            name="stage1d_single_agent_guaranteed_homing",
+            name="stage1d_single_agent_carry_bootstrap",
+            n_agents=1,
+            total_steps=0,
+            budget_weight=2,
+            width=120,
+            height=100,
+            n_targets=1,
+            n_obstacles=0,
+            max_steps=110,
+            active_targets=0,
+            target_respawn=False,
+            action_repeat_steps=1,
+            reward_new_cell=0.0,
+            reward_step=-0.004,
+            reward_collision=-0.40,
+            reward_pickup=0.0,
+            reward_nest_approach=0.60,
+            reward_nest_approach_sustained=0.18,
+            reward_nest_delivery=60.0,
+            reward_undelivered_food=-24.0,
+            reward_food_approach=0.0,
+            reward_food_detected=0.0,
+            reward_pheromone_follow=0.0,
+            carrying_reward_new_cell_scale=0.0,
+            carrying_no_progress_penalty=-0.08,
+            carrying_low_displacement_penalty=-0.04,
+            carrying_progress_epsilon=1.0,
+            carrying_low_displacement_threshold=2.0,
+            carrying_stall_trigger_steps=2,
+            pheromone_enabled=False,
+            target_nest_distance_min=26.0,
+            target_nest_distance_max=34.0,
+            agent_spawn_near_target_radius=10.0,
+            start_carrying_food=True,
+            repeat_limit_override=2,
+            entropy_start=0.0015,
+            entropy_end=0.0001,
+        )
+    )
+    stages.append(
+        CurriculumStage(
+            name="stage1e_single_agent_guaranteed_homing",
             n_agents=1,
             total_steps=0,
             budget_weight=2,
@@ -194,12 +237,12 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             reward_step=-0.004,
             reward_collision=-0.40,
             reward_pickup=7.0,
-            reward_nest_approach=0.44,
-            reward_nest_approach_sustained=0.12,
+            reward_nest_approach=0.50,
+            reward_nest_approach_sustained=0.14,
             reward_nest_delivery=56.0,
-            reward_undelivered_food=-18.0,
-            reward_food_approach=0.03,
-            reward_food_detected=0.18,
+            reward_undelivered_food=-20.0,
+            reward_food_approach=0.02,
+            reward_food_detected=0.14,
             reward_pheromone_follow=0.0,
             carrying_reward_new_cell_scale=0.0,
             carrying_no_progress_penalty=-0.06,
@@ -211,13 +254,14 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=34.0,
             target_nest_distance_max=46.0,
             agent_spawn_near_target_radius=18.0,
-            entropy_start=0.004,
+            repeat_limit_override=2,
+            entropy_start=0.003,
             entropy_end=0.0001,
         )
     )
     stages.append(
         CurriculumStage(
-            name="stage1e_single_agent_delivery_bridge",
+            name="stage1f_single_agent_delivery_bridge",
             n_agents=1,
             total_steps=0,
             budget_weight=3,
@@ -250,13 +294,14 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=38.0,
             target_nest_distance_max=54.0,
             agent_spawn_near_target_radius=22.0,
+            repeat_limit_override=2,
             entropy_start=0.003,
             entropy_end=0.0001,
         )
     )
     stages.append(
         CurriculumStage(
-            name="stage1f_single_agent_delivery_obstacles",
+            name="stage1g_single_agent_delivery_obstacles",
             n_agents=1,
             total_steps=0,
             budget_weight=3,
@@ -289,6 +334,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=42.0,
             target_nest_distance_max=60.0,
             agent_spawn_near_target_radius=26.0,
+            repeat_limit_override=2,
             entropy_start=0.002,
             entropy_end=0.0001,
         )
@@ -439,9 +485,9 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
 def select_curriculum(stages: list[CurriculumStage], mode: str, total_steps: int) -> list[CurriculumStage]:
     """Select a curriculum slice and assign the requested total budget across that slice."""
     if mode == "stage1":
-        selected = stages[:6]
+        selected = stages[:7]
     elif mode == "stage1_to_2":
-        selected = stages[:8]
+        selected = stages[:9]
     elif mode == "full":
         selected = stages
     else:

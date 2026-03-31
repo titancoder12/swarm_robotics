@@ -145,6 +145,7 @@ def _build_env(args, stage):
         cfg.target_nest_distance_max = float(stage.target_nest_distance_max)
     if stage.agent_spawn_near_target_radius is not None:
         cfg.agent_spawn_near_target_radius = float(stage.agent_spawn_near_target_radius)
+    cfg.start_carrying_food = bool(stage.start_carrying_food)
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
 
@@ -174,11 +175,13 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
-    if stage.name == "stage1d_single_agent_guaranteed_homing":
+    if stage.name == "stage1d_single_agent_carry_bootstrap":
+        return StagePromotionTarget(min_pickups=0.0, min_deliveries=1.0, min_conversion=0.50)
+    if stage.name == "stage1e_single_agent_guaranteed_homing":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
-    if stage.name == "stage1e_single_agent_delivery_bridge":
+    if stage.name == "stage1f_single_agent_delivery_bridge":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.20)
-    if stage.name == "stage1f_single_agent_delivery_obstacles":
+    if stage.name == "stage1g_single_agent_delivery_obstacles":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.10)
     if stage.name == "stage2a_small_swarm_medium":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
@@ -209,8 +212,10 @@ def _meets_stage_promotion(stage, eval_metrics) -> bool:
 def _is_return_critical_stage(stage) -> bool:
     return stage.name in {
         "stage1d_single_agent_guaranteed_homing",
-        "stage1e_single_agent_delivery_bridge",
-        "stage1f_single_agent_delivery_obstacles",
+        "stage1d_single_agent_carry_bootstrap",
+        "stage1e_single_agent_guaranteed_homing",
+        "stage1f_single_agent_delivery_bridge",
+        "stage1g_single_agent_delivery_obstacles",
         "stage2a_small_swarm_medium",
         "stage2b_small_swarm_large",
         "stage3a_full_swarm_large",
@@ -998,6 +1003,8 @@ def train(args):
                 "sampled_greedy_pickup_gap": float(sampled_greedy_pickup_gap),
                 "sampled_greedy_delivery_gap": float(sampled_greedy_delivery_gap),
                 "hard_budget_exhausted": bool(hard_budget_exhausted),
+                "start_carrying_food": bool(cfg.start_carrying_food),
+                "effective_stage_repeat_limit": int(max(args.stage_repeat_limit, stage.repeat_limit_override or 0)),
                 "stage_end_eval": stage_end_eval,
                 "recommended_demo_checkpoint": "best_greedy_eval",
             }
@@ -1068,7 +1075,8 @@ def train(args):
                 f"elapsed={_format_duration(stage_elapsed)}"
             )
             env.close()
-            if hard_budget_exhausted or stage_promoted or stage_attempt > args.stage_repeat_limit:
+            effective_repeat_limit = max(args.stage_repeat_limit, stage.repeat_limit_override or 0)
+            if hard_budget_exhausted or stage_promoted or stage_attempt > effective_repeat_limit:
                 if not stage_promoted:
                     print(
                         f"[MAPPO] Advancing despite unmet stage target after {stage_attempt} attempt(s): "
@@ -1077,7 +1085,8 @@ def train(args):
                         f"conversion>={promotion_target.min_conversion:.2f}, "
                         f"got pick_up={greedy_pickups:.2f}, "
                         f"delivery={greedy_deliveries:.2f}, "
-                        f"conversion={greedy_delivery_conversion:.2f}"
+                        f"conversion={greedy_delivery_conversion:.2f} "
+                        f"(repeat_limit={effective_repeat_limit})"
                     )
                 if hard_budget_exhausted:
                     print(f"[MAPPO] Stopping because hard global step cap {args.total_steps} was reached.")
@@ -1091,7 +1100,8 @@ def train(args):
                 f"delivery={greedy_deliveries:.2f}, "
                 f"conversion={greedy_delivery_conversion:.2f}, "
                 f"gap_pickup={sampled_greedy_pickup_gap:.2f}, "
-                f"gap_delivery={sampled_greedy_delivery_gap:.2f}"
+                f"gap_delivery={sampled_greedy_delivery_gap:.2f}, "
+                f"repeat_limit={effective_repeat_limit}"
             )
 
         if hard_budget_exhausted or global_step >= args.total_steps:

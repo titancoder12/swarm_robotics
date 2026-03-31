@@ -48,7 +48,7 @@ class TankKinematicsDriver(DynamicsDriver):
 
         nx = state.x + math.cos(theta) * v * dt
         ny = state.y + math.sin(theta) * v * dt
-        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=0.0)
+        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=0.0, carrying_food=state.carrying_food)
 
 
 class HovercraftDriver(DynamicsDriver):
@@ -76,7 +76,7 @@ class HovercraftDriver(DynamicsDriver):
 
         nx = state.x + vel[0] * dt
         ny = state.y + vel[1] * dt
-        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=v_lat)
+        return AgentState(nx, ny, theta, v=v, omega=omega, v_lat=v_lat, carrying_food=state.carrying_food)
 
 
 class SwarmEnv(ParallelEnv):
@@ -319,6 +319,7 @@ class SwarmEnv(ParallelEnv):
         self._spawn_nest()
         self._spawn_targets()
         self._spawn_agents()
+        self._bootstrap_carrying_start()
         self.food_delivered = 0
         self.episode_food_source_respawns = 0
         self.episode_targets_collected = 0
@@ -698,7 +699,16 @@ class SwarmEnv(ParallelEnv):
             else:
                 pos = self._sample_free_position(self.cfg.agent_radius)
             theta = self.rng.uniform(-math.pi, math.pi)
-            self.agent_states.append(AgentState(pos[0], pos[1], theta))
+            self.agent_states.append(AgentState(pos[0], pos[1], theta, carrying_food=bool(self.cfg.start_carrying_food)))
+
+    def _bootstrap_carrying_start(self):
+        """Optionally start agents already carrying food for homing-only lessons."""
+        if not bool(self.cfg.start_carrying_food):
+            return
+        if self.targets:
+            self.targets = self.targets[1:]
+        if self.target_remaining_uses:
+            self.target_remaining_uses = self.target_remaining_uses[1:]
 
     def _spawn_targets(self):
         """Randomly place targets in non-colliding free space."""

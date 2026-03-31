@@ -98,6 +98,22 @@ Recommended demo checkpoint after training:
 python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_600k/best_greedy_eval --max-steps 300
 ```
 
+Current single-agent return stack:
+
+- `stage1a_single_agent_miniscule`
+- `stage1b_single_agent_tiny`
+- `stage1c_single_agent_small`
+- `stage1d_single_agent_carry_bootstrap`
+  - the agent starts already carrying food and learns pure homing first
+- `stage1e_single_agent_guaranteed_homing`
+  - the first normal pickup-plus-delivery homing stage
+- `stage1f_single_agent_delivery_bridge`
+  - the first mild clutter return stage
+- `stage1g_single_agent_delivery_obstacles`
+  - the first true single-agent obstacle-return stage
+
+Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
+
 What the main arguments mean:
 
 - `--backend mappo`
