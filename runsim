@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --max-steps 0 \
+  --render-scale 0.75 \
+  --seed-list 2,4,6,20,25,32,33,36,41
