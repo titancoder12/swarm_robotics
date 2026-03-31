@@ -256,6 +256,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--active-targets", type=int, default=3)
     parser.add_argument("--target-respawn", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--food-source-capacity", type=int, default=4)
+    parser.add_argument("--render-scale", type=float, default=1.0)
 
 
 def make_swarm_config(args) -> SwarmConfig:
@@ -332,6 +333,7 @@ def make_swarm_config(args) -> SwarmConfig:
         active_targets=active_targets,
         target_respawn=target_respawn,
         food_source_capacity=max(1, int(getattr(args, "food_source_capacity", 4))),
+        render_scale=max(0.1, float(getattr(args, "render_scale", 1.0))),
     )
 
 

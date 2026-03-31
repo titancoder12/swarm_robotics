@@ -605,6 +605,7 @@ So the learned behavior should be: “find targets quickly without crashing.”
   - lidar rays
   - pheromone settings
   - non-carrying exploration controls, including env-side random exploration overrides
+  - render scaling via `render_scale`
   - dynamics mode (`tank`, `hover`, `mixed`)
 
 ### Want deeper details?

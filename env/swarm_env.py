@@ -172,6 +172,7 @@ class SwarmEnv(ParallelEnv):
 
         self._pygame_inited = False
         self._screen = None
+        self._world_surface = None
         self._clock = None
 
         self._single_obs_dim = self._compute_single_obs_dim()
@@ -679,16 +680,17 @@ class SwarmEnv(ParallelEnv):
         if self.headless:
             return
         self._ensure_pygame()
+        target = self._world_surface
 
         # Background.
-        self._screen.fill((20, 20, 26))
+        target.fill((20, 20, 26))
 
         if self.cfg.pheromone_enabled and self.cfg.render_pheromone:
             self._draw_pheromone()
 
         # Obstacles.
         for rect in self.obstacles:
-            pygame.draw.rect(self._screen, (70, 70, 80), rect)
+            pygame.draw.rect(target, (70, 70, 80), rect)
 
         # Targets.
         source_capacity = max(int(self.cfg.food_source_capacity), 1)
@@ -706,8 +708,8 @@ class SwarmEnv(ParallelEnv):
         # Nest.
         if self.cfg.nest_enabled:
             nx, ny = self.nest_position
-            pygame.draw.circle(self._screen, (80, 140, 220), (int(nx), int(ny)), int(self.cfg.nest_radius), 3)
-            pygame.draw.circle(self._screen, (50, 80, 140), (int(nx), int(ny)), int(self.cfg.nest_radius // 2))
+            pygame.draw.circle(target, (80, 140, 220), (int(nx), int(ny)), int(self.cfg.nest_radius), 3)
+            pygame.draw.circle(target, (50, 80, 140), (int(nx), int(ny)), int(self.cfg.nest_radius // 2))
 
         # Agents (body + heading line).
         for i, agent in enumerate(self.agent_states):
@@ -716,35 +718,38 @@ class SwarmEnv(ParallelEnv):
                 body_color = (120, 120, 120)
             else:
                 body_color = (70, 220, 140) if agent.carrying_food else (200, 160, 50)
-            pygame.draw.circle(self._screen, body_color, (x, y), int(self.cfg.agent_radius))
+            pygame.draw.circle(target, body_color, (x, y), int(self.cfg.agent_radius))
             if agent.carrying_food:
-                pygame.draw.circle(self._screen, (235, 255, 180), (x, y), int(self.cfg.agent_radius) + 3, 2)
-                pygame.draw.circle(self._screen, (240, 255, 200), (x, y), max(2, int(self.cfg.agent_radius // 2)))
+                pygame.draw.circle(target, (235, 255, 180), (x, y), int(self.cfg.agent_radius) + 3, 2)
+                pygame.draw.circle(target, (240, 255, 200), (x, y), max(2, int(self.cfg.agent_radius // 2)))
                 carried_y = y - int(self.cfg.agent_radius) - 5
-                pygame.draw.circle(self._screen, (255, 220, 90), (x, carried_y), max(3, int(self.cfg.target_radius)))
-                pygame.draw.circle(self._screen, (60, 50, 20), (x, carried_y), max(3, int(self.cfg.target_radius)), 1)
+                pygame.draw.circle(target, (255, 220, 90), (x, carried_y), max(3, int(self.cfg.target_radius)))
+                pygame.draw.circle(target, (60, 50, 20), (x, carried_y), max(3, int(self.cfg.target_radius)), 1)
             hx = x + int(math.cos(agent.theta) * self.cfg.agent_radius)
             hy = y + int(math.sin(agent.theta) * self.cfg.agent_radius)
-            pygame.draw.line(self._screen, (255, 240, 180), (x, y), (hx, hy), 2)
+            pygame.draw.line(target, (255, 240, 180), (x, y), (hx, hy), 2)
 
         # Draw food sources after agents so they remain visible even when an
         # agent is standing on top of the source. Also add simple "remaining
         # uses" pips so repeated-use sources are obvious in demo.
         for tx, ty, remaining_uses, target_color in target_draw_data:
             center = (int(tx), int(ty))
-            pygame.draw.circle(self._screen, target_color, center, int(self.cfg.target_radius))
-            pygame.draw.circle(self._screen, (230, 245, 210), center, int(self.cfg.target_radius) + 2, 1)
-            pygame.draw.circle(self._screen, (30, 30, 30), center, int(self.cfg.target_radius), 1)
+            pygame.draw.circle(target, target_color, center, int(self.cfg.target_radius))
+            pygame.draw.circle(target, (230, 245, 210), center, int(self.cfg.target_radius) + 2, 1)
+            pygame.draw.circle(target, (30, 30, 30), center, int(self.cfg.target_radius), 1)
             pip_radius = 2
             pip_spacing = 5
             start_x = int(tx) - ((remaining_uses - 1) * pip_spacing) // 2
             pip_y = int(ty) - int(self.cfg.target_radius) - 6
             for pip_idx in range(max(0, remaining_uses)):
                 px = start_x + pip_idx * pip_spacing
-                pygame.draw.circle(self._screen, (255, 240, 150), (px, pip_y), pip_radius)
-                pygame.draw.circle(self._screen, (50, 40, 20), (px, pip_y), pip_radius, 1)
+                pygame.draw.circle(target, (255, 240, 150), (px, pip_y), pip_radius)
+                pygame.draw.circle(target, (50, 40, 20), (px, pip_y), pip_radius, 1)
 
         # Present frame and limit FPS.
+        if target is not self._screen:
+            scaled = pygame.transform.smoothscale(target, self._screen.get_size())
+            self._screen.blit(scaled, (0, 0))
         pygame.display.flip()
         self._clock.tick(fps)
 
@@ -766,7 +771,13 @@ class SwarmEnv(ParallelEnv):
         # Lazy-init PyGame so headless training doesn't open a window.
         if not self._pygame_inited:
             pygame.init()
-            self._screen = pygame.display.set_mode((self.width, self.height))
+            render_scale = max(float(getattr(self.cfg, "render_scale", 1.0)), 0.1)
+            display_size = (
+                max(1, int(round(self.width * render_scale))),
+                max(1, int(round(self.height * render_scale))),
+            )
+            self._screen = pygame.display.set_mode(display_size)
+            self._world_surface = pygame.Surface((self.width, self.height))
             pygame.display.set_caption("Swarm RL")
             self._clock = pygame.time.Clock()
             self._pygame_inited = True

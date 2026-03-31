@@ -317,3 +317,7 @@ The deployment-facing actor loader is in
 ## Prompt 47
 
 Prompt 47 adds stage-configurable extra action randomness for non-carrying agents while they are exploring. The implementation is env-side, so it affects both training and demo consistently, prefers movement-producing exploration actions, and is enabled in the later pheromone-on swarm stages rather than during carrying-food return behavior.
+
+## Prompt 48
+
+Prompt 48 fixes large-window clipping properly by separating world rendering from display size. The env now renders into an off-screen world surface at full simulation resolution and scales that surface into the PyGame window using `render_scale`, which is now exposed through the shared CLI config path.

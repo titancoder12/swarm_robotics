@@ -932,3 +932,9 @@ A: It means the run hit the global `--total-steps` ceiling before fully satisfyi
 
 ## Q: Why can the bottom border of the PyGame environment appear outside the visible window?
 A: The env is rendered 1:1 into a PyGame window created at exactly `(self.width, self.height)` in `env/swarm_env.py`. There is no extra padding, camera fit, or scaling margin. That means if the configured env size is large relative to the visible desktop area, the OS window frame/title bar can make the usable content area feel slightly clipped, especially at the bottom. In other words, the env is not drawing past its own surface; the window is just being created at the full world size with no viewport margin or fit-to-screen logic.
+
+## Q: What is the proper fix for the PyGame window clipping at the bottom?
+A: The proper fix is to add real render scaling instead of creating the window at raw world size. The clean version is: render the world into an off-screen surface at `(width, height)`, compute a display size from `render_scale` (or fit-to-screen bounds), create the PyGame window at that display size, and blit a scaled copy of the world surface into the window each frame. That keeps physics and world coordinates unchanged while making the visible viewport fit comfortably on screen. There is already a `render_scale` field in `env/config.py`, but it is not currently used by `env/swarm_env.py`.
+
+## Q: What changed in prompt 48 for PyGame rendering?
+A: Prompt 48 implemented the proper scaling path. `env/swarm_env.py` now renders the world into an off-screen world surface at full simulation resolution, creates the actual PyGame window at a scaled size derived from `render_scale`, and smooth-scales the world surface into that window each frame. `train/experiment_utils.py` now exposes `--render-scale` so demo and other scripts can request a smaller display window without changing the world size or physics.
