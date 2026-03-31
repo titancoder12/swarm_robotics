@@ -6,5 +6,5 @@ python train/demo.py \
   --backend mappo \
   --checkpoint-dir checkpoints/mappo_g/latest \
   --max-steps 0 \
-  --render-scale 0.75 \
+  --render-scale 0.90 \
   --seed-list 2,4,6,20,25,32,33,36,41
