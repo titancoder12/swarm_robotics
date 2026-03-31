@@ -738,10 +738,12 @@ class SwarmEnv(ParallelEnv):
         # Randomly generate rectangular obstacles without overlaps.
         self.obstacles = []
         attempts = 0
+        min_size = int(max(20, getattr(self.cfg, "obstacle_min_size", 40)))
+        max_size = int(max(min_size + 1, getattr(self.cfg, "obstacle_max_size", 120)))
         while len(self.obstacles) < self.cfg.n_obstacles and attempts < 200:
             attempts += 1
-            w = self.rng.integers(60, 120)
-            h = self.rng.integers(40, 120)
+            w = self.rng.integers(min_size, max_size)
+            h = self.rng.integers(min_size, max_size)
             x = self.rng.integers(30, self.width - 30 - w)
             y = self.rng.integers(30, self.height - 30 - h)
             rect = pygame.Rect(int(x), int(y), int(w), int(h))
@@ -816,6 +818,7 @@ class SwarmEnv(ParallelEnv):
         """Sample a target position, optionally constrained by distance from the nest."""
         min_dist = float(max(0.0, self.cfg.target_nest_distance_min))
         max_dist = float(max(0.0, self.cfg.target_nest_distance_max))
+        corridor_clearance = float(max(0.0, getattr(self.cfg, "target_nest_corridor_clearance", 0.0)))
         if not self.cfg.nest_enabled or max_dist <= 0.0 or max_dist < min_dist:
             return self._sample_free_position(self.cfg.target_radius)
         nx, ny = self.nest_position
@@ -824,8 +827,23 @@ class SwarmEnv(ParallelEnv):
             dist = math.hypot(float(pos[0]) - float(nx), float(pos[1]) - float(ny))
             if dist < min_dist or dist > max_dist:
                 continue
+            if corridor_clearance > 0.0 and self._path_blocked_by_obstacles((nx, ny), pos, corridor_clearance):
+                continue
             return pos
         return self._sample_free_position(self.cfg.target_radius)
+
+    def _path_blocked_by_obstacles(self, start: tuple[float, float], end: tuple[float, float], clearance: float) -> bool:
+        """Return True if any obstacle intersects the widened straight-line corridor."""
+        if clearance <= 0.0 or not self.obstacles:
+            return False
+        x1, y1 = int(start[0]), int(start[1])
+        x2, y2 = int(end[0]), int(end[1])
+        inflate = int(max(1.0, math.ceil(clearance)))
+        for obstacle in self.obstacles:
+            corridor_rect = obstacle.inflate(inflate * 2, inflate * 2)
+            if corridor_rect.clipline(x1, y1, x2, y2):
+                return True
+        return False
 
     def _handle_collisions(self, proposed: AgentState) -> bool:
         """Return True if the proposed state collides with bounds/obstacles."""

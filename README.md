@@ -112,6 +112,13 @@ Current single-agent return stack:
 - `stage1g_single_agent_delivery_obstacles`
   - the first true single-agent obstacle-return stage
 
+Prompt 38 makes the bridge stage more continuity-preserving instead of letting it become an abrupt collapse point:
+
+- `stage1f_single_agent_delivery_bridge` now uses a smaller arena jump from `stage1e`
+- its single obstacle is intentionally smaller than the later obstacle-return stage
+- target placement now tries to preserve a clear return corridor from nest to target in the bridge stage
+- the bridge still contains clutter, but it is meant to keep greedy homing alive rather than replace it with a new task
+
 Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
 What the main arguments mean:

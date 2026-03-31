@@ -104,6 +104,10 @@ def _build_env(args, stage):
     cfg = make_swarm_config(args_copy)
     cfg.width = int(stage.width)
     cfg.height = int(stage.height)
+    if stage.obstacle_min_size is not None:
+        cfg.obstacle_min_size = int(stage.obstacle_min_size)
+    if stage.obstacle_max_size is not None:
+        cfg.obstacle_max_size = int(stage.obstacle_max_size)
     if stage.reward_step is not None:
         cfg.reward_step = float(stage.reward_step)
     if stage.reward_collision is not None:
@@ -145,6 +149,8 @@ def _build_env(args, stage):
         cfg.target_nest_distance_max = float(stage.target_nest_distance_max)
     if stage.agent_spawn_near_target_radius is not None:
         cfg.agent_spawn_near_target_radius = float(stage.agent_spawn_near_target_radius)
+    if stage.target_nest_corridor_clearance is not None:
+        cfg.target_nest_corridor_clearance = float(stage.target_nest_corridor_clearance)
     cfg.start_carrying_food = bool(stage.start_carrying_food)
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
@@ -180,7 +186,7 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
     if stage.name == "stage1e_single_agent_guaranteed_homing":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage1f_single_agent_delivery_bridge":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.20)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage1g_single_agent_delivery_obstacles":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.10)
     if stage.name == "stage2a_small_swarm_medium":

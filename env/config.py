@@ -51,7 +51,10 @@ class SwarmConfig:
     target_nest_distance_min: float = 0.0
     target_nest_distance_max: float = 0.0
     agent_spawn_near_target_radius: float = 0.0
+    target_nest_corridor_clearance: float = 0.0
     start_carrying_food: bool = False
+    obstacle_min_size: int = 40
+    obstacle_max_size: int = 120
 
     # Pheromone grid
     pheromone_enabled: bool = True

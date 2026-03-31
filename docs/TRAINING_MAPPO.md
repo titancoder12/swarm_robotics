@@ -147,6 +147,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 35 adds explicit carrying-phase anti-dithering pressure: while carrying, exploration reward stays suppressed, low nest-progress and low displacement now incur small penalties, and episode/eval logs now expose carrying-stall / low-progress / low-displacement signals directly
 - prompt 36 adds sustained carrying-progress shaping and pushes the return-critical stages to become more deterministic: the guaranteed-homing / bridge / obstacle-return stages now use even lower entropy schedules, slightly larger stage budgets for the bridge and obstacle-return lessons, and stronger delivery/conversion promotion targets
 - prompt 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
+- prompt 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -187,6 +188,12 @@ Prompt 37 verification was the first short smoke run to produce nonzero greedy d
 - `stage1d_single_agent_carry_bootstrap` reached nonzero greedy delivery in `runs/mappo_prompt37_verify_fix_20260330_225802/eval_metrics.csv`
 - `stage1e_single_agent_guaranteed_homing` also reached nonzero greedy pickup and delivery and promoted in that run
 - `stage1f_single_agent_delivery_bridge` still collapsed back to zero greedy delivery, so the next bottleneck is now maintaining greedy delivery once mild clutter is reintroduced
+
+Prompt 38 verification narrowed that bridge-stage failure further:
+
+- in `runs/mappo_prompt38_verify2_20260330_231105/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` produced one clearly nonzero greedy eval row (`pickup = 2.0`, `delivery = 1.5`, `conversion = 0.8333`)
+- but the later bridge eval at the hard budget boundary still fell back to `pickup = 0.0`, `delivery = 0.0`
+- so prompt 38 improved the bridge stage materially, but it did not yet make greedy delivery stable throughout the whole bridge lesson
 
 ## Example Commands
 
