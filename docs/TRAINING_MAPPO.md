@@ -141,6 +141,7 @@ Control/reward staging now also changes with difficulty:
 - `reward_nest_approach` is now staged explicitly, with stronger values in the return-focused single-agent stages than in the final full-swarm stages
 - prompt 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
 - prompt 32 also adds stage-controlled target-to-nest distance and agent-near-target spawning so the guaranteed-homing stage spends much more of the episode on “pick up, then go home” instead of rediscovering the target
+- prompt 33 then focuses on the sampled-to-greedy gap in those stages: return-critical stages now use more aggressive entropy decay, greedy checkpoint scoring weights completed delivery and delivery conversion much more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -170,6 +171,7 @@ Stage progression is now greedy-eval-aware:
 - each stage has a minimum pickup/delivery promotion target
 - if the target is not met, the stage can repeat up to `--stage-repeat-limit` times
 - if the limit is exceeded, training advances but records that the stage did not promote cleanly
+- prompt 33 also makes the early return stages more visibly greedy-aligned by emphasizing delivery in greedy checkpoint scoring and by exposing sampled-vs-greedy gaps directly in the runtime summaries
 
 ## Example Commands
 

@@ -184,16 +184,32 @@ def _meets_stage_promotion(stage, eval_metrics) -> bool:
     )
 
 
-def _greedy_eval_score(eval_metrics) -> float:
+def _is_return_critical_stage(stage) -> bool:
+    return stage.name in {
+        "stage1d_single_agent_guaranteed_homing",
+        "stage1e_single_agent_delivery_bridge",
+        "stage1f_single_agent_delivery_obstacles",
+    }
+
+
+def _greedy_eval_score(stage, eval_metrics) -> float:
     delivered = float(eval_metrics.get("food_retrieved", 0.0))
     picked_up = float(eval_metrics.get("food_picked_up", 0.0))
+    conversion = float(eval_metrics.get("delivery_conversion", 0.0))
     reward = float(eval_metrics.get("mean_episode_reward", 0.0))
     coverage = float(eval_metrics.get("exploration_coverage", 0.0))
-    return delivered * 1000.0 + picked_up * 100.0 + reward + coverage
+    score = delivered * 1000.0 + conversion * 500.0 + picked_up * 100.0 + reward + coverage
+    if _is_return_critical_stage(stage):
+        score += delivered * 2000.0 + conversion * 1500.0
+        if picked_up > 0.0 and delivered <= 0.0:
+            score -= picked_up * 250.0
+    return score
 
 
 def _stage_entropy_coef(stage, stage_steps: int) -> float:
     progress = min(1.0, max(0.0, float(stage_steps) / max(1.0, float(stage.total_steps))))
+    if _is_return_critical_stage(stage):
+        progress = min(1.0, progress ** 0.6)
     start = float(stage.entropy_start)
     end = float(stage.entropy_end)
     return start + (end - start) * progress
@@ -778,7 +794,7 @@ def train(args):
                                 **eval_metrics,
                             }
                         )
-                        eval_score = _greedy_eval_score(eval_metrics)
+                        eval_score = _greedy_eval_score(stage, eval_metrics)
                         if eval_score > stage_best_eval_score:
                             stage_best_eval_score = eval_score
                             stage_best_actor_state = copy.deepcopy(actor.state_dict())
@@ -811,7 +827,7 @@ def train(args):
                 max(1, args.eval_episodes),
                 args.seed + 20_000 + stage_index + stage_attempt,
             )
-            stage_end_score = _greedy_eval_score(stage_end_eval) if stage_end_eval else float("-inf")
+            stage_end_score = _greedy_eval_score(stage, stage_end_eval) if stage_end_eval else float("-inf")
             if stage_end_eval:
                 eval_logger.log(
                     {
@@ -844,6 +860,11 @@ def train(args):
             sampled_mean_pickups = sampled_pickups_sum / max(sampled_episode_count, 1)
             sampled_mean_deliveries = sampled_deliveries_sum / max(sampled_episode_count, 1)
             sampled_delivery_conversion = sampled_mean_deliveries / max(sampled_mean_pickups, 1.0)
+            greedy_pickups = float(stage_end_eval.get("food_picked_up", 0.0)) if stage_end_eval else 0.0
+            greedy_deliveries = float(stage_end_eval.get("food_retrieved", 0.0)) if stage_end_eval else 0.0
+            greedy_delivery_conversion = float(stage_end_eval.get("delivery_conversion", 0.0)) if stage_end_eval else 0.0
+            sampled_greedy_pickup_gap = max(0.0, sampled_mean_pickups - greedy_pickups)
+            sampled_greedy_delivery_gap = max(0.0, sampled_mean_deliveries - greedy_deliveries)
             current_entropy_coef = _stage_entropy_coef(stage, stage_steps)
 
             metadata = {
@@ -892,6 +913,8 @@ def train(args):
                 "sampled_mean_food_picked_up": float(sampled_mean_pickups),
                 "sampled_mean_food_retrieved": float(sampled_mean_deliveries),
                 "sampled_delivery_conversion": float(sampled_delivery_conversion),
+                "sampled_greedy_pickup_gap": float(sampled_greedy_pickup_gap),
+                "sampled_greedy_delivery_gap": float(sampled_greedy_delivery_gap),
                 "stage_end_eval": stage_end_eval,
                 "recommended_demo_checkpoint": "best_greedy_eval",
             }
@@ -951,9 +974,10 @@ def train(args):
                 f"sampled_reward={sampled_mean_reward:.2f} | sampled_pickup={sampled_mean_pickups:.2f} | "
                 f"sampled_delivery={sampled_mean_deliveries:.2f} | sampled_conversion={sampled_delivery_conversion:.2f} | "
                 f"greedy_reward={float(stage_end_eval.get('mean_episode_reward', 0.0)) if stage_end_eval else 0.0:.2f} | "
-                f"greedy_pickup={float(stage_end_eval.get('food_picked_up', 0.0)) if stage_end_eval else 0.0:.2f} | "
-                f"greedy_delivery={float(stage_end_eval.get('food_retrieved', 0.0)) if stage_end_eval else 0.0:.2f} | "
-                f"greedy_conversion={float(stage_end_eval.get('delivery_conversion', 0.0)) if stage_end_eval else 0.0:.2f} | "
+                f"greedy_pickup={greedy_pickups:.2f} | "
+                f"greedy_delivery={greedy_deliveries:.2f} | "
+                f"greedy_conversion={greedy_delivery_conversion:.2f} | "
+                f"gap_pickup={sampled_greedy_pickup_gap:.2f} | gap_delivery={sampled_greedy_delivery_gap:.2f} | "
                 f"promoted={stage_promoted} | best_eval_score={stage_best_eval_score:.2f} | "
                 f"elapsed={_format_duration(stage_elapsed)}"
             )
@@ -972,8 +996,10 @@ def train(args):
                 f"[MAPPO] Repeating stage {stage.name} because greedy eval did not meet promotion target: "
                 f"required pick_up>={promotion_target.min_pickups:.2f}, "
                 f"delivery>={promotion_target.min_deliveries:.2f}, "
-                f"got pick_up={float(stage_end_eval.get('food_picked_up', 0.0)) if stage_end_eval else 0.0:.2f}, "
-                f"delivery={float(stage_end_eval.get('food_retrieved', 0.0)) if stage_end_eval else 0.0:.2f}"
+                f"got pick_up={greedy_pickups:.2f}, "
+                f"delivery={greedy_deliveries:.2f}, "
+                f"gap_pickup={sampled_greedy_pickup_gap:.2f}, "
+                f"gap_delivery={sampled_greedy_delivery_gap:.2f}"
             )
 
     episode_logger.close()

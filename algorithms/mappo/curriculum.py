@@ -184,8 +184,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=34.0,
             target_nest_distance_max=46.0,
             agent_spawn_near_target_radius=18.0,
-            entropy_start=0.014,
-            entropy_end=0.002,
+            entropy_start=0.008,
+            entropy_end=0.0005,
         )
     )
     stages.append(
@@ -217,8 +217,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=38.0,
             target_nest_distance_max=54.0,
             agent_spawn_near_target_radius=22.0,
-            entropy_start=0.012,
-            entropy_end=0.0015,
+            entropy_start=0.007,
+            entropy_end=0.0005,
         )
     )
     stages.append(
@@ -250,8 +250,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=42.0,
             target_nest_distance_max=60.0,
             agent_spawn_near_target_radius=26.0,
-            entropy_start=0.010,
-            entropy_end=0.0015,
+            entropy_start=0.006,
+            entropy_end=0.0005,
         )
     )
     stages.append(
