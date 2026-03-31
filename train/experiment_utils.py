@@ -209,6 +209,9 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--observation-noise-std", type=float, default=0.0)
     parser.add_argument("--observation-history-steps", type=int, default=3)
     parser.add_argument("--food-detection-radius", type=float, default=150.0)
+    parser.add_argument("--target-nest-distance-min", type=float, default=0.0)
+    parser.add_argument("--target-nest-distance-max", type=float, default=0.0)
+    parser.add_argument("--agent-spawn-near-target-radius", type=float, default=0.0)
     parser.add_argument("--reward-food-approach", type=float, default=0.03)
     parser.add_argument("--reward-food-detected", type=float, default=0.15)
     parser.add_argument("--reward-pheromone-follow", type=float, default=0.02)
@@ -246,6 +249,9 @@ def make_swarm_config(args) -> SwarmConfig:
         render_pheromone=pheromone_enabled,
         obs_include_pheromone=True,
         food_detection_radius=getattr(args, "food_detection_radius", 150.0),
+        target_nest_distance_min=getattr(args, "target_nest_distance_min", 0.0),
+        target_nest_distance_max=getattr(args, "target_nest_distance_max", 0.0),
+        agent_spawn_near_target_radius=getattr(args, "agent_spawn_near_target_radius", 0.0),
         pheromone_requires_food=bool(getattr(args, "pheromone_requires_food", True)),
         pheromone_deposit_requires_nest_progress=bool(getattr(args, "pheromone_deposit_requires_nest_progress", True)),
         failed_agent_count=getattr(args, "failed_agent_count", 0),

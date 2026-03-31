@@ -637,8 +637,13 @@ class SwarmEnv(ParallelEnv):
         """Randomly place agents in non-colliding free space."""
         # Randomly place agents in free space.
         self.agent_states = []
+        anchor = self.targets[0] if self.targets else None
+        near_target_radius = float(max(0.0, self.cfg.agent_spawn_near_target_radius))
         for _ in range(self.cfg.n_agents):
-            pos = self._sample_free_position(self.cfg.agent_radius)
+            if anchor is not None and near_target_radius > 0.0:
+                pos = self._sample_free_position_near_anchor(self.cfg.agent_radius, anchor, near_target_radius)
+            else:
+                pos = self._sample_free_position(self.cfg.agent_radius)
             theta = self.rng.uniform(-math.pi, math.pi)
             self.agent_states.append(AgentState(pos[0], pos[1], theta))
 
@@ -701,6 +706,32 @@ class SwarmEnv(ParallelEnv):
             return x, y
         return radius, radius
 
+    def _sample_free_position_near_anchor(self, radius: float, anchor: tuple[float, float], distance_limit: float):
+        """Sample a free position near an anchor point, falling back to unconstrained placement."""
+        ax, ay = float(anchor[0]), float(anchor[1])
+        limit = max(float(radius), float(distance_limit))
+        for _ in range(200):
+            angle = self.rng.uniform(-math.pi, math.pi)
+            dist = self.rng.uniform(0.0, limit)
+            x = ax + math.cos(angle) * dist
+            y = ay + math.sin(angle) * dist
+            if x < radius or x > self.width - radius or y < radius or y > self.height - radius:
+                continue
+            circle = pygame.Rect(int(x - radius), int(y - radius), int(radius * 2), int(radius * 2))
+            if any(circle.colliderect(o) for o in self.obstacles):
+                continue
+            if self.cfg.nest_enabled:
+                nx, ny = self.nest_position
+                nest_clearance = radius + self.cfg.nest_radius
+                if (nx - x) ** 2 + (ny - y) ** 2 < nest_clearance ** 2:
+                    continue
+            if any((tx - x) ** 2 + (ty - y) ** 2 < (radius * 2) ** 2 for tx, ty in self.targets):
+                continue
+            if any((agent.x - x) ** 2 + (agent.y - y) ** 2 < (radius * 2) ** 2 for agent in self.agent_states):
+                continue
+            return x, y
+        return self._sample_free_position(radius)
+
     def _target_spawn_count(self) -> int:
         """Return the desired number of simultaneously active targets."""
         if self.cfg.target_respawn:
@@ -712,11 +743,26 @@ class SwarmEnv(ParallelEnv):
         desired = self._target_spawn_count() if target_count is None else max(0, int(target_count))
         spawned = 0
         while len(self.targets) < desired:
-            pos = self._sample_free_position(self.cfg.target_radius)
+            pos = self._sample_target_position()
             self.targets.append(pos)
             self.target_remaining_uses.append(int(self.cfg.food_source_capacity))
             spawned += 1
         return spawned
+
+    def _sample_target_position(self):
+        """Sample a target position, optionally constrained by distance from the nest."""
+        min_dist = float(max(0.0, self.cfg.target_nest_distance_min))
+        max_dist = float(max(0.0, self.cfg.target_nest_distance_max))
+        if not self.cfg.nest_enabled or max_dist <= 0.0 or max_dist < min_dist:
+            return self._sample_free_position(self.cfg.target_radius)
+        nx, ny = self.nest_position
+        for _ in range(200):
+            pos = self._sample_free_position(self.cfg.target_radius)
+            dist = math.hypot(float(pos[0]) - float(nx), float(pos[1]) - float(ny))
+            if dist < min_dist or dist > max_dist:
+                continue
+            return pos
+        return self._sample_free_position(self.cfg.target_radius)
 
     def _handle_collisions(self, proposed: AgentState) -> bool:
         """Return True if the proposed state collides with bounds/obstacles."""

@@ -48,6 +48,9 @@ class SwarmConfig:
     food_detection_radius: float = 150.0
     food_presence_radius: float = 120.0
     observation_history_steps: int = 3
+    target_nest_distance_min: float = 0.0
+    target_nest_distance_max: float = 0.0
+    agent_spawn_near_target_radius: float = 0.0
 
     # Pheromone grid
     pheromone_enabled: bool = True

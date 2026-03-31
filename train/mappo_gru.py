@@ -126,6 +126,12 @@ def _build_env(args, stage):
     if stage.pheromone_enabled is not None:
         cfg.pheromone_enabled = bool(stage.pheromone_enabled)
         cfg.render_pheromone = bool(stage.pheromone_enabled)
+    if stage.target_nest_distance_min is not None:
+        cfg.target_nest_distance_min = float(stage.target_nest_distance_min)
+    if stage.target_nest_distance_max is not None:
+        cfg.target_nest_distance_max = float(stage.target_nest_distance_max)
+    if stage.agent_spawn_near_target_radius is not None:
+        cfg.agent_spawn_near_target_radius = float(stage.agent_spawn_near_target_radius)
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
 
@@ -155,8 +161,8 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
     if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
-    if stage.name == "stage1d_single_agent_return_medium":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.5)
+    if stage.name == "stage1d_single_agent_guaranteed_homing":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=2.0)
     if stage.name == "stage1e_single_agent_delivery_bridge":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
     if stage.name == "stage1f_single_agent_delivery_obstacles":

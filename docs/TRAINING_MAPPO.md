@@ -79,7 +79,7 @@ The default `full` schedule is:
 1. `stage1a_single_agent_miniscule`
 2. `stage1b_single_agent_tiny`
 3. `stage1c_single_agent_small`
-4. `stage1d_single_agent_return_medium`
+4. `stage1d_single_agent_guaranteed_homing`
 5. `stage1e_single_agent_delivery_bridge`
 6. `stage1f_single_agent_delivery_obstacles`
 7. `stage2a_small_swarm_medium`
@@ -107,8 +107,8 @@ The current curriculum stages the following environment variables:
 Intended teaching progression:
 
 - Stage 1A-1C: one agent, increasingly larger empty worlds with one target
-- Stage 1D: one agent, medium world, one target, no obstacles; this is now the stricter homing stage and must show clearer greedy delivery before promotion
-- Stage 1E: one agent, one target, one obstacle, no respawn; this is now a mild clutter bridge stage for carried return instead of the full obstacle challenge
+- Stage 1D: one agent, one target, no obstacles, controlled target distance from the nest, and agent spawn near the target; this is now the guaranteed post-pickup homing stage
+- Stage 1E: one agent, one target, one obstacle, controlled target distance, and near-target spawn; this is now the mild clutter bridge stage for carried return instead of the full obstacle challenge
 - Stage 1F: one agent, one target, two obstacles, no respawn; this is the first true single-agent obstacle-return stage
 - Stage 2A: small swarm, medium environment, two fixed sources, no respawn yet, with pheromone still disabled so early swarm delivery is learned before trail exploitation returns
 - Stage 2B: small swarm, large but not final environment, now with respawn enabled
@@ -137,9 +137,10 @@ Control/reward staging now also changes with difficulty:
 - later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
 - stage 1 now disables pheromone entirely so pickup/return/delivery is learned before trail exploitation is introduced
 - stage 1 softens `reward_step` and `reward_collision`, and strengthens pickup/delivery cues, so freezing is less attractive than useful movement
-- prompts 30 and 31 suppress or strongly reduce exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
+- prompts 30, 31, and 32 suppress or strongly reduce exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
 - `reward_nest_approach` is now staged explicitly, with stronger values in the return-focused single-agent stages than in the final full-swarm stages
 - prompt 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
+- prompt 32 also adds stage-controlled target-to-nest distance and agent-near-target spawning so the guaranteed-homing stage spends much more of the episode on “pick up, then go home” instead of rediscovering the target
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
