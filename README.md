@@ -119,6 +119,12 @@ Prompt 38 makes the bridge stage more continuity-preserving instead of letting i
 - target placement now tries to preserve a clear return corridor from nest to target in the bridge stage
 - the bridge still contains clutter, but it is meant to keep greedy homing alive rather than replace it with a new task
 
+Prompt 39 then stabilizes bridge-stage greedy delivery at the trainer level:
+
+- stage-end evaluation now restores and evaluates the best within-stage policy instead of the last drifted one
+- that keeps `stage1f_single_agent_delivery_bridge` from ending on a worse policy than the one it already discovered earlier in the stage
+- this is the first configuration that looks credible for a real full training run rather than only more stage-1 debugging
+
 Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
 What the main arguments mean:

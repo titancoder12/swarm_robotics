@@ -904,6 +904,11 @@ def train(args):
                             f"len={eval_metrics['episode_length']:.1f}"
                         )
 
+            actor.load_state_dict(stage_best_actor_state)
+            critic.load_state_dict(stage_best_critic_state)
+            actor_opt.load_state_dict(stage_best_actor_opt_state)
+            critic_opt.load_state_dict(stage_best_critic_opt_state)
+
             stage_end_eval = _evaluate(
                 actor,
                 critic,
@@ -934,11 +939,6 @@ def train(args):
                     stage_best_critic_state = copy.deepcopy(critic.state_dict())
                     stage_best_actor_opt_state = copy.deepcopy(actor_opt.state_dict())
                     stage_best_critic_opt_state = copy.deepcopy(critic_opt.state_dict())
-
-            actor.load_state_dict(stage_best_actor_state)
-            critic.load_state_dict(stage_best_critic_state)
-            actor_opt.load_state_dict(stage_best_actor_opt_state)
-            critic_opt.load_state_dict(stage_best_critic_opt_state)
 
             stage_promoted = bool(stage_end_eval) and _meets_stage_promotion(stage, stage_end_eval)
             promotion_target = _stage_promotion_target(stage)
@@ -1013,6 +1013,7 @@ def train(args):
                 "effective_stage_repeat_limit": int(max(args.stage_repeat_limit, stage.repeat_limit_override or 0)),
                 "stage_end_eval": stage_end_eval,
                 "recommended_demo_checkpoint": "best_greedy_eval",
+                "stage_end_evaluated_on_best_within_stage": True,
             }
 
             stage_ckpt_dir = os.path.join(checkpoint_root, stage.name)

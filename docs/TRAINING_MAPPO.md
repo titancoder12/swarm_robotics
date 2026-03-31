@@ -148,6 +148,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 36 adds sustained carrying-progress shaping and pushes the return-critical stages to become more deterministic: the guaranteed-homing / bridge / obstacle-return stages now use even lower entropy schedules, slightly larger stage budgets for the bridge and obstacle-return lessons, and stronger delivery/conversion promotion targets
 - prompt 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
 - prompt 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
+- prompt 39 then stabilizes bridge-stage greedy behavior at the trainer level: stage-end evaluation and promotion now restore the best within-stage bridge policy before evaluating it, so the stage no longer has to end on a later drifted policy after it already discovered a better one
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:
@@ -194,6 +195,13 @@ Prompt 38 verification narrowed that bridge-stage failure further:
 - in `runs/mappo_prompt38_verify2_20260330_231105/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` produced one clearly nonzero greedy eval row (`pickup = 2.0`, `delivery = 1.5`, `conversion = 0.8333`)
 - but the later bridge eval at the hard budget boundary still fell back to `pickup = 0.0`, `delivery = 0.0`
 - so prompt 38 improved the bridge stage materially, but it did not yet make greedy delivery stable throughout the whole bridge lesson
+
+Prompt 39 resolved that specific regression in short verification:
+
+- in `runs/mappo_prompt39_verify_20260330_231951/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` kept nonzero greedy delivery across all six logged eval rows
+- the bridge eval rows averaged pickup `~= 2.083`, delivery `~= 1.75`, and conversion `~= 0.5`
+- the final bridge eval at the hard step cap still remained nonzero (`pickup = 2.0`, `delivery = 2.0`)
+- this is the first stage-1 setup that looks stable enough to justify a real full curriculum training run
 
 ## Example Commands
 
