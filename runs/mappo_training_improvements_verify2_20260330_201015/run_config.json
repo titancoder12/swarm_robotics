@@ -1,0 +1,73 @@
+{
+  "algorithm": "recurrent_mappo_gru",
+  "curriculum_mode": "stage1",
+  "domain_randomization_note": "Environment resets already randomize layout/configuration.",
+  "food_source_capacity": 4,
+  "hidden_size": 128,
+  "minibatch_size": 4,
+  "rollout_steps": 4,
+  "seed": 0,
+  "stages": [
+    {
+      "action_repeat_steps": 1,
+      "active_targets": 1,
+      "budget_weight": 1,
+      "height": 50,
+      "max_steps": 120,
+      "n_agents": 1,
+      "n_obstacles": 0,
+      "n_targets": 1,
+      "name": "stage1a_single_agent_miniscule",
+      "reward_new_cell": 0.02,
+      "target_respawn": false,
+      "total_steps": 6,
+      "width": 50
+    },
+    {
+      "action_repeat_steps": 1,
+      "active_targets": 1,
+      "budget_weight": 1,
+      "height": 75,
+      "max_steps": 120,
+      "n_agents": 1,
+      "n_obstacles": 0,
+      "n_targets": 1,
+      "name": "stage1b_single_agent_tiny",
+      "reward_new_cell": 0.02,
+      "target_respawn": false,
+      "total_steps": 6,
+      "width": 75
+    },
+    {
+      "action_repeat_steps": 1,
+      "active_targets": 1,
+      "budget_weight": 1,
+      "height": 100,
+      "max_steps": 140,
+      "n_agents": 1,
+      "n_obstacles": 0,
+      "n_targets": 1,
+      "name": "stage1c_single_agent_small",
+      "reward_new_cell": 0.02,
+      "target_respawn": false,
+      "total_steps": 6,
+      "width": 100
+    },
+    {
+      "action_repeat_steps": 1,
+      "active_targets": 1,
+      "budget_weight": 2,
+      "height": 320,
+      "max_steps": 320,
+      "n_agents": 1,
+      "n_obstacles": 2,
+      "n_targets": 1,
+      "name": "stage1d_single_agent_delivery_obstacles",
+      "reward_new_cell": 0.01,
+      "target_respawn": false,
+      "total_steps": 14,
+      "width": 420
+    }
+  ],
+  "update_epochs": 1
+}

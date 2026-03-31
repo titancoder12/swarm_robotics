@@ -1,0 +1,11 @@
+{
+  "action_dim": 18,
+  "checkpoint_dir": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/test",
+  "episodes_completed": 33,
+  "filename": "test",
+  "folder_name": "test",
+  "graph_dir": "/Users/christopherlin/dev/cwsf2026/sim/training_graphs/test_20260329_180204",
+  "obs_dim": 69,
+  "total_steps": 20000,
+  "use_pheromone": true
+}

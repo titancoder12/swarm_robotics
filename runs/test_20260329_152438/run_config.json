@@ -1,0 +1,13 @@
+{
+  "action_dim": 18,
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/test",
+  "experiment_name": "test",
+  "filename": "test",
+  "folder_name": "test",
+  "n_agents": 6,
+  "obs_dim": 69,
+  "seed": 0,
+  "shared_policy": true,
+  "total_steps": 20000,
+  "use_pheromone": true
+}

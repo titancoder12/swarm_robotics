@@ -1,0 +1,3 @@
+global_step,mean_episode_reward,food_discovered,food_retrieved,exploration_coverage,pheromone_usage,episode_length,swarm_efficiency
+20000,-64.29469663351774,0.2,0.0,0.11923076923076922,0.5915332731720891,600.0,0.0
+40000,-74.27134265899659,0.2,0.0,0.13734817813765182,0.26777862082505244,600.0,0.0

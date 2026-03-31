@@ -1,0 +1,13 @@
+{
+  "action_dim": 18,
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/with_pheremone",
+  "experiment_name": "with_pheremone",
+  "filename": "with_pheremone",
+  "folder_name": "with_pheremone",
+  "n_agents": 6,
+  "obs_dim": 69,
+  "seed": 0,
+  "shared_policy": true,
+  "total_steps": 30000,
+  "use_pheromone": true
+}

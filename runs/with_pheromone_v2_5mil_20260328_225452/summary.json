@@ -1,0 +1,11 @@
+{
+  "action_dim": 18,
+  "checkpoint_dir": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/with_pheromone_v2_5mil",
+  "episodes_completed": 1,
+  "filename": "with_pheromone_v2_5mil",
+  "folder_name": "with_pheromone_v2_5mil",
+  "graph_dir": "/Users/christopherlin/dev/cwsf2026/sim/training_graphs/with_pheromone_v2_5mil_20260328_225452",
+  "obs_dim": 69,
+  "total_steps": 1000,
+  "use_pheromone": true
+}

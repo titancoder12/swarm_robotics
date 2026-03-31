@@ -1,0 +1,11 @@
+{
+  "action_dim": 18,
+  "checkpoint_dir": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/without_pheremone",
+  "episodes_completed": 50,
+  "filename": "without_pheremone",
+  "folder_name": "without_pheremone",
+  "graph_dir": "/Users/christopherlin/dev/cwsf2026/sim/training_graphs/without_pheremone_20260326_184937",
+  "obs_dim": 69,
+  "total_steps": 30000,
+  "use_pheromone": false
+}

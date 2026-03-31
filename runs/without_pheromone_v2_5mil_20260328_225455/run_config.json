@@ -1,0 +1,13 @@
+{
+  "action_dim": 18,
+  "checkpoint_root": "/Users/christopherlin/dev/cwsf2026/sim/checkpoints/without_pheromone_v2_5mil",
+  "experiment_name": "without_pheromone_v2_5mil",
+  "filename": "without_pheromone_v2_5mil",
+  "folder_name": "without_pheromone_v2_5mil",
+  "n_agents": 6,
+  "obs_dim": 69,
+  "seed": 42,
+  "shared_policy": true,
+  "total_steps": 1000,
+  "use_pheromone": false
+}

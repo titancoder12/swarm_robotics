@@ -1,0 +1,27 @@
+{
+  "algorithm": "recurrent_mappo_gru",
+  "curriculum_mode": "full",
+  "domain_randomization_note": "Environment resets already randomize layout/configuration.",
+  "hidden_size": 128,
+  "minibatch_size": 256,
+  "rollout_steps": 128,
+  "seed": 0,
+  "stages": [
+    {
+      "n_agents": 1,
+      "name": "stage1_single_agent",
+      "total_steps": 10000
+    },
+    {
+      "n_agents": 3,
+      "name": "stage2_small_swarm",
+      "total_steps": 10000
+    },
+    {
+      "n_agents": 6,
+      "name": "stage3_full_marl",
+      "total_steps": 10000
+    }
+  ],
+  "update_epochs": 4
+}

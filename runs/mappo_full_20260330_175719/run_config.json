@@ -1,0 +1,85 @@
+{
+  "algorithm": "recurrent_mappo_gru",
+  "curriculum_mode": "full",
+  "domain_randomization_note": "Environment resets already randomize layout/configuration.",
+  "food_source_capacity": 4,
+  "hidden_size": 128,
+  "minibatch_size": 256,
+  "rollout_steps": 128,
+  "seed": 0,
+  "stages": [
+    {
+      "active_targets": 1,
+      "height": 75,
+      "max_steps": 120,
+      "n_agents": 1,
+      "n_obstacles": 0,
+      "n_targets": 2,
+      "name": "stage1a_single_agent_tiny",
+      "target_respawn": false,
+      "total_steps": 50000,
+      "width": 75
+    },
+    {
+      "active_targets": 3,
+      "height": 320,
+      "max_steps": 400,
+      "n_agents": 1,
+      "n_obstacles": 2,
+      "n_targets": 3,
+      "name": "stage1b_single_agent_obstacles",
+      "target_respawn": true,
+      "total_steps": 25000,
+      "width": 420
+    },
+    {
+      "active_targets": 3,
+      "height": 500,
+      "max_steps": 500,
+      "n_agents": 3,
+      "n_obstacles": 4,
+      "n_targets": 3,
+      "name": "stage2a_small_swarm_medium",
+      "target_respawn": true,
+      "total_steps": 25000,
+      "width": 700
+    },
+    {
+      "active_targets": 3,
+      "height": 700,
+      "max_steps": 650,
+      "n_agents": 3,
+      "n_obstacles": 8,
+      "n_targets": 3,
+      "name": "stage2b_small_swarm_large",
+      "target_respawn": true,
+      "total_steps": 25000,
+      "width": 950
+    },
+    {
+      "active_targets": 3,
+      "height": 700,
+      "max_steps": 720,
+      "n_agents": 6,
+      "n_obstacles": 8,
+      "n_targets": 3,
+      "name": "stage3a_full_swarm_large",
+      "target_respawn": true,
+      "total_steps": 25000,
+      "width": 950
+    },
+    {
+      "active_targets": 3,
+      "height": 950,
+      "max_steps": 800,
+      "n_agents": 6,
+      "n_obstacles": 18,
+      "n_targets": 3,
+      "name": "stage3b_full_swarm_final",
+      "target_respawn": true,
+      "total_steps": 50000,
+      "width": 1400
+    }
+  ],
+  "update_epochs": 4
+}

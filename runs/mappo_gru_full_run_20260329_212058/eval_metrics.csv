@@ -1,0 +1,2 @@
+stage,global_step,mean_episode_reward,food_discovered,food_picked_up,food_retrieved,exploration_coverage,pheromone_usage,episode_length,swarm_efficiency
+stage1_single_agent,80000,-7.354630374908448,0.0,0.0,0.0,0.01862348178137652,0.0,600.0,0.0
