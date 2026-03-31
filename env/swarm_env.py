@@ -374,6 +374,7 @@ class SwarmEnv(ParallelEnv):
             "step": float(self.cfg.reward_step * self.cfg.n_agents),
             "pickup": 0.0,
             "delivery": 0.0,
+            "undelivered": 0.0,
             "nest_approach": 0.0,
             "collision": 0.0,
             "new_cell": 0.0,
@@ -462,6 +463,12 @@ class SwarmEnv(ParallelEnv):
         if self.step_count >= self.cfg.max_steps:
             self.truncated = True
 
+        undelivered_count = 0
+        undelivered_penalty = 0.0
+        if self.terminated or self.truncated:
+            undelivered_count, undelivered_penalty = self._apply_undelivered_food_penalty(rewards)
+            reward_breakdown["undelivered"] += float(undelivered_penalty)
+
         obs = self._get_obs()
         obs_dict = {agent: obs[i] for i, agent in enumerate(self.possible_agents)}
         rewards_dict = {agent: float(rewards[i]) for i, agent in enumerate(self.possible_agents)}
@@ -494,6 +501,8 @@ class SwarmEnv(ParallelEnv):
             "food_source_capacity": int(self.cfg.food_source_capacity),
             "food_units_remaining": int(sum(self.target_remaining_uses)),
             "food_source_uses_remaining": [int(value) for value in self.target_remaining_uses],
+            "undelivered_carrying_agents": int(undelivered_count),
+            "undelivered_food_penalty": float(undelivered_penalty),
             "episode_done_reason": (
                 "max_steps"
                 if self.truncated
@@ -527,6 +536,7 @@ class SwarmEnv(ParallelEnv):
 
         # Targets.
         source_capacity = max(int(self.cfg.food_source_capacity), 1)
+        target_draw_data = []
         for idx, (tx, ty) in enumerate(self.targets):
             remaining_uses = self.target_remaining_uses[idx] if idx < len(self.target_remaining_uses) else source_capacity
             ratio = np.clip(float(remaining_uses) / float(source_capacity), 0.0, 1.0)
@@ -535,8 +545,7 @@ class SwarmEnv(ParallelEnv):
                 int(150 + 70 * ratio),
                 int(70 + 20 * ratio),
             )
-            pygame.draw.circle(self._screen, target_color, (int(tx), int(ty)), int(self.cfg.target_radius))
-            pygame.draw.circle(self._screen, (30, 30, 30), (int(tx), int(ty)), int(self.cfg.target_radius), 1)
+            target_draw_data.append((float(tx), float(ty), int(remaining_uses), target_color))
 
         # Nest.
         if self.cfg.nest_enabled:
@@ -553,10 +562,31 @@ class SwarmEnv(ParallelEnv):
                 body_color = (70, 220, 140) if agent.carrying_food else (200, 160, 50)
             pygame.draw.circle(self._screen, body_color, (x, y), int(self.cfg.agent_radius))
             if agent.carrying_food:
+                pygame.draw.circle(self._screen, (235, 255, 180), (x, y), int(self.cfg.agent_radius) + 3, 2)
                 pygame.draw.circle(self._screen, (240, 255, 200), (x, y), max(2, int(self.cfg.agent_radius // 2)))
+                carried_y = y - int(self.cfg.agent_radius) - 5
+                pygame.draw.circle(self._screen, (255, 220, 90), (x, carried_y), max(3, int(self.cfg.target_radius)))
+                pygame.draw.circle(self._screen, (60, 50, 20), (x, carried_y), max(3, int(self.cfg.target_radius)), 1)
             hx = x + int(math.cos(agent.theta) * self.cfg.agent_radius)
             hy = y + int(math.sin(agent.theta) * self.cfg.agent_radius)
             pygame.draw.line(self._screen, (255, 240, 180), (x, y), (hx, hy), 2)
+
+        # Draw food sources after agents so they remain visible even when an
+        # agent is standing on top of the source. Also add simple "remaining
+        # uses" pips so repeated-use sources are obvious in demo.
+        for tx, ty, remaining_uses, target_color in target_draw_data:
+            center = (int(tx), int(ty))
+            pygame.draw.circle(self._screen, target_color, center, int(self.cfg.target_radius))
+            pygame.draw.circle(self._screen, (230, 245, 210), center, int(self.cfg.target_radius) + 2, 1)
+            pygame.draw.circle(self._screen, (30, 30, 30), center, int(self.cfg.target_radius), 1)
+            pip_radius = 2
+            pip_spacing = 5
+            start_x = int(tx) - ((remaining_uses - 1) * pip_spacing) // 2
+            pip_y = int(ty) - int(self.cfg.target_radius) - 6
+            for pip_idx in range(max(0, remaining_uses)):
+                px = start_x + pip_idx * pip_spacing
+                pygame.draw.circle(self._screen, (255, 240, 150), (px, pip_y), pip_radius)
+                pygame.draw.circle(self._screen, (50, 40, 20), (px, pip_y), pip_radius, 1)
 
         # Present frame and limit FPS.
         pygame.display.flip()
@@ -854,6 +884,21 @@ class SwarmEnv(ParallelEnv):
                 delivered += 1
                 reward_total += float(self.cfg.reward_nest_delivery)
         return delivered, reward_total
+
+    def _apply_undelivered_food_penalty(self, rewards: np.ndarray) -> tuple[int, float]:
+        """Penalize agents that finish an episode while still carrying food."""
+        penalty_value = float(self.cfg.reward_undelivered_food)
+        if penalty_value == 0.0:
+            return 0, 0.0
+        penalized = 0
+        penalty_total = 0.0
+        for i, agent in enumerate(self.agent_states):
+            if not agent.carrying_food:
+                continue
+            rewards[i] += penalty_value
+            penalized += 1
+            penalty_total += penalty_value
+        return penalized, penalty_total
 
     def _reset_food_shaping_state(self) -> None:
         """Initialize detectable-food shaping state from the freshly reset world."""

@@ -71,6 +71,7 @@ CLI-to-config mapping helpers:
 | `reward_pickup` | `float` | `8.0` | any float | reward on pickup when nest delivery is required |
 | `reward_nest_delivery` | `float` | `30.0` | any float | reward on successful nest return |
 | `reward_nest_approach` | `float` | `0.08` | any float | signed shaping for carrying-food progress toward nest |
+| `reward_undelivered_food` | `float` | `-5.0` | any float | penalty applied if an episode ends while an agent is still carrying food |
 | `reward_exploration` | `float` | `0.0` | any float | currently unused compatibility field |
 | `reward_new_cell` | `float` | `0.02` | any float | reward per newly visited coverage cell |
 | `reward_food_approach` | `float` | `0.03` | any float | signed shaping for progress toward detectable food |

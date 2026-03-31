@@ -216,6 +216,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-pickup", type=float, default=8.0)
     parser.add_argument("--reward-nest-delivery", type=float, default=30.0)
     parser.add_argument("--reward-nest-approach", type=float, default=0.08)
+    parser.add_argument("--reward-undelivered-food", type=float, default=-5.0)
     parser.add_argument("--reward-pheromone-deposit-cost", type=float, default=-0.001)
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
     parser.add_argument("--pheromone-follow-min-gradient", type=float, default=0.05)
@@ -231,7 +232,7 @@ def add_env_config_args(parser) -> None:
 def make_swarm_config(args) -> SwarmConfig:
     """Build a SwarmConfig from parsed CLI args without changing defaults elsewhere."""
     pheromone_enabled = bool(getattr(args, "use_pheromone", True)) and not getattr(args, "pheromone_disabled", False)
-    target_respawn = bool(getattr(args, "target_respawn", False))
+    target_respawn = bool(getattr(args, "target_respawn", True))
     active_targets = max(1, int(getattr(args, "active_targets", getattr(args, "n_targets", 3))))
     return SwarmConfig(
         n_agents=getattr(args, "n_agents", 6),
@@ -254,6 +255,7 @@ def make_swarm_config(args) -> SwarmConfig:
         reward_pickup=getattr(args, "reward_pickup", 8.0),
         reward_nest_delivery=getattr(args, "reward_nest_delivery", 30.0),
         reward_nest_approach=getattr(args, "reward_nest_approach", 0.08),
+        reward_undelivered_food=getattr(args, "reward_undelivered_food", -5.0),
         reward_food_approach=getattr(args, "reward_food_approach", 0.03),
         reward_food_detected=getattr(args, "reward_food_detected", 0.15),
         reward_pheromone_follow=getattr(args, "reward_pheromone_follow", 0.02),
