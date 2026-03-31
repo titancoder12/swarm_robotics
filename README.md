@@ -125,6 +125,19 @@ Prompt 39 then stabilizes bridge-stage greedy delivery at the trainer level:
 - that keeps `stage1f_single_agent_delivery_bridge` from ending on a worse policy than the one it already discovered earlier in the stage
 - this is the first configuration that looks credible for a real full training run rather than only more stage-1 debugging
 
+Prompt 40 then adds an explicit small-swarm bootstrap stack so the first scale-up does not wipe out the learned delivery loop:
+
+- `stage2a_small_swarm_carry_bootstrap`
+  - small swarm, already carrying, pure homing
+- `stage2b_small_swarm_delivery_easy`
+  - small swarm, easy pickup-plus-delivery, no clutter, pheromone off
+- `stage2c_small_swarm_medium`
+  - first real small-swarm medium stage, still delivery-first and pheromone off
+- `stage2d_small_swarm_large`
+  - larger small-swarm stage where trail behavior can return
+
+Prompt 41 then reduces repeat and budget pressure in the already-solved single-agent carry/bootstrap stages so `stage1_to_2` and full runs reach the new swarm bootstrap stages instead of spending too much budget re-proving stage-1 lessons.
+
 Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
 What the main arguments mean:

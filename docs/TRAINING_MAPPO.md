@@ -83,10 +83,12 @@ The default `full` schedule is:
 5. `stage1e_single_agent_guaranteed_homing`
 6. `stage1f_single_agent_delivery_bridge`
 7. `stage1g_single_agent_delivery_obstacles`
-8. `stage2a_small_swarm_medium`
-9. `stage2b_small_swarm_large`
-10. `stage3a_full_swarm_large`
-11. `stage3b_full_swarm_final`
+8. `stage2a_small_swarm_carry_bootstrap`
+9. `stage2b_small_swarm_delivery_easy`
+10. `stage2c_small_swarm_medium`
+11. `stage2d_small_swarm_large`
+12. `stage3a_full_swarm_large`
+13. `stage3b_full_swarm_final`
 
 The current curriculum stages the following environment variables:
 

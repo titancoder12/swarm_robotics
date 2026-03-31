@@ -182,16 +182,20 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
     if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
     if stage.name == "stage1d_single_agent_carry_bootstrap":
-        return StagePromotionTarget(min_pickups=0.0, min_deliveries=1.0, min_conversion=0.50)
+        return StagePromotionTarget(min_pickups=0.0, min_deliveries=0.5, min_conversion=0.25)
     if stage.name == "stage1e_single_agent_guaranteed_homing":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage1f_single_agent_delivery_bridge":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage1g_single_agent_delivery_obstacles":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.10)
-    if stage.name == "stage2a_small_swarm_medium":
+    if stage.name == "stage2a_small_swarm_carry_bootstrap":
+        return StagePromotionTarget(min_pickups=0.0, min_deliveries=1.0, min_conversion=0.50)
+    if stage.name == "stage2b_small_swarm_delivery_easy":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
+    if stage.name == "stage2c_small_swarm_medium":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
-    if stage.name == "stage2b_small_swarm_large":
+    if stage.name == "stage2d_small_swarm_large":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.03)
     if stage.name == "stage3a_full_swarm_large":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.02)
@@ -222,8 +226,10 @@ def _is_return_critical_stage(stage) -> bool:
         "stage1e_single_agent_guaranteed_homing",
         "stage1f_single_agent_delivery_bridge",
         "stage1g_single_agent_delivery_obstacles",
-        "stage2a_small_swarm_medium",
-        "stage2b_small_swarm_large",
+        "stage2a_small_swarm_carry_bootstrap",
+        "stage2b_small_swarm_delivery_easy",
+        "stage2c_small_swarm_medium",
+        "stage2d_small_swarm_large",
         "stage3a_full_swarm_large",
         "stage3b_full_swarm_final",
     }
@@ -241,8 +247,10 @@ def _greedy_eval_score(stage, eval_metrics) -> float:
         if picked_up > 0.0 and delivered <= 0.0:
             score -= picked_up * 250.0
     if stage.name in {
-        "stage2a_small_swarm_medium",
-        "stage2b_small_swarm_large",
+        "stage2a_small_swarm_carry_bootstrap",
+        "stage2b_small_swarm_delivery_easy",
+        "stage2c_small_swarm_medium",
+        "stage2d_small_swarm_large",
         "stage3a_full_swarm_large",
         "stage3b_full_swarm_final",
     } and delivered <= 0.0:
