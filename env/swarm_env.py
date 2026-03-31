@@ -686,7 +686,7 @@ class SwarmEnv(ParallelEnv):
         target.fill((20, 20, 26))
 
         if self.cfg.pheromone_enabled and self.cfg.render_pheromone:
-            self._draw_pheromone()
+            self._draw_pheromone(target)
 
         # Obstacles.
         for rect in self.obstacles:
@@ -1882,7 +1882,7 @@ class SwarmEnv(ParallelEnv):
         x, y = vec
         return np.array([c * x - s * y, s * x + c * y], dtype=np.float32)
 
-    def _draw_pheromone(self):
+    def _draw_pheromone(self, surface: pygame.Surface):
         """Render a heatmap-style visualization of the pheromone grid."""
         # Render pheromone heatmap as colored grid cells.
         grid = self.pheromone_grid
@@ -1899,7 +1899,7 @@ class SwarmEnv(ParallelEnv):
                     continue
                 color = (int(40 + 160 * val), int(40 + 40 * val), int(80 + 120 * val))
                 rect = pygame.Rect(gx * cell, gy * cell, cell, cell)
-                self._screen.fill(color, rect)
+                surface.fill(color, rect)
 
     def _mean_pheromone_usage(self) -> float:
         """Return the mean local pheromone intensity under the agents."""

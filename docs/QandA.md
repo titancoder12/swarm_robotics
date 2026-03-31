@@ -938,3 +938,6 @@ A: The proper fix is to add real render scaling instead of creating the window a
 
 ## Q: What changed in prompt 48 for PyGame rendering?
 A: Prompt 48 implemented the proper scaling path. `env/swarm_env.py` now renders the world into an off-screen world surface at full simulation resolution, creates the actual PyGame window at a scaled size derived from `render_scale`, and smooth-scales the world surface into that window each frame. `train/experiment_utils.py` now exposes `--render-scale` so demo and other scripts can request a smaller display window without changing the world size or physics.
+
+## Q: Why did the pheromone heatmap disappear after the render-scaling change?
+A: Because the first scaling patch moved most world drawing to an off-screen world surface, but `_draw_pheromone()` was still drawing directly to the display surface. The scaled world surface was then blitted over it, hiding the pheromone layer. The fix is to draw the pheromone heatmap onto the same off-screen world surface as the rest of the world before scaling/blitting to the display.
