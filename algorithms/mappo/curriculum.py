@@ -22,6 +22,7 @@ class CurriculumStage:
     reward_collision: float | None = None
     reward_pickup: float | None = None
     reward_nest_approach: float | None = None
+    reward_nest_approach_sustained: float | None = None
     reward_nest_delivery: float | None = None
     reward_undelivered_food: float | None = None
     reward_food_approach: float | None = None
@@ -194,6 +195,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             reward_collision=-0.40,
             reward_pickup=7.0,
             reward_nest_approach=0.44,
+            reward_nest_approach_sustained=0.12,
             reward_nest_delivery=56.0,
             reward_undelivered_food=-18.0,
             reward_food_approach=0.03,
@@ -209,8 +211,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=34.0,
             target_nest_distance_max=46.0,
             agent_spawn_near_target_radius=18.0,
-            entropy_start=0.008,
-            entropy_end=0.0005,
+            entropy_start=0.004,
+            entropy_end=0.0001,
         )
     )
     stages.append(
@@ -218,7 +220,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             name="stage1e_single_agent_delivery_bridge",
             n_agents=1,
             total_steps=0,
-            budget_weight=2,
+            budget_weight=3,
             width=220,
             height=220,
             n_targets=1,
@@ -232,6 +234,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             reward_collision=-0.35,
             reward_pickup=7.0,
             reward_nest_approach=0.48,
+            reward_nest_approach_sustained=0.14,
             reward_nest_delivery=54.0,
             reward_undelivered_food=-20.0,
             reward_food_approach=0.025,
@@ -247,8 +250,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=38.0,
             target_nest_distance_max=54.0,
             agent_spawn_near_target_radius=22.0,
-            entropy_start=0.007,
-            entropy_end=0.0005,
+            entropy_start=0.003,
+            entropy_end=0.0001,
         )
     )
     stages.append(
@@ -256,7 +259,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             name="stage1f_single_agent_delivery_obstacles",
             n_agents=1,
             total_steps=0,
-            budget_weight=2,
+            budget_weight=3,
             width=300,
             height=240,
             n_targets=1,
@@ -270,6 +273,7 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             reward_collision=-0.40,
             reward_pickup=7.0,
             reward_nest_approach=0.46,
+            reward_nest_approach_sustained=0.14,
             reward_nest_delivery=52.0,
             reward_undelivered_food=-20.0,
             reward_food_approach=0.025,
@@ -285,8 +289,8 @@ def default_curriculum(full_agents: int) -> list[CurriculumStage]:
             target_nest_distance_min=42.0,
             target_nest_distance_max=60.0,
             agent_spawn_near_target_radius=26.0,
-            entropy_start=0.006,
-            entropy_end=0.0005,
+            entropy_start=0.002,
+            entropy_end=0.0001,
         )
     )
     stages.append(

@@ -158,6 +158,7 @@ Why this is the recommended starting point:
 - prompt 33 now tightens trainer pressure on those early return stages: entropy decays faster there, greedy checkpoint scoring weights completed delivery and conversion more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
 - prompt 34 makes `--total-steps` a real hard global cap in the trainer and tightens later-stage scoring/promotion so pickup-without-delivery is treated as failure rather than progress
 - prompt 35 now adds carrying-phase stall penalties and metrics, so once an agent is carrying food the trainer can measure and penalize no-progress / low-displacement return behavior instead of only noticing pickup and delivery endpoints
+- prompt 36 now pushes the homing stages further toward deterministic return behavior by adding sustained carrying-progress shaping, lowering return-stage entropy more aggressively, and tightening early return-stage delivery/conversion promotion targets
 - the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes
@@ -165,6 +166,7 @@ Why this is the recommended starting point:
 - the trainer now prints sampled-vs-greedy pickup/delivery gaps and saves `best_greedy_eval/` so demo can use the strongest greedy checkpoint instead of assuming `latest/` is best
 - stage summaries now also print pickup-to-delivery conversion, which is the main signal for whether return-to-nest behavior is actually forming
 - episode/eval CSVs now also include carrying-phase signals such as stall events, low-progress fraction, low-displacement fraction, and carrying-penalty totals
+- checkpoint metadata now also records the sustained carrying-progress reward coefficient used for the stage
 - the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
 - a shorter run can finish, but often leaves the later full-swarm stages undertrained
 - `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo

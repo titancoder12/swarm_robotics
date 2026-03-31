@@ -82,6 +82,7 @@ class SwarmConfig:
     reward_pickup: float = 6.0               # meaningful event, but clearly smaller than final completion
     reward_nest_delivery: float = 30.0       # main task completion reward
     reward_nest_approach: float = 0.08       # carrying-food progress toward nest
+    reward_nest_approach_sustained: float = 0.04
     reward_undelivered_food: float = -10.0   # penalty if episode ends while still carrying food
 
     reward_step: float = -0.01              # gentle time pressure
@@ -95,6 +96,7 @@ class SwarmConfig:
     carrying_progress_epsilon: float = 2.0
     carrying_low_displacement_threshold: float = 3.0
     carrying_stall_trigger_steps: int = 6
+    carrying_progress_streak_threshold: int = 3
 
     reward_food_approach: float = 0.03      # small signed shaping only
     reward_food_detected: float = 0.15      # one-time local cue, kept modest

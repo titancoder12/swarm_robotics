@@ -112,6 +112,8 @@ def _build_env(args, stage):
         cfg.reward_pickup = float(stage.reward_pickup)
     if stage.reward_nest_approach is not None:
         cfg.reward_nest_approach = float(stage.reward_nest_approach)
+    if stage.reward_nest_approach_sustained is not None:
+        cfg.reward_nest_approach_sustained = float(stage.reward_nest_approach_sustained)
     if stage.reward_nest_delivery is not None:
         cfg.reward_nest_delivery = float(stage.reward_nest_delivery)
     if stage.reward_undelivered_food is not None:
@@ -173,11 +175,11 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
     if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
     if stage.name == "stage1d_single_agent_guaranteed_homing":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=2.0, min_conversion=0.20)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage1e_single_agent_delivery_bridge":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.20)
     if stage.name == "stage1f_single_agent_delivery_obstacles":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.8, min_conversion=0.08)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.10)
     if stage.name == "stage2a_small_swarm_medium":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
     if stage.name == "stage2b_small_swarm_large":
@@ -599,6 +601,7 @@ def train(args):
                 f"carry_low_disp={cfg.carrying_low_displacement_penalty:.3f} | "
                 f"reward_step={cfg.reward_step:.4f} | reward_collision={cfg.reward_collision:.2f} | "
                 f"reward_pickup={cfg.reward_pickup:.2f} | reward_nest_approach={cfg.reward_nest_approach:.2f} | "
+                f"reward_nest_sustain={cfg.reward_nest_approach_sustained:.2f} | "
                 f"reward_delivery={cfg.reward_nest_delivery:.2f} | "
                 f"reward_undelivered={cfg.reward_undelivered_food:.2f} | "
                 f"pheromone={'on' if cfg.pheromone_enabled else 'off'} | "
@@ -966,6 +969,7 @@ def train(args):
                 "reward_collision": float(cfg.reward_collision),
                 "reward_pickup": float(cfg.reward_pickup),
                 "reward_nest_approach": float(cfg.reward_nest_approach),
+                "reward_nest_approach_sustained": float(cfg.reward_nest_approach_sustained),
                 "reward_nest_delivery": float(cfg.reward_nest_delivery),
                 "reward_undelivered_food": float(cfg.reward_undelivered_food),
                 "reward_food_approach": float(cfg.reward_food_approach),

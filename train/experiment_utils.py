@@ -219,6 +219,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--reward-pickup", type=float, default=6.0)
     parser.add_argument("--reward-nest-delivery", type=float, default=30.0)
     parser.add_argument("--reward-nest-approach", type=float, default=0.08)
+    parser.add_argument("--reward-nest-approach-sustained", type=float, default=0.04)
     parser.add_argument("--reward-undelivered-food", type=float, default=-10.0)
     parser.add_argument("--reward-pheromone-deposit-cost", type=float, default=-0.001)
     parser.add_argument("--reward-action-switch", type=float, default=-0.01)
@@ -230,6 +231,7 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--carrying-progress-epsilon", type=float, default=2.0)
     parser.add_argument("--carrying-low-displacement-threshold", type=float, default=3.0)
     parser.add_argument("--carrying-stall-trigger-steps", type=int, default=6)
+    parser.add_argument("--carrying-progress-streak-threshold", type=int, default=3)
     parser.add_argument("--pheromone-requires-food", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--pheromone-deposit-requires-nest-progress", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--eval-steps", type=int, default=600)
@@ -269,10 +271,12 @@ def make_swarm_config(args) -> SwarmConfig:
         carrying_progress_epsilon=getattr(args, "carrying_progress_epsilon", 2.0),
         carrying_low_displacement_threshold=getattr(args, "carrying_low_displacement_threshold", 3.0),
         carrying_stall_trigger_steps=max(1, int(getattr(args, "carrying_stall_trigger_steps", 6))),
+        carrying_progress_streak_threshold=max(1, int(getattr(args, "carrying_progress_streak_threshold", 3))),
         reward_target=getattr(args, "reward_target", 0.0),
         reward_pickup=getattr(args, "reward_pickup", 6.0),
         reward_nest_delivery=getattr(args, "reward_nest_delivery", 30.0),
         reward_nest_approach=getattr(args, "reward_nest_approach", 0.08),
+        reward_nest_approach_sustained=getattr(args, "reward_nest_approach_sustained", 0.04),
         reward_undelivered_food=getattr(args, "reward_undelivered_food", -10.0),
         reward_food_approach=getattr(args, "reward_food_approach", 0.03),
         reward_food_detected=getattr(args, "reward_food_detected", 0.15),

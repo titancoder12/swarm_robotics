@@ -122,11 +122,13 @@ class SwarmEnv(ParallelEnv):
         self.first_delivery_step: int | None = None
         self._prev_agent_positions = np.zeros((self.cfg.n_agents, 2), dtype=np.float32)
         self._carrying_no_progress_counts = np.zeros((self.cfg.n_agents,), dtype=np.int32)
+        self._carrying_progress_streaks = np.zeros((self.cfg.n_agents,), dtype=np.int32)
         self.episode_carrying_stall_steps = 0
         self.episode_carrying_stall_events = 0
         self.episode_carrying_low_progress_steps = 0
         self.episode_carrying_low_displacement_steps = 0
         self.episode_carrying_progress_reward = 0.0
+        self.episode_carrying_sustained_progress_reward = 0.0
         self.episode_carrying_penalty_total = 0.0
 
         self.step_count = 0
@@ -328,6 +330,7 @@ class SwarmEnv(ParallelEnv):
         self.episode_carrying_low_progress_steps = 0
         self.episode_carrying_low_displacement_steps = 0
         self.episode_carrying_progress_reward = 0.0
+        self.episode_carrying_sustained_progress_reward = 0.0
         self.episode_carrying_penalty_total = 0.0
         self._init_coverage_grid()
         self._assign_failed_agents()
@@ -336,6 +339,7 @@ class SwarmEnv(ParallelEnv):
         self._prev_nest_distances = self._compute_nest_distance_state()
         self._prev_agent_positions = np.array([[agent.x, agent.y] for agent in self.agent_states], dtype=np.float32)
         self._carrying_no_progress_counts.fill(0)
+        self._carrying_progress_streaks.fill(0)
 
         # Optional pheromone grid for stigmergy.
         if self.cfg.pheromone_enabled:
@@ -437,9 +441,11 @@ class SwarmEnv(ParallelEnv):
         picked_up, delivered, pickup_reward, delivery_reward = self._handle_targets(rewards)
         reward_breakdown["pickup"] += float(pickup_reward)
         reward_breakdown["delivery"] += float(delivery_reward)
-        nest_approach_reward = self._apply_nest_return_shaping(rewards, prev_nest_distances)
+        nest_approach_reward, sustained_progress_reward = self._apply_nest_return_shaping(rewards, prev_nest_distances)
         reward_breakdown["nest_approach"] += float(nest_approach_reward)
         self.episode_carrying_progress_reward += float(nest_approach_reward)
+        reward_breakdown["nest_approach_sustained"] = float(sustained_progress_reward)
+        self.episode_carrying_sustained_progress_reward += float(sustained_progress_reward)
 
         (
             carrying_penalty_total,
@@ -536,6 +542,7 @@ class SwarmEnv(ParallelEnv):
             "episode_carrying_low_progress_steps": int(self.episode_carrying_low_progress_steps),
             "episode_carrying_low_displacement_steps": int(self.episode_carrying_low_displacement_steps),
             "carrying_progress_reward_total": float(self.episode_carrying_progress_reward),
+            "carrying_sustained_progress_reward_total": float(self.episode_carrying_sustained_progress_reward),
             "carrying_penalty_total": float(self.episode_carrying_penalty_total),
             "carrying_stall_fraction": float(self.episode_carrying_stall_steps / max(self.step_count, 1)),
             "carrying_low_progress_fraction": float(self.episode_carrying_low_progress_steps / max(self.step_count, 1)),
@@ -1087,28 +1094,38 @@ class SwarmEnv(ParallelEnv):
             distances[i] = float(math.hypot(agent.x - nx, agent.y - ny))
         return distances
 
-    def _apply_nest_return_shaping(self, rewards: np.ndarray, prev_nest_distances: np.ndarray) -> float:
+    def _apply_nest_return_shaping(self, rewards: np.ndarray, prev_nest_distances: np.ndarray) -> tuple[float, float]:
         """Reward carrying agents for making signed progress back toward the nest."""
         if not (self.cfg.nest_enabled and self.cfg.require_nest_delivery):
-            return 0.0
+            return 0.0, 0.0
         current_distances = self._compute_nest_distance_state()
         reward_total = 0.0
+        sustained_reward_total = 0.0
+        progress_eps = float(max(self.cfg.carrying_progress_epsilon, 0.0))
+        streak_threshold = int(max(self.cfg.carrying_progress_streak_threshold, 1))
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices or not agent.carrying_food:
+                self._carrying_progress_streaks[i] = 0
                 continue
             prev_dist = float(prev_nest_distances[i])
             curr_dist = float(current_distances[i])
             if not (np.isfinite(prev_dist) and np.isfinite(curr_dist)) or curr_dist == prev_dist:
+                self._carrying_progress_streaks[i] = 0
                 continue
-            progress = np.clip(
-                (prev_dist - curr_dist) / max(float(self.cfg.lidar_max_range), 1e-6),
-                -1.0,
-                1.0,
-            )
+            raw_progress = prev_dist - curr_dist
+            progress = np.clip(raw_progress / max(float(self.cfg.lidar_max_range), 1e-6), -1.0, 1.0)
             reward = float(self.cfg.reward_nest_approach) * progress
             rewards[i] += reward
             reward_total += reward
-        return reward_total
+            if raw_progress >= progress_eps:
+                self._carrying_progress_streaks[i] += 1
+                if self._carrying_progress_streaks[i] >= streak_threshold:
+                    sustained_reward = float(self.cfg.reward_nest_approach_sustained) * max(progress, 0.0)
+                    rewards[i] += sustained_reward
+                    sustained_reward_total += sustained_reward
+            else:
+                self._carrying_progress_streaks[i] = 0
+        return reward_total, sustained_reward_total
 
     def _apply_carrying_phase_penalties(
         self,
@@ -1131,9 +1148,11 @@ class SwarmEnv(ParallelEnv):
         for i, agent in enumerate(self.agent_states):
             if i in self.failed_agent_indices:
                 self._carrying_no_progress_counts[i] = 0
+                self._carrying_progress_streaks[i] = 0
                 continue
             if not agent.carrying_food:
                 self._carrying_no_progress_counts[i] = 0
+                self._carrying_progress_streaks[i] = 0
                 continue
             prev_dist = float(prev_nest_distances[i])
             curr_dist = float(current_distances[i])
