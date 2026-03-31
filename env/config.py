@@ -78,6 +78,8 @@ class SwarmConfig:
     non_carrying_idle_near_nest_penalty: float = 0.0
     non_carrying_low_displacement_threshold: float = 0.0
     non_carrying_explore_ignore_pheromone: bool = False
+    non_carrying_force_explore_mode: bool = False
+    non_carrying_force_explore_radius: float = 0.0
     post_delivery_cooldown_steps: int = 0
     post_delivery_exit_radius: float = 0.0
     post_delivery_outward_reward: float = 0.0

@@ -151,6 +151,7 @@ Control/reward staging now also changes with difficulty:
 - prompt 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
 - prompt 39 then stabilizes bridge-stage greedy behavior at the trainer level: stage-end evaluation and promotion now restore the best within-stage bridge policy before evaluating it, so the stage no longer has to end on a later drifted policy after it already discovered a better one
 - prompts 42 through 45 then harden the late swarm behavior around the nest: post-delivery outward shaping is held until agents actually leave the nest zone, and non-carrying agents near the nest now receive explicit outward-search shaping plus strong loiter, crowding, idle, and no-outward-progress penalties
+- prompt 46 then adds an explicit env-side non-carrying force-explore mode in the late swarm stages: empty agents inside the nest-adjacent force-explore radius can have orbit-friendly actions overridden with outward-moving actions, so the system is no longer relying only on scalar penalties to break nest orbit
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
 Prompt 29 also changes entropy handling:

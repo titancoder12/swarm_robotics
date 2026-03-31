@@ -231,6 +231,12 @@ Prompt 44 and prompt 45 then strengthen the late swarm behavior around the nest:
 - non-carrying agents are pushed to fan out and explore instead of orbiting the nest
 - late swarm stages now use strong non-carrying loiter, crowding, idle, and no-outward-progress penalties near the nest
 
+Prompt 46 then goes beyond reward shaping and adds an explicit env-side “leave the nest zone” mode for empty agents in the late swarm stages:
+
+- if a non-carrying agent remains inside the configured nest-adjacent force-explore radius, the env can override its chosen action with an outward-moving action
+- this is meant to break the specific orbiting / turn-in-place / local-circling failure mode that larger scalar penalties alone did not eliminate
+- carrying-food return behavior is unchanged; this mode is only for empty agents near the nest
+
 Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
 What the main arguments mean:

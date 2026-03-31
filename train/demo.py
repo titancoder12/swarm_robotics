@@ -218,6 +218,18 @@ def _build_demo_env(args):
                     getattr(args_copy, "non_carrying_explore_ignore_pheromone", False),
                 )
             )
+            args_copy.non_carrying_force_explore_mode = bool(
+                metadata.get(
+                    "non_carrying_force_explore_mode",
+                    getattr(args_copy, "non_carrying_force_explore_mode", False),
+                )
+            )
+            args_copy.non_carrying_force_explore_radius = float(
+                metadata.get(
+                    "non_carrying_force_explore_radius",
+                    getattr(args_copy, "non_carrying_force_explore_radius", 0.0),
+                )
+            )
 
     cfg = make_swarm_config(args_copy)
     if metadata:

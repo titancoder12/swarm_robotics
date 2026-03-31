@@ -156,6 +156,8 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_outward_reward = 0.0
         self.episode_non_carrying_idle_near_nest_steps = 0
         self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
+        self.episode_non_carrying_force_explore_steps = 0
+        self.episode_non_carrying_force_explore_overrides = 0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -369,6 +371,8 @@ class SwarmEnv(ParallelEnv):
         self.episode_non_carrying_outward_reward = 0.0
         self.episode_non_carrying_idle_near_nest_steps = 0
         self.episode_non_carrying_idle_near_nest_penalty_total = 0.0
+        self.episode_non_carrying_force_explore_steps = 0
+        self.episode_non_carrying_force_explore_overrides = 0
         self.episode_post_delivery_active_steps = 0
         self.episode_post_delivery_outward_reward = 0.0
         self.episode_post_delivery_loiter_penalty_total = 0.0
@@ -414,6 +418,11 @@ class SwarmEnv(ParallelEnv):
 
         # One environment tick: apply actions, move agents, compute rewards/obs.
         requested_actions = np.array([actions[agent] for agent in self.agents], dtype=np.int64)
+        requested_actions, force_explore_steps, force_explore_overrides = self._apply_non_carrying_force_explore_mode(
+            requested_actions
+        )
+        self.episode_non_carrying_force_explore_steps += int(force_explore_steps)
+        self.episode_non_carrying_force_explore_overrides += int(force_explore_overrides)
         actions = np.empty_like(requested_actions)
         for i in range(self.cfg.n_agents):
             if self._hold_remaining[i] > 0:
@@ -625,6 +634,8 @@ class SwarmEnv(ParallelEnv):
             "non_carrying_outward_reward_total": float(self.episode_non_carrying_outward_reward),
             "non_carrying_idle_near_nest_fraction": float(self.episode_non_carrying_idle_near_nest_steps / max(self.step_count, 1)),
             "non_carrying_idle_near_nest_penalty_total": float(self.episode_non_carrying_idle_near_nest_penalty_total),
+            "non_carrying_force_explore_fraction": float(self.episode_non_carrying_force_explore_steps / max(self.step_count, 1)),
+            "non_carrying_force_explore_overrides": float(self.episode_non_carrying_force_explore_overrides),
             "post_delivery_active_fraction": float(self.episode_post_delivery_active_steps / max(self.step_count, 1)),
             "post_delivery_outward_reward": float(self.episode_post_delivery_outward_reward),
             "post_delivery_loiter_penalty_total": float(self.episode_post_delivery_loiter_penalty_total),
@@ -760,6 +771,55 @@ class SwarmEnv(ParallelEnv):
                 for deposit in deposit_vals:
                     table.append((throttle, turn, deposit))
         return table
+
+    def _choose_outward_action(self, agent: AgentState) -> int:
+        """Choose a forward action that turns the agent away from the nest."""
+        if not self.cfg.nest_enabled:
+            return 16
+        nx, ny = self.nest_position
+        away_x = float(agent.x - nx)
+        away_y = float(agent.y - ny)
+        if away_x == 0.0 and away_y == 0.0:
+            return 16
+        away_angle = math.atan2(away_y, away_x)
+        angle_error = math.atan2(math.sin(away_angle - agent.theta), math.cos(away_angle - agent.theta))
+        if angle_error > 0.25:
+            desired_turn = 1.0
+        elif angle_error < -0.25:
+            desired_turn = -1.0
+        else:
+            desired_turn = 0.0
+        for action_id, (throttle, turn, deposit) in enumerate(self.action_table):
+            if throttle == 1.0 and turn == desired_turn and deposit == 0:
+                return action_id
+        return 16
+
+    def _apply_non_carrying_force_explore_mode(self, requested_actions: np.ndarray) -> tuple[np.ndarray, int, int]:
+        """Override empty-agent actions near the nest with outward-moving actions."""
+        if not self.cfg.nest_enabled or not bool(getattr(self.cfg, "non_carrying_force_explore_mode", False)):
+            return requested_actions, 0, 0
+        radius = float(max(getattr(self.cfg, "non_carrying_force_explore_radius", 0.0), 0.0))
+        if radius <= 0.0:
+            return requested_actions, 0, 0
+        adjusted = requested_actions.copy()
+        steps = 0
+        overrides = 0
+        nx, ny = self.nest_position
+        radius_sq = radius ** 2
+        for i, agent in enumerate(self.agent_states):
+            if i in self.failed_agent_indices or agent.carrying_food or int(getattr(agent, "post_delivery_steps", 0)) > 0:
+                continue
+            dist_sq = (agent.x - nx) ** 2 + (agent.y - ny) ** 2
+            if dist_sq > radius_sq:
+                continue
+            steps += 1
+            outward_action = self._choose_outward_action(agent)
+            if int(adjusted[i]) != int(outward_action):
+                adjusted[i] = int(outward_action)
+                self._hold_remaining[i] = 0
+                self._held_actions[i] = int(outward_action)
+                overrides += 1
+        return adjusted, steps, overrides
 
     def _select_driver(self, mode: str) -> DynamicsDriver:
         """Return a dynamics driver based on the configured mode."""
