@@ -672,3 +672,93 @@ A: In the current renderer in [env/swarm_env.py](../env/swarm_env.py), targets a
 ## Q: Is epsilon implemented right now in the curriculum learning path?
 
 A: No, not in the MAPPO curriculum path. The current curriculum system in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py) is used by the recurrent MAPPO trainer in [train/mappo_gru.py](../train/mappo_gru.py), and that trainer does not use epsilon-greedy exploration. MAPPO samples actions from the policy distribution during training and uses greedy `argmax` actions during demo/evaluation. Epsilon-style exploration is still part of the DQN path in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py), but that is separate from the curriculum-learning MAPPO setup.
+
+## Q: What training command is likely to provide sufficient MAPPO training?
+
+A: For the current full curriculum and final-stage difficulty, `30k` or even `180k` total steps are still more like short-to-medium runs than “sufficient” runs. A more serious starting point for this repo is:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 8 --reward-nest-delivery 30 --reward-undelivered-food -5 --folder-name mappo_full_600k
+```
+
+The reason is that the current curriculum spreads training across multiple stages, while the final stage is still a large `1400x950` world with `18` obstacles, `3` respawning food sources, and `6` agents. So if the goal is “sufficient” rather than just “runs,” you usually want several hundred thousand total steps so the later swarm stages get meaningful time instead of only brief fine-tuning.
+
+## Q: How does that differ from `python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 200000 --folder-name mappo_a`?
+
+A: The main difference is simply training budget. If you omit flags like `--rollout-steps`, `--update-epochs`, and `--minibatch-size`, [train/mappo_gru.py](../train/mappo_gru.py) still uses the same defaults (`128`, `4`, and `256` respectively), so those parts are effectively the same. The real difference is that `200000` total steps gives the curriculum much less total experience than `600000`, while the curriculum still has to spread that budget across all stages before the final `1400x950`, `18`-obstacle, `6`-agent stage gets serious time. So `200k` is a reasonable medium run, but it is much more likely to leave the final stage undertrained; `600k` is not a different algorithm or a different trainer configuration so much as a much larger chance for the later stages to actually learn delivery and trail reuse.
+
+## Q: What is the recommended full training command, and what does each argument mean?
+
+A: A solid current full-run command for the MAPPO path is:
+
+```bash
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 8 --reward-nest-delivery 30 --reward-undelivered-food -5 --folder-name mappo_full_600k
+```
+
+What each argument does:
+
+- `python train/train.py`
+  - runs the top-level training entrypoint for the repo
+
+- `--backend mappo`
+  - selects the recurrent MAPPO trainer instead of the custom DQN, SB3, or RLlib paths
+
+- `--headless`
+  - disables the PyGame window during training so the run is faster and better suited to long jobs
+
+- `--curriculum full`
+  - uses the full staged MAPPO curriculum rather than only the early stages
+  - this means training progresses through the single-agent, small-swarm, and full-swarm stages
+
+- `--n-agents 6`
+  - sets the target full-swarm size for the later curriculum stages
+  - the earlier curriculum stages still override this downward when they intentionally train with fewer agents
+
+- `--total-steps 600000`
+  - sets the total amount of training across the full curriculum
+  - this is the biggest reason the command is considered a more serious run than a short or medium smoke run
+
+- `--rollout-steps 128`
+  - each on-policy MAPPO update collects rollouts in chunks of 128 env steps before optimization
+
+- `--update-epochs 4`
+  - after each rollout, PPO-style updates are run for 4 passes over that collected batch
+
+- `--minibatch-size 256`
+  - controls the minibatch size used during PPO optimization over the rollout data
+
+- `--eval-every 10000`
+  - runs periodic evaluation every 10,000 training steps
+  - this does not change the learning rule directly, but it gives useful progress checkpoints during long runs
+
+- `--eval-episodes 5`
+  - each scheduled evaluation uses 5 evaluation episodes instead of just 1
+  - this makes eval less noisy
+
+- `--reward-pickup 8`
+  - keeps pickup meaningful, but still smaller than full delivery
+
+- `--reward-nest-delivery 30`
+  - makes successful return-to-nest delivery the strongest core task reward
+
+- `--reward-undelivered-food -5`
+  - penalizes ending an episode while still carrying food
+  - this helps discourage “pick up but never bring it home” behavior
+
+- `--folder-name mappo_full_600k`
+  - controls the output/checkpoint naming
+  - checkpoints will go under `checkpoints/mappo_full_600k/`
+  - run logs will use the same base name
+
+Why this command is recommended:
+
+- it keeps the current default PPO/MAPPO optimizer settings that already match the trainer
+- it gives the curriculum enough total budget that the later hard stages are not starved
+- it preserves the current reward ordering of pickup < delivery
+- it gives you periodic evaluation during the run instead of training blind
+
+What it is not:
+
+- it is not guaranteed to produce a perfect policy
+- it is not the only valid command
+- it is a practical strong starting point for the current repo, not a proof of optimality

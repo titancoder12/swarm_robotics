@@ -86,11 +86,64 @@ The current default task settings now make that loop more explicit:
 - agents can carry only one food item at a time
 - carrying agents render in a distinct green-highlighted color in demo mode
 
-Main training run:
+Recommended full training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 180000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 5000 --eval-episodes 5 --n-targets 3 --active-targets 3 --food-source-capacity 4 --target-respawn --folder-name mappo_trail_full
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --reward-pickup 8 --reward-nest-delivery 30 --reward-undelivered-food -5 --folder-name mappo_full_600k
 ```
+
+What the main arguments mean:
+
+- `--backend mappo`
+  - use the recurrent MAPPO trainer instead of the DQN/SB3/RLlib paths
+
+- `--headless`
+  - run without opening a PyGame window so long training is faster and more stable
+
+- `--curriculum full`
+  - train through the full staged curriculum rather than only the early stages
+
+- `--n-agents 6`
+  - target six agents for the later full-swarm curriculum stages
+
+- `--total-steps 600000`
+  - total training budget across the whole curriculum
+  - this is much more serious than a short `30k`–`200k` run because the later stages need real time
+
+- `--rollout-steps 128`
+  - collect on-policy rollouts in chunks of 128 steps before PPO-style updates
+
+- `--update-epochs 4`
+  - run four optimization passes over each collected rollout batch
+
+- `--minibatch-size 256`
+  - minibatch size used during PPO optimization
+
+- `--eval-every 10000`
+  - run evaluation every 10,000 training steps
+
+- `--eval-episodes 5`
+  - use five episodes for each scheduled evaluation so eval is less noisy
+
+- `--reward-pickup 8`
+  - keep pickup meaningful, but not as important as completed delivery
+
+- `--reward-nest-delivery 30`
+  - make successful return-to-nest delivery the strongest core task reward
+
+- `--reward-undelivered-food -5`
+  - penalize ending an episode while still carrying food
+  - this helps discourage “pick up but never bring it home”
+
+- `--folder-name mappo_full_600k`
+  - base name for checkpoints and run outputs
+
+Why this is the recommended starting point:
+
+- the current curriculum spreads learning across many stages
+- the final stage is still large and hard: `1400x950`, `18` obstacles, `6` agents
+- a shorter run can finish, but often leaves the later full-swarm stages undertrained
+- `600k` is not guaranteed to be optimal, but it is a practical strong starting point for the current repo
 
 Short smoke test:
 
