@@ -156,6 +156,7 @@ Why this is the recommended starting point:
 - the early stages now deliberately simplify the task: pheromone is disabled in stage 1, movement penalties are softened, and pickup/delivery cues are stronger so greedy `pickup -> return -> deliver` behavior can form first
 - prompts 30, 31, and 32 now suppress exploration reward while carrying in the return-focused stages, add a dedicated guaranteed-homing stage with controlled target/agent placement, and then reintroduce clutter through a bridge stage before the true obstacle-return stage
 - prompt 33 now tightens trainer pressure on those early return stages: entropy decays faster there, greedy checkpoint scoring weights completed delivery and conversion more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
+- prompt 34 makes `--total-steps` a real hard global cap in the trainer and tightens later-stage scoring/promotion so pickup-without-delivery is treated as failure rather than progress
 - the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes

@@ -172,6 +172,7 @@ Stage progression is now greedy-eval-aware:
 - if the target is not met, the stage can repeat up to `--stage-repeat-limit` times
 - if the limit is exceeded, training advances but records that the stage did not promote cleanly
 - prompt 33 also makes the early return stages more visibly greedy-aligned by emphasizing delivery in greedy checkpoint scoring and by exposing sampled-vs-greedy gaps directly in the runtime summaries
+- prompt 34 then extends that discipline to the later stages: `--total-steps` is treated as a real hard global budget, promotion targets now include minimum delivery conversion, and later-stage greedy scoring penalizes pickup-rich / delivery-zero behavior instead of letting it appear successful
 
 ## Example Commands
 

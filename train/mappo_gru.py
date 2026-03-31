@@ -53,6 +53,7 @@ class MAPPOConfig:
 class StagePromotionTarget:
     min_pickups: float = 0.0
     min_deliveries: float = 0.0
+    min_conversion: float = 0.0
 
 
 def parse_args(argv=None):
@@ -158,22 +159,30 @@ def _pad_state(state: np.ndarray, target_dim: int) -> np.ndarray:
 
 def _stage_promotion_target(stage) -> StagePromotionTarget:
     if stage.name == "stage1a_single_agent_miniscule":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name in {"stage1b_single_agent_tiny", "stage1c_single_agent_small"}:
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
     if stage.name == "stage1d_single_agent_guaranteed_homing":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=2.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=2.0, min_conversion=0.20)
     if stage.name == "stage1e_single_agent_delivery_bridge":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
     if stage.name == "stage1f_single_agent_delivery_obstacles":
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.8)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.8, min_conversion=0.08)
+    if stage.name == "stage2a_small_swarm_medium":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
+    if stage.name == "stage2b_small_swarm_large":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.03)
+    if stage.name == "stage3a_full_swarm_large":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.02)
+    if stage.name == "stage3b_full_swarm_final":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.02)
     if int(stage.n_agents) == 1:
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
     if not bool(stage.target_respawn):
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
     if int(stage.n_agents) < 5:
-        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5)
-    return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.2)
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.03)
+    return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.02)
 
 
 def _meets_stage_promotion(stage, eval_metrics) -> bool:
@@ -181,6 +190,7 @@ def _meets_stage_promotion(stage, eval_metrics) -> bool:
     return (
         float(eval_metrics.get("food_picked_up", 0.0)) >= target.min_pickups
         and float(eval_metrics.get("food_retrieved", 0.0)) >= target.min_deliveries
+        and float(eval_metrics.get("delivery_conversion", 0.0)) >= target.min_conversion
     )
 
 
@@ -189,6 +199,10 @@ def _is_return_critical_stage(stage) -> bool:
         "stage1d_single_agent_guaranteed_homing",
         "stage1e_single_agent_delivery_bridge",
         "stage1f_single_agent_delivery_obstacles",
+        "stage2a_small_swarm_medium",
+        "stage2b_small_swarm_large",
+        "stage3a_full_swarm_large",
+        "stage3b_full_swarm_final",
     }
 
 
@@ -203,6 +217,13 @@ def _greedy_eval_score(stage, eval_metrics) -> float:
         score += delivered * 2000.0 + conversion * 1500.0
         if picked_up > 0.0 and delivered <= 0.0:
             score -= picked_up * 250.0
+    if stage.name in {
+        "stage2a_small_swarm_medium",
+        "stage2b_small_swarm_large",
+        "stage3a_full_swarm_large",
+        "stage3b_full_swarm_final",
+    } and delivered <= 0.0:
+        score -= 5000.0
     return score
 
 
@@ -469,6 +490,7 @@ def train(args):
     train_start_time = time.time()
     best_greedy_eval_score = float("-inf")
     best_greedy_eval_metadata = None
+    hard_budget_exhausted = False
 
     write_json(
         os.path.join(run_dir, "run_config.json"),
@@ -500,8 +522,12 @@ def train(args):
         resume_path = ""
 
     for stage_index, stage in enumerate(curriculum, start=1):
+        if hard_budget_exhausted or global_step >= args.total_steps:
+            break
         stage_attempt = 0
         while True:
+            if hard_budget_exhausted or global_step >= args.total_steps:
+                break
             stage_attempt += 1
             stage_start_step = global_step
             stage_start_time = time.time()
@@ -554,7 +580,7 @@ def train(args):
                 f"env_state_dim={spaces.state_dim} | critic_state_dim={critic_state_dim}"
             )
 
-            while stage_steps < stage.total_steps:
+            while stage_steps < stage.total_steps and global_step < args.total_steps:
                 rollout = {
                     "obs": np.zeros((mappo_cfg.rollout_steps, cfg.n_agents, spaces.obs_dim), dtype=np.float32),
                     "state": np.zeros((mappo_cfg.rollout_steps, critic_state_dim), dtype=np.float32),
@@ -571,6 +597,9 @@ def train(args):
 
                 collected = 0
                 for t in range(mappo_cfg.rollout_steps):
+                    if global_step + cfg.n_agents > args.total_steps:
+                        hard_budget_exhausted = True
+                        break
                     rollout["obs"][t] = obs
                     rollout["state"][t] = state
                     rollout["actor_hidden"][t] = actor_hidden.squeeze(0).detach().cpu().numpy()
@@ -699,6 +728,9 @@ def train(args):
                         first_pickup_step = -1
                         first_delivery_step = -1
 
+                if collected == 0:
+                    break
+
                     if stage_steps >= stage.total_steps:
                         break
 
@@ -778,7 +810,12 @@ def train(args):
                         torch.nn.utils.clip_grad_norm_(critic.parameters(), mappo_cfg.max_grad_norm)
                         critic_opt.step()
 
-                if args.eval_every > 0 and global_step > 0 and global_step % args.eval_every < cfg.n_agents:
+                if (
+                    not hard_budget_exhausted
+                    and args.eval_every > 0
+                    and global_step > 0
+                    and global_step % args.eval_every < cfg.n_agents
+                ):
                     eval_metrics = _evaluate(actor, critic, cfg, critic_state_dim, device, args.eval_episodes, args.seed + 10_000 + stage_index)
                     if eval_metrics:
                         eval_logger.log(
@@ -908,6 +945,7 @@ def train(args):
                 "curriculum_critic_transfer": True,
                 "promotion_min_pickups": promotion_target.min_pickups,
                 "promotion_min_deliveries": promotion_target.min_deliveries,
+                "promotion_min_conversion": promotion_target.min_conversion,
                 "stage_promoted": stage_promoted,
                 "sampled_mean_episode_reward": float(sampled_mean_reward),
                 "sampled_mean_food_picked_up": float(sampled_mean_pickups),
@@ -915,6 +953,7 @@ def train(args):
                 "sampled_delivery_conversion": float(sampled_delivery_conversion),
                 "sampled_greedy_pickup_gap": float(sampled_greedy_pickup_gap),
                 "sampled_greedy_delivery_gap": float(sampled_greedy_delivery_gap),
+                "hard_budget_exhausted": bool(hard_budget_exhausted),
                 "stage_end_eval": stage_end_eval,
                 "recommended_demo_checkpoint": "best_greedy_eval",
             }
@@ -978,29 +1017,39 @@ def train(args):
                 f"greedy_delivery={greedy_deliveries:.2f} | "
                 f"greedy_conversion={greedy_delivery_conversion:.2f} | "
                 f"gap_pickup={sampled_greedy_pickup_gap:.2f} | gap_delivery={sampled_greedy_delivery_gap:.2f} | "
+                f"hard_stop={'yes' if hard_budget_exhausted else 'no'} | "
                 f"promoted={stage_promoted} | best_eval_score={stage_best_eval_score:.2f} | "
                 f"elapsed={_format_duration(stage_elapsed)}"
             )
             env.close()
-            if stage_promoted or stage_attempt > args.stage_repeat_limit:
+            if hard_budget_exhausted or stage_promoted or stage_attempt > args.stage_repeat_limit:
                 if not stage_promoted:
                     print(
                         f"[MAPPO] Advancing despite unmet stage target after {stage_attempt} attempt(s): "
                         f"required pick_up>={promotion_target.min_pickups:.2f}, "
                         f"delivery>={promotion_target.min_deliveries:.2f}, "
-                        f"got pick_up={float(stage_end_eval.get('food_picked_up', 0.0)) if stage_end_eval else 0.0:.2f}, "
-                        f"delivery={float(stage_end_eval.get('food_retrieved', 0.0)) if stage_end_eval else 0.0:.2f}"
+                        f"conversion>={promotion_target.min_conversion:.2f}, "
+                        f"got pick_up={greedy_pickups:.2f}, "
+                        f"delivery={greedy_deliveries:.2f}, "
+                        f"conversion={greedy_delivery_conversion:.2f}"
                     )
+                if hard_budget_exhausted:
+                    print(f"[MAPPO] Stopping because hard global step cap {args.total_steps} was reached.")
                 break
             print(
                 f"[MAPPO] Repeating stage {stage.name} because greedy eval did not meet promotion target: "
                 f"required pick_up>={promotion_target.min_pickups:.2f}, "
                 f"delivery>={promotion_target.min_deliveries:.2f}, "
+                f"conversion>={promotion_target.min_conversion:.2f}, "
                 f"got pick_up={greedy_pickups:.2f}, "
                 f"delivery={greedy_deliveries:.2f}, "
+                f"conversion={greedy_delivery_conversion:.2f}, "
                 f"gap_pickup={sampled_greedy_pickup_gap:.2f}, "
                 f"gap_delivery={sampled_greedy_delivery_gap:.2f}"
             )
+
+        if hard_budget_exhausted or global_step >= args.total_steps:
+            break
 
     episode_logger.close()
     eval_logger.close()
