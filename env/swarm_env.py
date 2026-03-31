@@ -174,6 +174,7 @@ class SwarmEnv(ParallelEnv):
         self._screen = None
         self._world_surface = None
         self._clock = None
+        self._hud_font = None
         self._current_reset_seed: int | None = None
 
         self._single_obs_dim = self._compute_single_obs_dim()
@@ -754,6 +755,7 @@ class SwarmEnv(ParallelEnv):
         if target is not self._screen:
             scaled = pygame.transform.smoothscale(target, self._screen.get_size())
             self._screen.blit(scaled, (0, 0))
+        self._draw_hud(self._screen)
         pygame.display.flip()
         self._clock.tick(fps)
 
@@ -782,6 +784,7 @@ class SwarmEnv(ParallelEnv):
             )
             self._screen = pygame.display.set_mode(display_size)
             self._world_surface = pygame.Surface((self.width, self.height))
+            self._hud_font = pygame.font.SysFont(None, 22)
             self._update_window_caption()
             self._clock = pygame.time.Clock()
             self._pygame_inited = True
@@ -792,6 +795,34 @@ class SwarmEnv(ParallelEnv):
         if self._current_reset_seed is not None:
             caption += f" | seed={self._current_reset_seed}"
         pygame.display.set_caption(caption)
+
+    def _draw_hud(self, surface: pygame.Surface):
+        """Draw a small stats HUD onto the final display surface."""
+        if self._hud_font is None:
+            return
+        carrying_agents = sum(1 for agent in self.agent_states if agent.carrying_food)
+        lines = [
+            f"Seed: {self._current_reset_seed if self._current_reset_seed is not None else '-'}",
+            f"Step: {self.step_count}/{self.cfg.max_steps}",
+            f"Picked Up: {self.episode_targets_collected}",
+            f"Delivered: {self.food_delivered}",
+            f"Drops: {self.episode_pheromone_deposit_events}",
+            f"Carrying: {carrying_agents}",
+        ]
+        padding = 8
+        line_height = self._hud_font.get_linesize()
+        box_width = max(self._hud_font.size(line)[0] for line in lines) + padding * 2
+        box_height = line_height * len(lines) + padding * 2
+        hud_rect = pygame.Rect(10, 10, box_width, box_height)
+        overlay = pygame.Surface(hud_rect.size, pygame.SRCALPHA)
+        overlay.fill((10, 12, 18, 175))
+        surface.blit(overlay, hud_rect.topleft)
+        pygame.draw.rect(surface, (180, 190, 210), hud_rect, 1)
+        y = hud_rect.top + padding
+        for line in lines:
+            text = self._hud_font.render(line, True, (235, 240, 250))
+            surface.blit(text, (hud_rect.left + padding, y))
+            y += line_height
 
     def _build_action_table(self):
         """Create the discrete action lookup table (throttle, turn, deposit)."""

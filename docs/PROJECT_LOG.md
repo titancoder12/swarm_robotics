@@ -444,4 +444,5 @@ Use this file to capture decisions, open questions, and next steps so we can res
 - Added a Q&A note clarifying that demo uses `--seed 0` by default and calls `env.reset(seed=args.seed)` for the initial world if no explicit `--seed` is passed.
 - Added a Q&A note clarifying that `best_greedy_eval/` can come from an easier curriculum stage rather than the final arena, because the trainer selects it globally by best greedy-eval score across all stages.
 - Updated `env/swarm_env.py` so the PyGame window title shows the current reset seed as `Swarm RL | seed=<N>`, and added a matching Q&A note.
+- Updated `env/swarm_env.py` to draw a small live-stats HUD on the PyGame display showing seed, step count, pickups, deliveries, pheromone drops, and carrying-agent count, and added a matching Q&A note.
 - Added a Q&A note capturing the current headless presentation-seed ranking from `runs/presentation_seed_scan/`, with `seed 3` clearly best, followed by `seed 2`, `seed 10`, and `seed 4`.
