@@ -2,9 +2,8 @@
 
 Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_033900/`
 
-Standing plan:
-- [experiments.md](../experiments.md)
-- [experiments_prompt.md](../experiments_prompt.md)
+Standing plan note:
+- Treat this report, the bundle strategy note, and the nested source campaign folders as the self-contained record for this experiment bundle.
 
 Supporting artifacts:
 - integrated headline table: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
@@ -277,8 +276,8 @@ This is exactly the narrative you want for a top-level computer-science fair pro
 
 ## Reproducibility
 
-- Standing plan: [experiments.md](../experiments.md)
-- Standing execution prompt: [experiments_prompt.md](../experiments_prompt.md)
+- Standing plan note: the `20260401_033900` folder is the self-contained full-bundle record on this branch.
+- Bundle strategy and provenance are documented in [analysis_notes/bundle_strategy.md](./analysis_notes/bundle_strategy.md) and [metadata/provenance.json](./metadata/provenance.json).
 - Bundle provenance: [metadata/provenance.json](./metadata/provenance.json)
 - Broad source report: [broad/report.md](./broad/report.md)
 - Killer source report: [killer_scaling/report.md](./killer_scaling/report.md)

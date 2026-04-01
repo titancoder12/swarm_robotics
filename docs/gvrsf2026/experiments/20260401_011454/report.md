@@ -2,9 +2,8 @@
 
 Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_011454/`
 
-Standing plan:
-- [experiments.md](../experiments.md)
-- [experiments_prompt.md](../experiments_prompt.md)
+Standing plan note:
+- Treat this report, its execution notes, and the bundled command scripts as the self-contained record for this campaign.
 
 Supporting artifacts:
 - raw episode results: [raw_exports/all_episode_results.csv](./raw_exports/all_episode_results.csv)
@@ -87,7 +86,7 @@ This mattered scientifically. If evaluation geometry is mismatched to the checkp
 
 ## What Was Actually Run
 
-The ideal plan in [experiments.md](../experiments.md) includes both evaluation and retraining experiments. For this campaign, the strongest feasible subset was chosen.
+The broader GVRSF plan for this project includes both evaluation and retraining experiments. For this campaign, the strongest feasible subset was chosen.
 
 What was fully executed:
 

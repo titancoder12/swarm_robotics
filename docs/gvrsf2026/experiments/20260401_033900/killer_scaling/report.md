@@ -1,10 +1,13 @@
 # Focused GVRSF Pheromone Experiment Report
 
-Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_023140/`
+Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_033900/killer_scaling/`
 
-Standing plan:
-- [experiments.md](../experiments.md)
-- [experiments_prompt.md](../experiments_prompt.md)
+Source provenance note:
+- This folder is a nested killer-scaling copy inside the federated full bundle `20260401_033900`.
+- The original source campaign timestamp was `20260401_023140`.
+
+Standing plan note:
+- Treat this copied killer-scaling report plus the parent bundle report as the relevant documentation context.
 
 Supporting artifacts:
 - raw episode results: [raw_exports/all_episode_results.csv](./raw_exports/all_episode_results.csv)

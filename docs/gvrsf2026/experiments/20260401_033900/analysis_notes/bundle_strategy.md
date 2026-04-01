@@ -1,6 +1,6 @@
 # Bundle Strategy
 
-This timestamped folder is a **federated full bundle** built under the updated `experiments_prompt.md`.
+This timestamped folder is a **federated full bundle** built to serve as a self-contained experiment package.
 
 Why this was the right execution strategy:
 

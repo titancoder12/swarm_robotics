@@ -2,9 +2,8 @@
 
 Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_021851/`
 
-Standing plan:
-- [experiments.md](../experiments.md)
-- [experiments_prompt.md](../experiments_prompt.md)
+Standing plan note:
+- Treat this report, its execution notes, and the bundled command scripts as the self-contained record for this campaign.
 
 Supporting artifacts:
 - raw episode results: [raw_exports/all_episode_results.csv](./raw_exports/all_episode_results.csv)

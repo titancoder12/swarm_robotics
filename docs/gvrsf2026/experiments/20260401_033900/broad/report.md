@@ -1,10 +1,13 @@
 # GVRSF 2026 Experiment Report
 
-Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_014801/`
+Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_033900/broad/`
 
-Standing plan:
-- [experiments.md](../experiments.md)
-- [experiments_prompt.md](../experiments_prompt.md)
+Source provenance note:
+- This folder is a nested broad-campaign copy inside the federated full bundle `20260401_033900`.
+- The original source campaign timestamp was `20260401_014801`.
+
+Standing plan note:
+- Treat this copied broad report plus the parent bundle report as the relevant documentation context.
 
 Supporting artifacts:
 - raw episode results: [raw_exports/all_episode_results.csv](./raw_exports/all_episode_results.csv)
@@ -87,7 +90,7 @@ This mattered scientifically. If evaluation geometry is mismatched to the checkp
 
 ## What Was Actually Run
 
-The ideal plan in [experiments.md](../experiments.md) includes both evaluation and retraining experiments. For this campaign, the strongest feasible subset was chosen.
+The broader GVRSF plan for this project includes both evaluation and retraining experiments. For this campaign, the strongest feasible subset was chosen.
 
 What was fully executed:
 
