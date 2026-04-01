@@ -899,14 +899,14 @@ All configuration fields are in `SwarmConfig` in [env/config.py](../env/config.p
 | `width` | `int` | `900` | positive integer | world width; affects placement, rendering, pheromone grid shape |
 | `height` | `int` | `600` | positive integer | world height |
 | `n_agents` | `int` | `6` | non-negative integer | number of agents; changes number of agent ids, reset state, and observation batch shape |
-| `n_targets` | `int` | `4` | non-negative integer | number of spawned food targets |
+| `n_targets` | `int` | `3` | non-negative integer | number of spawned food targets |
 | `n_obstacles` | `int` | `6` | non-negative integer | number of obstacle rectangles |
-| `agent_radius` | `float` | `10.0` | positive | affects collision checks, sampling distances, delivery reach, render size |
-| `target_radius` | `float` | `10.0` | positive | affects pickup reach and render size |
+| `agent_radius` | `float` | `7.0` | positive | affects collision checks, sampling distances, delivery reach, render size |
+| `target_radius` | `float` | `5.0` | positive | affects pickup reach and render size |
 | `nest_radius` | `float` | `22.0` | positive | affects nest render and delivery reach |
 | `max_steps` | `int` | `600` | positive integer | truncation horizon |
 | `action_dim` | `int` | `1` | currently unused by env logic | retained field; action space is actually controlled by `num_actions` |
-| `num_actions` | `int` | `9` | expected to match action table length | action space size |
+| `num_actions` | `int` | `18` | expected to match action table length | action space size |
 | `dt` | `float` | `0.1` | positive | physics timestep in seconds |
 | `max_speed` | `float` | `120.0` | positive | forward speed scale and speed observation normalization denominator |
 | `max_yaw_rate` | `float` | `2.5` | positive | target yaw-rate scale in radians per second |
@@ -945,7 +945,7 @@ All configuration fields are in `SwarmConfig` in [env/config.py](../env/config.p
 | `failed_agent_count` | `int` | `0` | non-negative integer | number of agents to zero-mask and freeze each episode |
 | `observation_noise_std` | `float` | `0.0` | non-negative | std of additive Gaussian obs noise |
 | `render_pheromone` | `bool` | `True` | boolean | controls pheromone heatmap rendering |
-| `render_scale` | `float` | `1.0` | currently unused by render implementation | retained field |
+| `render_scale` | `float` | `1.0` | positive float | scales the PyGame display window relative to the full world render surface |
 | `seed` | `int \| None` | `None` | integer or `None` | seed for constructor RNG; `reset(seed=...)` overrides active RNG |
 
 ### Config couplings that matter

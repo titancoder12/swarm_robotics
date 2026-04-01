@@ -11,7 +11,7 @@ This repository studies stigmergic swarm intelligence in a 2D robotics simulatio
 If you want the current main training path:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_current
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_run
 ```
 
 If you want a much shorter smoke test:
@@ -23,13 +23,13 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Recommended demo checkpoint after a full run:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 If you want demo resets to cycle through only a few presentation seeds:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 For a short version, see [docs/manual/QUICK_START.md](manual/QUICK_START.md).

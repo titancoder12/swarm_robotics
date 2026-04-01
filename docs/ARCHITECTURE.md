@@ -26,7 +26,7 @@ The system has five main layers:
 
 5. Analysis and deployment
    - [analysis/plot_metrics.py](../analysis/plot_metrics.py) generates training and experiment plots.
-   - `robot/` and `pi/` contain sim-to-real and Raspberry Pi integration code.
+   - [firmware/run.py](../firmware/run.py) and [firmware/ant.py](../firmware/ant.py) are the current direct robot runtime path.
 
 ## Environment Design
 
@@ -189,12 +189,13 @@ The renderer can show:
 
 ## Sim-to-Real Path
 
-The project also contains deployment-oriented code:
+The project also contains deployment-oriented code centered on:
 
-- `robot/` provides generic sensor, observation, policy, and action bridges.
-- `pi/` provides Raspberry Pi-side runtime examples, including a preserved rule-based runtime and a model-driven runtime.
+- [firmware/run.py](../firmware/run.py)
+- [firmware/ant.py](../firmware/ant.py)
+- [models/q_network.py](../models/q_network.py)
 
-These modules reuse the same observation and action contracts where possible.
+This is the current direct robot-runtime path. Older `pi/` and `robot/` layers are described in historical docs but are no longer the live deployment path.
 
 ## Recommended Reading Order
 

@@ -42,4 +42,4 @@ What still requires hardware-specific work:
 
 ## Service Usage
 
-If you want the policy runtime to start at boot, update [firmware/ant.service](../firmware/ant.service) so `ExecStart` points at `run_policy.py` instead of `ant.py`, then install it with systemd on the Pi.
+If you want the policy runtime to start at boot, update [firmware/ant.service](../firmware/ant.service) so `ExecStart` points at [firmware/run.py](../firmware/run.py) instead of `ant.py`, then install it with systemd on the Pi.

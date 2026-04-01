@@ -90,7 +90,7 @@ CLI-to-config mapping helpers:
 | `failed_agent_count` | `int` | `0` | non-negative integer | number of agents randomly disabled per episode |
 | `observation_noise_std` | `float` | `0.0` | non-negative | std of additive Gaussian observation noise |
 | `render_pheromone` | `bool` | `True` | boolean | controls pheromone heatmap drawing |
-| `render_scale` | `float` | `1.0` | currently unused | retained field, not used by the current renderer |
+| `render_scale` | `float` | `1.0` | positive float | scales the PyGame display window relative to the full world render surface |
 | `seed` | `int \| None` | `None` | integer or `None` | constructor RNG seed for environment instance |
 
 ## High-Impact Couplings

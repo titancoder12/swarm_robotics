@@ -16,10 +16,10 @@ The main entry points are:
 
 Use [analysis/evaluate.py](../analysis/evaluate.py) when you want to evaluate one checkpoint or the rule-based baseline.
 
-### Shared-policy checkpoint
+### Shared-policy DQN checkpoint
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_shared --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
+python analysis/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --shared-policy --filename eval_shared --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4
 ```
 
 ### Pheromone-enabled vs pheromone-disabled
@@ -27,25 +27,25 @@ Use [analysis/evaluate.py](../analysis/evaluate.py) when you want to evaluate on
 Pheromone on:
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_on --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --use-pheromone
+python analysis/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --shared-policy --filename eval_pheromone_on --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --use-pheromone
 ```
 
 Pheromone off:
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --checkpoint-dir checkpoints/full_policy --shared-policy --filename eval_pheromone_off --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+python analysis/evaluate.py --checkpoint-dir checkpoints/dqn_foraging/full_policy --shared-policy --filename eval_pheromone_off --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
 ```
 
 ### Rule-based baseline
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --policy-kind rule_based --filename eval_rule_based --output-dir runs/rule_eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
+python analysis/evaluate.py --policy-kind rule_based --filename eval_rule_based --output-dir runs/rule_eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 4 --no-use-pheromone
 ```
 
 ### MAPPO GRU checkpoint
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --filename eval_mappo_current --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 3
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --filename eval_mappo_current --output-dir runs/eval --headless --episodes 10 --n-agents 6 --eval-steps 2000 --active-targets 3
 ```
 
 ### Presentation-seed scan for one checkpoint
@@ -75,7 +75,7 @@ At the time of the latest scan, the strongest presentation seeds were:
 For a run such as:
 
 ```bash
-./.venv/bin/python analysis/evaluate.py --filename eval_shared --output-dir runs/eval ...
+python analysis/evaluate.py --filename eval_shared --output-dir runs/eval ...
 ```
 
 the script writes:
@@ -111,13 +111,13 @@ Condition 4 uses no checkpoint and samples random actions each step.
 ### Main comparison command
 
 ```bash
-./.venv/bin/python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/full_policy --checkpoint-without-pheromone checkpoints/full_policy --filename pheromone_vs_random --agent-min 1 --agent-max 30 --agent-step 1 --episodes-per-agent 10 --output-dir experiments/experiment_data --headless --max-steps 2000 --active-targets 4 --shared-policy
+python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/dqn_pheromone/full_policy --checkpoint-without-pheromone checkpoints/dqn_no_pheromone/full_policy --filename pheromone_vs_random --agent-min 1 --agent-max 30 --agent-step 1 --episodes-per-agent 10 --output-dir experiments/experiment_data --headless --max-steps 2000 --active-targets 4 --shared-policy
 ```
 
 ### Smaller smoke test
 
 ```bash
-./.venv/bin/python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/full_policy --checkpoint-without-pheromone checkpoints/full_policy --filename smoke_compare --agent-min 1 --agent-max 3 --agent-step 1 --episodes-per-agent 1 --output-dir experiments/experiment_data --headless --max-steps 50 --active-targets 4 --shared-policy
+python analysis/evaluate_comparison.py --checkpoint-with-pheromone checkpoints/dqn_pheromone/full_policy --checkpoint-without-pheromone checkpoints/dqn_no_pheromone/full_policy --filename smoke_compare --agent-min 1 --agent-max 3 --agent-step 1 --episodes-per-agent 1 --output-dir experiments/experiment_data --headless --max-steps 50 --active-targets 4 --shared-policy
 ```
 
 ## 4. What `analysis/evaluate_comparison.py` Writes
@@ -207,7 +207,7 @@ Typical flow:
 1. Train a pheromone-enabled model.
 2. Train a pheromone-disabled model.
 3. Confirm the checkpoints exist in directories such as:
-   - [checkpoints/full_policy/](../checkpoints/full_policy/)
+   - [checkpoints/dqn_foraging/full_policy/](../checkpoints/dqn_foraging/full_policy/)
 4. Run a quick single-checkpoint evaluation with [analysis/evaluate.py](../analysis/evaluate.py).
 5. Run the multi-condition comparison with [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py).
 6. Inspect:

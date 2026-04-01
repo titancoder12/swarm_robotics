@@ -217,7 +217,7 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Main trail-learning run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_current
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_run
 ```
 
 Why this command is more realistic than the older shorter examples:
@@ -230,7 +230,7 @@ Why this command is more realistic than the older shorter examples:
 Useful additional control:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --stage-repeat-limit 1 --folder-name mappo_full_current
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --stage-repeat-limit 1 --folder-name mappo_full_run
 ```
 
 - `--stage-repeat-limit 1`
@@ -246,13 +246,13 @@ python train/train.py --backend mappo --headless --curriculum full --resume-chec
 Rendered MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 Cycle demo resets through a curated seed list:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 Checkpoint recommendation:
@@ -297,7 +297,7 @@ What prompt 30 changes:
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_current_eval --active-targets 3 --food-source-capacity 4
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_run_eval --active-targets 3 --food-source-capacity 4
 ```
 
 ## Checkpoints

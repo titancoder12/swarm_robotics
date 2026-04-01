@@ -176,13 +176,13 @@ The current default task settings now make that loop more explicit:
 Recommended full training run:
 
 ```bash
-python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_current
+python train/train.py --backend mappo --headless --curriculum full --n-agents 6 --total-steps 600000 --rollout-steps 128 --update-epochs 4 --minibatch-size 256 --eval-every 10000 --eval-episodes 5 --stage-repeat-limit 1 --reward-pickup 6 --reward-nest-delivery 30 --reward-undelivered-food -10 --folder-name mappo_full_run
 ```
 
 Recommended demo checkpoint after training:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 Current single-agent return stack:
@@ -287,7 +287,7 @@ What the main arguments mean:
   - penalize ending an episode while still carrying food
   - this helps discourage “pick up but never bring it home”
 
-- `--folder-name mappo_full_current`
+- `--folder-name mappo_full_run`
   - base name for checkpoints and run outputs
 
 Why this is the recommended starting point:
@@ -321,7 +321,7 @@ python train/train.py --backend mappo --headless --curriculum stage1 --n-agents 
 Render the trained MAPPO policy:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 In demo mode, agents now switch to a distinct carrying-food color after pickup
@@ -334,19 +334,19 @@ panel showing that agent's current inputs and model outputs.
 Cycle demo resets through only specific seeds:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 0 --render-scale 0.75 --seed-list 45,40,58
 ```
 
 Headless MAPPO evaluation:
 
 ```bash
-python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_current_eval --active-targets 3 --food-source-capacity 4
+python analysis/evaluate.py --policy-kind mappo_gru --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --n-agents 6 --episodes 10 --headless --output-dir runs/eval --filename mappo_full_run_eval --active-targets 3 --food-source-capacity 4
 ```
 
 Pheromone comparison example:
 
 ```bash
-python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_full_current/best_greedy_eval --checkpoint-without-pheromone checkpoints/mappo_no_pher_current/best_greedy_eval --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
+python analysis/evaluate_comparison.py --policy-kind mappo_gru --checkpoint-with-pheromone checkpoints/mappo_full_run/best_greedy_eval --checkpoint-without-pheromone checkpoints/mappo_no_pher_run/best_greedy_eval --agent-min 1 --agent-max 6 --episodes-per-agent 3 --headless --output-dir experiments/experiment_data/trail_compare
 ```
 
 ## Quickstart: DQN Baseline
@@ -438,7 +438,7 @@ python train/demo.py --backend rllib --rllib-checkpoint checkpoints/rllib_dqn
 MAPPO demo:
 
 ```bash
-python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_current/best_greedy_eval --max-steps 300 --render-scale 0.75
+python train/demo.py --backend mappo --checkpoint-dir checkpoints/mappo_full_run/best_greedy_eval --max-steps 300 --render-scale 0.75
 ```
 
 With a custom Ray temp dir:
