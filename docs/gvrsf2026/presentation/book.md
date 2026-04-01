@@ -15,7 +15,7 @@ This reconstruction is grounded in the repository itself:
 
 - the code in `env/`, `train/`, and `algorithms/`,
 - the prompt archive in `docs/prompts/`,
-- the retrospective docs such as `docs/TRAINING_MAPPO.md`, `docs/building_curriculum_training.md`, and `docs/gvrsf2026/experiments/20260401_033900/paper.md`,
+- the retrospective docs such as `docs/TRAINING_MAPPO.md`, `docs/building_curriculum_training.md`, and the integrated GVRSF experiment paper,
 - and the git commit history and per-commit file diffs.
 
 Where the repository does not preserve every thought process directly, this book makes careful inferences from prompts, code changes, commit messages, and experiment artifacts.
@@ -694,7 +694,7 @@ The mature system is not just a stronger model. It is a better lesson plan.
 
 ## Chapter 14. Experimental Results
 
-The strongest integrated results are summarized in `docs/gvrsf2026/experiments/20260401_033900/paper.md`.
+The strongest integrated results are summarized in the integrated GVRSF experiment paper included with the repository.
 
 ### 14.1 Broad campaign
 
