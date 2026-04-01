@@ -699,6 +699,14 @@ A: In the current renderer in [env/swarm_env.py](../env/swarm_env.py), targets a
 
 A: No, not in the MAPPO curriculum path. The current curriculum system in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py) is used by the recurrent MAPPO trainer in [train/mappo_gru.py](../train/mappo_gru.py), and that trainer does not use epsilon-greedy exploration. MAPPO samples actions from the policy distribution during training and uses greedy `argmax` actions during demo/evaluation. Epsilon-style exploration is still part of the DQN path in [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py), but that is separate from the curriculum-learning MAPPO setup.
 
+## Q: If the debug view only shows actions like `a01` and `a13`, how is the agent turning?
+
+A: The discrete action ids are just indexes into the action table built in [_build_action_table()](../env/swarm_env.py). The table is ordered over all combinations of `(throttle, turn, deposit)` with `throttle in {-1, 0, 1}`, `turn in {-1, 0, 1}`, and `deposit in {0, 1}`. So `a01` means `(-1, -1, 1)` which is `REV | LEFT | DROP`, and `a13` means `(1, -1, 1)` which is `FWD | LEFT | DROP`. Both actions have the same `turn = -1` component, so both command a left turn; they only differ in whether the agent is reversing or moving forward while turning. That means if the top logits are mostly `a01` and `a13`, the policy is effectively favoring left-turning arc motions, not “not turning.” The heading angle `theta` is continuous and keeps accumulating over time, so large values like `-1385 deg` are normal and just mean the agent has spun through multiple rotations.
+
+## Q: What are policy logits?
+
+A: In the current MAPPO path, `policy logits` are the raw action scores output by the actor network before converting them into probabilities. In [train/mappo_gru.py](../train/mappo_gru.py) and [analysis/evaluate.py](../analysis/evaluate.py), the recurrent MAPPO actor produces one logit per discrete action. Higher logits mean the policy currently prefers those actions more strongly. During training, those logits are passed through a categorical distribution and actions are sampled from the resulting probabilities; during demo/evaluation, the code usually takes `argmax(logits)` as the greedy action. So logits are not probabilities themselves, but the unnormalized scores from which the action probabilities are derived.
+
 ## Q: What training command is likely to provide sufficient MAPPO training?
 
 A: For the current full curriculum and final-stage difficulty, `30k` or even `180k` total steps are still more like short-to-medium runs than “sufficient” runs. A more serious starting point for this repo is:
