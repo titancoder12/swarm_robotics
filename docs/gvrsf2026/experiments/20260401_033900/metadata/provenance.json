@@ -1,0 +1,30 @@
+{
+  "timestamp": "20260401_033900",
+  "bundle_type": "federated_full_bundle",
+  "standing_plan": "docs/gvrsf2026/experiments/experiments.md",
+  "standing_prompt": "docs/gvrsf2026/experiments/experiments_prompt.md",
+  "source_campaigns": [
+    {
+      "role": "broad_campaign",
+      "source_timestamp": "20260401_014801",
+      "source_folder": "docs/gvrsf2026/experiments/20260401_014801",
+      "reason_reused": "This campaign already contains the strongest completed broad multi-family evaluation bundle in the repository, including curriculum-vs-weaker, baseline comparison, robustness, and general swarm-size scaling."
+    },
+    {
+      "role": "killer_stigmergy_scaling_campaign",
+      "source_timestamp": "20260401_023140",
+      "source_folder": "docs/gvrsf2026/experiments/20260401_023140",
+      "reason_reused": "This campaign contains the strongest current matched-training pheromone-scaling evidence, including statistically significant paired tests at the primary 6-agent condition."
+    }
+  ],
+  "scientific_rationale": "A federated bundle is stronger than a rushed rerun because it preserves the highest-quality completed results for each experiment family while keeping full provenance inside one timestamped science-fair package.",
+  "top_level_figures": [
+    "figures/broad_curriculum_food_delivered.png",
+    "figures/broad_baseline_food_delivered.png",
+    "figures/broad_robustness_food_delivered.png",
+    "figures/broad_scaling_food_delivered.png",
+    "figures/killer_food_delivered_by_swarm_size.png",
+    "figures/killer_late_deliveries_by_swarm_size.png",
+    "figures/killer_post_discovery_deliveries_by_swarm_size.png"
+  ]
+}
