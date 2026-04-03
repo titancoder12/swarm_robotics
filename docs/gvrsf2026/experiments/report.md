@@ -14,11 +14,11 @@ This report presents the experimental evidence for the project, including the re
 
 Supporting artifacts:
 
-- integrated headline table: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
-- provenance metadata: [metadata/provenance.json](./metadata/provenance.json)
+- integrated headline table: [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv)
+- provenance metadata: [metadata/provenance.json](./20260401_033900/metadata/provenance.json)
 - integrated research paper: [paper.md](./paper.md)
-- broad source campaign: [broad/report.md](./broad/report.md)
-- focused stigmergy-scaling campaign: [killer_scaling/report.md](./killer_scaling/report.md)
+- broad source campaign: [broad/report.md](./20260401_033900/broad/report.md)
+- focused stigmergy-scaling campaign: [killer_scaling/report.md](./20260401_033900/killer_scaling/report.md)
 
 ## Abstract
 
@@ -79,7 +79,7 @@ If collective intelligence is emerging through stigmergic coordination, then phe
 
 This bundle uses a **federated experimental design**. Rather than rerunning every experiment family in a single campaign, it combines the strongest completed broad campaign and the strongest completed focused stigmergy-scaling campaign already present in the repository.
 
-That design choice is documented in [metadata/provenance.json](./metadata/provenance.json).
+That design choice is documented in [metadata/provenance.json](./20260401_033900/metadata/provenance.json).
 
 ### Why this design was scientifically appropriate
 
@@ -182,7 +182,7 @@ For the killer experiment specifically:
 
 The broad campaign was an evaluation-heavy study using existing trained checkpoints rather than retraining every condition from scratch.
 
-The campaign manifest is in [broad/metadata/campaign_manifest.json](./broad/metadata/campaign_manifest.json). The runner is [broad/commands/run_campaign.py](./broad/commands/run_campaign.py).
+The campaign manifest is in [broad/metadata/campaign_manifest.json](./20260401_033900/broad/metadata/campaign_manifest.json). The runner is [broad/commands/run_campaign.py](./20260401_033900/broad/commands/run_campaign.py).
 
 ### Broad campaign checkpoints
 
@@ -211,7 +211,7 @@ The broad campaign reported:
 
 The focused killer experiment was designed to test the central stigmergy claim more directly than the broad campaign could.
 
-The campaign manifest is in [killer_scaling/metadata/campaign_manifest.json](./killer_scaling/metadata/campaign_manifest.json). The runner is [killer_scaling/commands/run_campaign.py](./killer_scaling/commands/run_campaign.py).
+The campaign manifest is in [killer_scaling/metadata/campaign_manifest.json](./20260401_033900/killer_scaling/metadata/campaign_manifest.json). The runner is [killer_scaling/commands/run_campaign.py](./20260401_033900/killer_scaling/commands/run_campaign.py).
 
 ### Killer experiment conditions
 
@@ -253,7 +253,7 @@ Does the stronger current curriculum produce a measurably better final policy th
 
 ### Results
 
-From [broad/tables/family_summary.csv](./broad/tables/family_summary.csv):
+From [broad/tables/family_summary.csv](./20260401_033900/broad/tables/family_summary.csv):
 
 - current curriculum checkpoint:
   - mean `food_delivered = 1.25`
@@ -264,13 +264,13 @@ From [broad/tables/family_summary.csv](./broad/tables/family_summary.csv):
   - mean `delivery_conversion = 0.000`
   - mean `exploration_coverage = 0.146`
 
-From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+From [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv):
 
 - Welch's t-test on `food_delivered`: `p = 0.000828`
 
 Figure:
 
-![Broad Curriculum Food Delivered](./figures/broad_curriculum_food_delivered.png)
+![Broad Curriculum Food Delivered](./20260401_033900/figures/broad_curriculum_food_delivered.png)
 
 ### Interpretation
 
@@ -284,20 +284,20 @@ Is the learned swarm behavior stronger than simple non-learning controls?
 
 ### Results
 
-From [broad/tables/family_summary.csv](./broad/tables/family_summary.csv):
+From [broad/tables/family_summary.csv](./20260401_033900/broad/tables/family_summary.csv):
 
 - learned MAPPO: `food_delivered = 1.25`
 - rule-based baseline: `0.30`
 - random baseline: `0.05`
 
-From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+From [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv):
 
 - MAPPO vs rule-based: `p = 0.012248`
 - MAPPO vs random: `p = 0.001242`
 
 Figure:
 
-![Broad Baseline Food Delivered](./figures/broad_baseline_food_delivered.png)
+![Broad Baseline Food Delivered](./20260401_033900/figures/broad_baseline_food_delivered.png)
 
 ### Interpretation
 
@@ -311,7 +311,7 @@ Does the learned policy remain effective when the task becomes more difficult?
 
 ### Results
 
-From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+From [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv):
 
 - control final stage: `1.25`
 - more obstacles: `0.65`
@@ -320,7 +320,7 @@ From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
 
 Figure:
 
-![Broad Robustness Food Delivered](./figures/broad_robustness_food_delivered.png)
+![Broad Robustness Food Delivered](./20260401_033900/figures/broad_robustness_food_delivered.png)
 
 ### Interpretation
 
@@ -334,14 +334,14 @@ Does task completion improve as the number of agents increases?
 
 ### Results
 
-From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+From [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv):
 
 - `1` agent: `food_delivered = 0.05`
 - `6` agents: `food_delivered = 1.25`
 
 Figure:
 
-![Broad Scaling Food Delivered](./figures/broad_scaling_food_delivered.png)
+![Broad Scaling Food Delivered](./20260401_033900/figures/broad_scaling_food_delivered.png)
 
 ### Interpretation
 
@@ -359,7 +359,7 @@ At the primary `6`-agent matched condition, pheromone-trained and no-pheromone-t
 
 ### Results at the primary `6`-agent condition
 
-From [killer_scaling/tables/condition_summary.csv](./killer_scaling/tables/condition_summary.csv):
+From [killer_scaling/tables/condition_summary.csv](./20260401_033900/killer_scaling/tables/condition_summary.csv):
 
 - trained with pheromone, evaluated with pheromone:
   - mean `food_delivered = 1.32`
@@ -370,7 +370,7 @@ From [killer_scaling/tables/condition_summary.csv](./killer_scaling/tables/condi
   - mean `late_deliveries = 0.00`
   - mean `post_discovery_deliveries = 0.00`
 
-From [killer_scaling/tables/statistical_tests.csv](./killer_scaling/tables/statistical_tests.csv):
+From [killer_scaling/tables/statistical_tests.csv](./20260401_033900/killer_scaling/tables/statistical_tests.csv):
 
 **Food delivered**
 
@@ -386,11 +386,11 @@ From [killer_scaling/tables/statistical_tests.csv](./killer_scaling/tables/stati
 
 Figures:
 
-![Killer Food Delivered by Swarm Size](./figures/killer_food_delivered_by_swarm_size.png)
+![Killer Food Delivered by Swarm Size](./20260401_033900/figures/killer_food_delivered_by_swarm_size.png)
 
-![Killer Late Deliveries by Swarm Size](./figures/killer_late_deliveries_by_swarm_size.png)
+![Killer Late Deliveries by Swarm Size](./20260401_033900/figures/killer_late_deliveries_by_swarm_size.png)
 
-![Killer Post-Discovery Deliveries by Swarm Size](./figures/killer_post_discovery_deliveries_by_swarm_size.png)
+![Killer Post-Discovery Deliveries by Swarm Size](./20260401_033900/figures/killer_post_discovery_deliveries_by_swarm_size.png)
 
 ### Interpretation
 
@@ -446,8 +446,8 @@ For a science-fair judge, the most important takeaway is that this project did n
 
 For judges or reviewers who want to inspect the evidence trail:
 
-- broad campaign methods and results: [broad/report.md](./broad/report.md)
-- killer experiment methods and results: [killer_scaling/report.md](./killer_scaling/report.md)
+- broad campaign methods and results: [broad/report.md](./20260401_033900/broad/report.md)
+- killer experiment methods and results: [killer_scaling/report.md](./20260401_033900/killer_scaling/report.md)
 - integrated paper version: [paper.md](./paper.md)
-- provenance and source-campaign record: [metadata/provenance.json](./metadata/provenance.json)
-- integrated headline table: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
+- provenance and source-campaign record: [metadata/provenance.json](./20260401_033900/metadata/provenance.json)
+- integrated headline table: [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv)

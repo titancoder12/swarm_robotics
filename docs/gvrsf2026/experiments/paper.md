@@ -4,9 +4,9 @@
 
 **Experiment bundle folder:** `docs/gvrsf2026/experiments/20260401_033900/`  
 **Primary integrated report:** [report.md](./report.md)  
-**Broad source campaign:** [broad/report.md](./broad/report.md)  
-**Focused killer scaling campaign:** [killer_scaling/report.md](./killer_scaling/report.md)  
-**Bundle provenance:** [metadata/provenance.json](./metadata/provenance.json)
+**Broad source campaign:** [broad/report.md](./20260401_033900/broad/report.md)  
+**Focused killer scaling campaign:** [killer_scaling/report.md](./20260401_033900/killer_scaling/report.md)  
+**Bundle provenance:** [metadata/provenance.json](./20260401_033900/metadata/provenance.json)
 
 ## Abstract
 
@@ -64,7 +64,7 @@ This second question is the more fundamental one. If collective intelligence is 
 
 The full bundle uses a **federated** design. Instead of forcing one rushed monolithic rerun of every family, I combined the strongest completed broad campaign and the strongest completed stigmergy-scaling campaign. This choice was methodological, not cosmetic.
 
-The bundle provenance in [metadata/provenance.json](./metadata/provenance.json) shows:
+The bundle provenance in [metadata/provenance.json](./20260401_033900/metadata/provenance.json) shows:
 
 - **Broad campaign source:** `20260401_014801`
 - **Killer scaling source:** `20260401_023140`
@@ -79,7 +79,7 @@ I selected this design because it was scientifically stronger than rerunning eve
 
 ## 5.1 Broad campaign design
 
-The broad campaign was designed as an evaluation-heavy comparison using existing trained checkpoints. Its execution plan is documented in [broad/analysis_notes/execution_plan.md](./broad/analysis_notes/execution_plan.md). The runner is [broad/commands/run_campaign.py](./broad/commands/run_campaign.py), and it reconstructs `SwarmConfig` directly from checkpoint metadata to avoid geometry mismatch at evaluation time.
+The broad campaign was designed as an evaluation-heavy comparison using existing trained checkpoints. Its execution plan is documented in [broad/analysis_notes/execution_plan.md](./20260401_033900/broad/analysis_notes/execution_plan.md). The runner is [broad/commands/run_campaign.py](./20260401_033900/broad/commands/run_campaign.py), and it reconstructs `SwarmConfig` directly from checkpoint metadata to avoid geometry mismatch at evaluation time.
 
 ### Broad experiment families
 
@@ -137,12 +137,12 @@ For the main pairwise broad comparisons, the campaign reports:
 
 The corresponding summary tables are:
 
-- [broad/tables/family_summary.csv](./broad/tables/family_summary.csv)
-- [broad/tables/statistical_tests.csv](./broad/tables/statistical_tests.csv)
+- [broad/tables/family_summary.csv](./20260401_033900/broad/tables/family_summary.csv)
+- [broad/tables/statistical_tests.csv](./20260401_033900/broad/tables/statistical_tests.csv)
 
 ## 5.2 Killer stigmergy-scaling design
 
-I designed the killer experiment to strengthen the pheromone claim directly. Its execution plan is in [killer_scaling/analysis_notes/execution_plan.md](./killer_scaling/analysis_notes/execution_plan.md), and its runner is [killer_scaling/commands/run_campaign.py](./killer_scaling/commands/run_campaign.py).
+I designed the killer experiment to strengthen the pheromone claim directly. Its execution plan is in [killer_scaling/analysis_notes/execution_plan.md](./20260401_033900/killer_scaling/analysis_notes/execution_plan.md), and its runner is [killer_scaling/commands/run_campaign.py](./20260401_033900/killer_scaling/commands/run_campaign.py).
 
 ### Killer conditions
 
@@ -195,8 +195,8 @@ Because the same seeds are reused across conditions, the killer campaign uses pa
 
 The corresponding tables are:
 
-- [killer_scaling/tables/condition_summary.csv](./killer_scaling/tables/condition_summary.csv)
-- [killer_scaling/tables/statistical_tests.csv](./killer_scaling/tables/statistical_tests.csv)
+- [killer_scaling/tables/condition_summary.csv](./20260401_033900/killer_scaling/tables/condition_summary.csv)
+- [killer_scaling/tables/statistical_tests.csv](./20260401_033900/killer_scaling/tables/statistical_tests.csv)
 
 ## 6. Results
 
@@ -209,11 +209,11 @@ The strongest broad curriculum result is unambiguous:
 - Welch’s t-test: `p = 0.000828`
 - Cohen’s `d = 1.254`
 
-![Curriculum Food Delivered](./figures/broad_curriculum_food_delivered.png)
+![Curriculum Food Delivered](./20260401_033900/figures/broad_curriculum_food_delivered.png)
 
 The corresponding delivery-conversion plot from the source broad campaign shows the same pattern:
 
-![Curriculum Delivery Conversion](./broad/figures/curriculum_delivery_conversion.png)
+![Curriculum Delivery Conversion](./20260401_033900/broad/figures/curriculum_delivery_conversion.png)
 
 ### Interpretation
 
@@ -231,7 +231,7 @@ The learned MAPPO policy outperformed both simple controls:
 - MAPPO vs rule-based: `p = 0.012248`
 - MAPPO vs random: `p = 0.001242`
 
-![Baseline Comparison](./figures/broad_baseline_food_delivered.png)
+![Baseline Comparison](./20260401_033900/figures/broad_baseline_food_delivered.png)
 
 ### Interpretation
 
@@ -246,11 +246,11 @@ The broad campaign also tested harder conditions:
 - failed agents = 2: `0.70`
 - sensor noise: `1.05`
 
-![Robustness: Food Delivered](./figures/broad_robustness_food_delivered.png)
+![Robustness: Food Delivered](./20260401_033900/figures/broad_robustness_food_delivered.png)
 
 The broad campaign also tracked exploration coverage under robustness conditions:
 
-![Robustness: Exploration Coverage](./broad/figures/robustness_exploration_coverage.png)
+![Robustness: Exploration Coverage](./20260401_033900/broad/figures/robustness_exploration_coverage.png)
 
 ### Interpretation
 
@@ -265,13 +265,13 @@ The broad scaling family shows that the system’s total performance increases w
 - `1` agent: mean `food_delivered = 0.05`
 - `6` agents: mean `food_delivered = 1.25`
 
-![Broad Scaling: Food Delivered](./figures/broad_scaling_food_delivered.png)
+![Broad Scaling: Food Delivered](./20260401_033900/figures/broad_scaling_food_delivered.png)
 
 The source campaign also includes two additional broad scaling views:
 
-![Broad Scaling: Delivery Conversion](./broad/figures/scaling_delivery_conversion.png)
+![Broad Scaling: Delivery Conversion](./20260401_033900/broad/figures/scaling_delivery_conversion.png)
 
-![Broad Scaling: Exploration Coverage](./broad/figures/scaling_exploration_coverage.png)
+![Broad Scaling: Exploration Coverage](./20260401_033900/broad/figures/scaling_exploration_coverage.png)
 
 ### Interpretation
 
@@ -286,7 +286,7 @@ The broad campaign’s generic pheromone ablation was only modest:
 - Welch’s t-test: `p = 0.625`
 - Cohen’s `d = 0.156`
 
-![Broad Pheromone Ablation](./broad/figures/pheromone_food_delivered.png)
+![Broad Pheromone Ablation](./20260401_033900/broad/figures/pheromone_food_delivered.png)
 
 ### Interpretation
 
@@ -320,15 +320,15 @@ Statistical tests:
   - Wilcoxon `p = 0.03179`
   - Cohen’s `d = 0.502`
 
-![Killer Scaling: Food Delivered](./figures/killer_food_delivered_by_swarm_size.png)
+![Killer Scaling: Food Delivered](./20260401_033900/figures/killer_food_delivered_by_swarm_size.png)
 
-![Killer Scaling: Late Deliveries](./figures/killer_late_deliveries_by_swarm_size.png)
+![Killer Scaling: Late Deliveries](./20260401_033900/figures/killer_late_deliveries_by_swarm_size.png)
 
-![Killer Scaling: Post-Discovery Deliveries](./figures/killer_post_discovery_deliveries_by_swarm_size.png)
+![Killer Scaling: Post-Discovery Deliveries](./20260401_033900/figures/killer_post_discovery_deliveries_by_swarm_size.png)
 
 The source campaign also includes route-efficiency evidence:
 
-![Killer Scaling: Pickup-to-Delivery Latency](./killer_scaling/figures/pickup_to_delivery_latency_by_swarm_size.png)
+![Killer Scaling: Pickup-to-Delivery Latency](./20260401_033900/killer_scaling/figures/pickup_to_delivery_latency_by_swarm_size.png)
 
 ### Interpretation
 
@@ -440,7 +440,7 @@ In short, the evidence supports the following conclusion:
 ## References to Bundle Artifacts
 
 - Integrated bundle report: [report.md](./report.md)
-- Bundle provenance: [metadata/provenance.json](./metadata/provenance.json)
-- Broad source report: [broad/report.md](./broad/report.md)
-- Killer source report: [killer_scaling/report.md](./killer_scaling/report.md)
-- Integrated headline metrics: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
+- Bundle provenance: [metadata/provenance.json](./20260401_033900/metadata/provenance.json)
+- Broad source report: [broad/report.md](./20260401_033900/broad/report.md)
+- Killer source report: [killer_scaling/report.md](./20260401_033900/killer_scaling/report.md)
+- Integrated headline metrics: [tables/full_bundle_headlines.csv](./20260401_033900/tables/full_bundle_headlines.csv)
