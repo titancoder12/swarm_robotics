@@ -1,4 +1,4 @@
-# Codex Prompt — Add Bluetooth Transport to the Command Center
+# Prompt — Add Bluetooth Transport to the Command Center
 
 You are working in the existing repository and must extend the current [mission_control/](../../mission_control) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
 

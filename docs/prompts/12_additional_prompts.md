@@ -6,7 +6,7 @@ Step-by-step prompts from commit `2c9ec7085858c4712c3cd4673635cb4d3c330a45` to t
 ## Prompt 1 — Rename the Command Center Package
 
 ```md
-# Codex Prompt — Rename `server/` to `mission_control/`
+# Prompt — Rename `server/` to `mission_control/`
 
 The repo currently uses a desktop command-center package named `server/`, but I want the naming to be more explicit and domain-specific.
 
@@ -32,7 +32,7 @@ Definition of done:
 ## Prompt 2 — Add BLE Support to Mission Control
 
 ```md
-# Codex Prompt — Add BLE Peripheral Support to Mission Control
+# Prompt — Add BLE Peripheral Support to Mission Control
 
 Extend the current `mission_control/` subsystem so the MacBook command center can communicate with robots over BLE in addition to TCP and serial.
 
@@ -63,7 +63,7 @@ Definition of done:
 ## Prompt 3 — Add a Dedicated Pi-Side BLE Client
 
 ```md
-# Codex Prompt — Add a Raspberry Pi BLE Client for Mission Control
+# Prompt — Add a Raspberry Pi BLE Client for Mission Control
 
 The Raspberry Pi runtime in `firmware/` is where the model loop runs, so I want the Pi to communicate directly with `mission_control/` over BLE.
 
@@ -92,7 +92,7 @@ Definition of done:
 ## Prompt 4 — Integrate Mission Control into the Pi Policy Loop
 
 ```md
-# Codex Prompt — Integrate Mission Control Queries into `firmware/run.py`
+# Prompt — Integrate Mission Control Queries into `firmware/run.py`
 
 Now that the Pi has a BLE client, integrate Mission Control into the live policy loop in `firmware/run.py`.
 
@@ -120,7 +120,7 @@ Definition of done:
 ## Prompt 5 — Improve Mission Control UI and Fake Robot Tooling
 
 ```md
-# Codex Prompt — Improve Mission Control Telemetry UI and Local Testing
+# Prompt — Improve Mission Control Telemetry UI and Local Testing
 
 The Mission Control UI is functional but still sparse. I want it to be more useful for live experiments and easier to test locally.
 
@@ -147,7 +147,7 @@ Definition of done:
 ## Prompt 6 — Add Lidar Telemetry to the Mission Control Protocol
 
 ```md
-# Codex Prompt — Add `LIDAR` Telemetry to Mission Control
+# Prompt — Add `LIDAR` Telemetry to Mission Control
 
 I want Mission Control to display the robot's current lidar scan for debugging and demonstration.
 
@@ -173,7 +173,7 @@ Definition of done:
 ## Prompt 7 — Fix Mission Control Pheromone Rendering Alignment
 
 ```md
-# Codex Prompt — Fix Heatmap Alignment in Mission Control
+# Prompt — Fix Heatmap Alignment in Mission Control
 
 The Mission Control pheromone heatmap does not line up correctly with robot paths and world coordinates.
 
@@ -195,7 +195,7 @@ Definition of done:
 ## Prompt 8 — Let the Policy Control Pheromone Deposition
 
 ```md
-# Codex Prompt — Expand the Action Space to Include Pheromone Deposit
+# Prompt — Expand the Action Space to Include Pheromone Deposit
 
 Right now pheromone deposition is runtime-driven logic. I want the policy interface itself to control whether pheromone is deposited on a step.
 
@@ -222,7 +222,7 @@ Definition of done:
 ## Prompt 9 — Improve Training Reset Randomness and Exploration Controls
 
 ```md
-# Codex Prompt — Fix Repeated Resets and Expose Epsilon Schedule Controls
+# Prompt — Fix Repeated Resets and Expose Epsilon Schedule Controls
 
 I want training and demo behavior to be less misleading and easier to tune.
 
@@ -243,7 +243,7 @@ Definition of done:
 ## Prompt 10 — Add Training Graph Export
 
 ```md
-# Codex Prompt — Export Training and Evaluation Graphs to a Top-Level Folder
+# Prompt — Export Training and Evaluation Graphs to a Top-Level Folder
 
 I want the training workflow to produce easy-to-browse graph artifacts outside the run directory.
 
@@ -265,7 +265,7 @@ Definition of done:
 ## Prompt 11 — Add Observation History to the Policy Contract
 
 ```md
-# Codex Prompt — Add a Short Observation History Window
+# Prompt — Add a Short Observation History Window
 
 The current policy is purely reactive to a single frame. I want to give it a short temporal window without introducing an RNN.
 
@@ -290,7 +290,7 @@ Definition of done:
 ## Prompt 12 — Make Pheromone Awareness Radius Explicit
 
 ```md
-# Codex Prompt — Make the Pheromone Sensing Radius Explicit
+# Prompt — Make the Pheromone Sensing Radius Explicit
 
 The simulator currently derives forward pheromone sampling from an inline formula. I want that geometry made more explicit and easier to reason about across simulator, runtime, and Mission Control.
 

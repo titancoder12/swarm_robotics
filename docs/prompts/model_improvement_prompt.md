@@ -1,4 +1,4 @@
-# Codex Prompt — Upgrade This Repo to a Best-of-Breed Existing RL Stack
+# Prompt — Upgrade This Repo to a Best-of-Breed Existing RL Stack
 
 You are working in the existing repository and must upgrade the RL/training side of the project from a practical DQN baseline into a stronger, more modern, better-structured existing RL stack for a **cooperative, partially observable, homogeneous multi-robot swarm** problem with **decentralized execution** on physical robots.
 

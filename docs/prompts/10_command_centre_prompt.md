@@ -1,4 +1,4 @@
-# Codex Prompt — Build a Pygame Command Center for Physical Swarm Robots
+# Prompt — Build a Pygame Command Center for Physical Swarm Robots
 
 You are working in the existing repository and must **add a new `mission_control/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
 
