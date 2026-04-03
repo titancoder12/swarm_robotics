@@ -1,29 +1,24 @@
 # Prompt: Execute the Full GVRSF 2026 Experiment Program
 
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+This document is the standing execution brief for the full experiment program in this repository.
 
-Your task is to execute the experimental program based on the plan in:
+The experimental plan is based on:
 
-- [docs/gvrsf2026/experiments.md](./experiments.md)
+- [docs/gvrsf2026/experiments/experiments.md](./experiments.md)
 
-The project is entered in the **computer science** category of the Greater Vancouver Regional Science Fair. The bar is high: the work must be rigorous, reproducible, quantitatively convincing, and presented like a serious applied computer science research project.
-
-This is not a request for a lightweight demo summary.
-This is a request to run a full experimental campaign, generate artifacts, analyze the results, and write a polished final report.
-
-The final outcome should be strong enough to support a top-prize science fair presentation.
+The point of this run is not to produce a lightweight demo summary. The point is to execute a full experimental campaign, generate the artifacts, analyze the results, and write a complete final report.
 
 ## Overall Goal
 
 Use the current repository to:
 
-1. execute the strongest feasible experiments described in [docs/gvrsf2026/experiments.md](./experiments.md)
-2. generate all relevant raw data and processed artifacts
+1. execute the strongest feasible experiments described in [docs/gvrsf2026/experiments/experiments.md](./experiments.md)
+2. generate the relevant raw data and processed artifacts
 3. produce clear figures and tables
 4. write a complete final report under `docs/gvrsf2026/experiments/`
-5. ensure everything is reproducible from the repo
+5. keep the result reproducible from the repo
 
-The final deliverables must include:
+The final deliverables should include:
 
 - raw outputs
 - processed summaries
@@ -31,15 +26,13 @@ The final deliverables must include:
 - experiment metadata
 - a final written report
 
-The final report must **embed** the generated graphs inline with Markdown image syntax.
-Do not leave graphs as file links only.
-Readers should be able to read the report and see the figures directly in context without opening each image separately.
+The final report should embed the generated graphs inline with Markdown image syntax. The figures should appear directly in the relevant sections instead of being left as file links only.
 
 ## Core Principle
 
-Do not run weak, one-off, underpowered comparisons and call them “science.”
+Do not run weak, one-off, underpowered comparisons and call them results.
 
-The experiment set must be:
+The experiment set needs to be:
 
 - controlled
 - repeated
@@ -47,7 +40,7 @@ The experiment set must be:
 - tied to the actual metrics the repo logs
 - explicit about threats to validity
 
-If full-scale execution of every ideal condition is not practical, you must:
+If full-scale execution of every ideal condition is not practical, then:
 
 1. prioritize the highest-signal experiments first
 2. preserve scientific validity
@@ -56,11 +49,11 @@ If full-scale execution of every ideal condition is not practical, you must:
 
 ## Primary Source of Truth
 
-The experiment design guidance is in:
+The main experiment design guidance is in:
 
-- [docs/gvrsf2026/experiments.md](./experiments.md)
+- [docs/gvrsf2026/experiments/experiments.md](./experiments.md)
 
-The practical evaluation/training tooling is in:
+The practical evaluation and training tooling is in:
 
 - [analysis/evaluate.py](../../analysis/evaluate.py)
 - [analysis/evaluate_comparison.py](../../analysis/evaluate_comparison.py)
@@ -69,51 +62,51 @@ The practical evaluation/training tooling is in:
 - [train/run_experiments.py](../../train/run_experiments.py)
 - [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
 
-You must base the execution on the current code, not on assumptions.
+Execution should be based on the current code, not on assumptions.
 
 ## Required Experiment Set
 
-You must attempt the strongest feasible version of the following experiment families from [experiments.md](./experiments.md):
+The strongest feasible version of these experiment families should be attempted:
 
-1. **Curriculum Learning vs Weaker/Simplified Training**
+1. **Curriculum Learning vs Weaker or Simplified Training**
 2. **Pheromone Ablation**
 3. **Swarm-Size Scaling**
 4. **Robustness Under Harder Environments**
 5. **Baseline Comparison**
 
-The final experiment bundle must be a **true full bundle**, not a narrow subset folder that only contains one family.
+The final experiment bundle should be a true full bundle, not a narrow subset folder that contains only one family.
 
-That means a satisfactory execution should include, in one timestamped campaign folder:
+That means one timestamped campaign folder should include:
 
 - the broad multi-family bundle
   - curriculum vs weaker training
   - baseline comparison
   - robustness
   - general swarm-size scaling
-- and a dedicated **killer experiment** focused on the strongest stigmergy claim
+- and a dedicated decisive experiment focused on the strongest stigmergy claim
 
-Required killer experiment:
+### Required decisive experiment
 
-- **Scaling Laws of Stigmergic Collective Intelligence**
+**Scaling Laws of Stigmergic Collective Intelligence**
 
-This killer experiment must test:
+This decisive experiment should test:
 
 - swarm size as an independent variable
-  - prefer `1`, `2`, `3`, `5`, `10`
-  - if needed, justify a slightly smaller set such as `1`, `3`, `6`, `10`
+  - preferred: `1`, `2`, `3`, `5`, `10`
+  - acceptable smaller set if needed: `1`, `3`, `6`, `10`
 - communication condition as an independent variable
   - RL + pheromone
   - RL without pheromone
   - optional baseline: rule-based or random without learned coordination
 
-The killer experiment must be designed to support the following claim if the data allow it:
+The experiment should be designed to support the following claim if the data allow it:
 
 > As the swarm grows, performance improves much more strongly when stigmergy is enabled than when it is disabled.
 
-Do not reduce the full bundle to only the killer experiment.
-Do not reduce the killer experiment to only a single swarm size.
+The full bundle should not be reduced to only the decisive experiment.
+The decisive experiment should not be reduced to only a single swarm size.
 
-For the killer experiment, prefer these outcome variables:
+Preferred outcome variables for the decisive experiment:
 
 - completion time or time-to-task-threshold
 - `food_delivered`
@@ -121,19 +114,18 @@ For the killer experiment, prefer these outcome variables:
 - efficiency per robot
 - exploration coverage
 - pheromone usage
-- late/post-discovery deliveries
+- late or post-discovery deliveries
 
-The strongest version of the result is not merely that larger swarms do more total work.
-The strongest version is that the **gap between pheromone and no-pheromone conditions widens as swarm size increases**, while per-agent efficiency stays higher under pheromone.
+The strongest result is not merely that larger swarms do more total work. The strongest result is that the **gap between pheromone and no-pheromone conditions widens as swarm size increases**, while per-agent efficiency stays higher under pheromone.
 
-If the repository’s current checkpoints or tooling make the exact preferred swarm-size set impractical, you may use a smaller but still scientifically strong set such as:
+If the current checkpoints or tooling make the exact preferred swarm-size set impractical, a smaller but still scientifically strong set is acceptable, such as:
 
 - `1`, `3`, `6`
 - or `1`, `2`, `3`, `6`, `10`
 
-But the report must explain why the exact preferred set was not used.
+If that happens, the report should explain why the exact preferred set was not used.
 
-If compute/time makes the full matrix unrealistic, preserve scientific quality by:
+If compute or time makes the full matrix unrealistic, preserve scientific quality by:
 
 - fully executing the most important subset first:
   - pheromone ablation
@@ -142,32 +134,30 @@ If compute/time makes the full matrix unrealistic, preserve scientific quality b
   - curriculum-vs-weaker-training if practical
 - then add robustness if time allows
 
-Do not silently skip major parts.
-If you skip or downscale something, document it clearly.
+Do not silently skip major parts. If something is skipped or reduced, document it clearly.
 
 Preferred bundle structure inside one timestamped run:
 
 1. broad campaign section
-2. killer stigmergy scaling section
-3. integrated final interpretation section that explains how the killer experiment strengthens the full bundle
+2. decisive stigmergy-scaling section
+3. integrated final interpretation section explaining how the decisive experiment strengthens the full bundle
 
-For future executions, a full-bundle campaign may be assembled in either of these two valid ways:
+For future runs, a full-bundle campaign can be assembled in either of these two valid ways:
 
 1. **Fresh unified execution**
    - rerun every required family directly into the current timestamped folder
 2. **Federated full-bundle execution**
    - reuse one or more prior timestamped subcampaigns if they are already scientifically valid, stronger than a rushed rerun, and fully reproducible from the repo
 
-If the federated approach is used, the new timestamped folder must still be a **complete bundle**. It must include:
+If the federated approach is used, the new timestamped folder still has to be a complete bundle. It needs to include:
 
 - an integrated `report.md`
 - organized subfolders or copied artifacts for the broad campaign
-- organized subfolders or copied artifacts for the killer scaling campaign
+- organized subfolders or copied artifacts for the decisive scaling campaign
 - a provenance table explaining which source campaign each section came from
-- a justification for why reuse was scientifically stronger than rerunning
+- a justification for why reuse was stronger than rerunning
 
-Do not silently rely on old runs.
-If prior subcampaigns are reused, the report must say so explicitly and treat the new timestamped folder as the self-contained science-fair bundle.
+Do not silently rely on old runs. If prior subcampaigns are reused, the report should say so explicitly and treat the new timestamped folder as the self-contained bundle.
 
 ## Phase 1: Repository Audit Before Running
 
@@ -184,8 +174,7 @@ Required outcome:
 - produce a concise execution plan in the final report
 - explain what used existing checkpoints versus what required new training
 
-Do not guess.
-Read the current code and current artifacts.
+Do not guess. Read the current code and artifacts first.
 
 ## Phase 2: Experimental Design Translation
 
@@ -202,7 +191,7 @@ For each experiment family, define:
 - exact command pattern
 - output directories
 
-At minimum, every experiment section in the final report must state:
+At minimum, every experiment section in the final report should state:
 
 - hypothesis
 - variables
@@ -221,22 +210,20 @@ Create a clean experiment artifact structure under:
   - `results/`
   - `experiments/experiment_data/`
 
-Every full experiment campaign must create a timestamped run folder under:
+Every full experiment campaign should create a timestamped run folder under:
 
 - `docs/gvrsf2026/experiments/<timestamp>/`
 
-where `<timestamp>` is in a stable sortable format such as:
+where `<timestamp>` uses a stable sortable format such as:
 
 - `YYYYMMDD_HHMMSS`
 
-This is required so the experiment program can be run multiple times without overwriting earlier results.
-
-All report-facing artifacts for one campaign must live inside that timestamped folder.
+All report-facing artifacts for one campaign should live inside that timestamped folder.
 
 Required final folder structure for one experiment campaign should include at least:
 
-- `docs/gvrsf2026/experiments/experiments.md` (already exists; treat as the standing plan)
-- `docs/gvrsf2026/experiments/experiments_prompt.md` (this file; standing execution prompt)
+- `docs/gvrsf2026/experiments/experiments.md`
+- `docs/gvrsf2026/experiments/experiments_prompt.md`
 - `docs/gvrsf2026/experiments/<timestamp>/report.md`
 - `docs/gvrsf2026/experiments/<timestamp>/figures/`
 - `docs/gvrsf2026/experiments/<timestamp>/tables/`
@@ -252,12 +239,12 @@ All generated report-facing artifacts should have stable names and be easy to in
 
 Additionally:
 
-- the report must state the timestamped run folder it belongs to
-- figures and tables referenced in the report must be linked from inside that same timestamped folder
-- the report must embed the key figures inline inside the relevant experiment sections, not just link to them
-- if summary index files are created at the top level of `docs/gvrsf2026/experiments/`, they must not replace or overwrite per-run artifacts
+- the report should state the timestamped run folder it belongs to
+- figures and tables referenced in the report should be linked from inside that same timestamped folder
+- the report should embed the key figures inline inside the relevant experiment sections
+- if summary index files are created at the top level of `docs/gvrsf2026/experiments/`, they should not replace or overwrite per-run artifacts
 
-Important documentation rule for this experiment workflow:
+Important documentation rule for this workflow:
 
 - do **not** update `docs/PROJECT_LOG.md`
 - do **not** update `docs/QandA.md`
@@ -268,7 +255,7 @@ The timestamped experiment folder under `docs/gvrsf2026/experiments/<timestamp>/
 
 ### Repetition
 
-Follow the discipline recommended in [experiments.md](./experiments.md):
+Follow the discipline in [experiments.md](./experiments.md):
 
 - for evaluation-only comparisons: aim for `20` or more episodes per condition
 - for training comparisons: aim for multiple independent runs per condition when practical
@@ -294,8 +281,8 @@ For each comparison:
 - keep swarm size fixed unless it is the independent variable
 - keep checkpoint-selection logic consistent
 - for pheromone studies, use paired evaluation layouts:
-  - the same seed/layout must be evaluated across all pheromone conditions before moving to the next seed
-- do not compare “best cherry-picked demo seed” against a random seed average
+  - the same seed or layout should be evaluated across all pheromone conditions before moving to the next seed
+- do not compare a best-looking demo seed against a random seed average
 
 ### Metrics
 
@@ -321,19 +308,20 @@ Secondary diagnostics when useful:
 - `non_carrying_force_explore_fraction`
 - `non_carrying_random_explore_fraction`
 
-Do not hide behind reward alone.
-Task-grounded metrics must be primary.
+Do not hide behind reward alone. Task-grounded metrics need to be primary.
 
 ## Phase 5: Specific Experiment Requirements
 
-### A. Curriculum Learning vs Weaker/Simplified Training
+### A. Curriculum Learning vs Weaker or Simplified Training
 
 Goal:
+
 - show that the current curriculum design materially improves learning quality
 
 Requirements:
-- compare the current curriculum against at least one weaker/simplified training condition
-- use consistent training budget if practical
+
+- compare the current curriculum against at least one weaker or simplified training condition
+- use a consistent training budget if practical
 - evaluate all resulting checkpoints under the same final evaluation conditions
 - focus especially on:
   - `food_delivered`
@@ -341,16 +329,17 @@ Requirements:
   - greedy-eval quality
 
 If retraining multiple full conditions is too expensive:
-- run the strongest reduced comparison you can justify
+
+- run the strongest reduced comparison that can still be justified
 - explain the reduction clearly
 
 ### B. Pheromone Ablation
 
 Goal:
+
 - test the central stigmergy claim directly
 
-This experiment family must be redesigned to make the stigmergy claim genuinely testable.
-Do not rely only on a weak “same checkpoint, pheromone on vs off at eval time” comparison.
+This experiment family should be designed so the stigmergy claim is genuinely testable. Do not rely only on a weak same-checkpoint, pheromone-on-vs-off at eval-time comparison.
 
 Required conditions if feasible:
 
@@ -360,11 +349,11 @@ Required conditions if feasible:
 
 Strongly preferred:
 
-4. trained without pheromone, evaluated with pheromone disabled but with the same matched layouts as the other conditions
+4. trained without pheromone, evaluated in the matched layouts used by the other conditions
 
 Design requirements:
 
-- prioritize **matched training conditions** over evaluation-only toggles whenever such checkpoints exist or can be trained feasibly
+- prioritize matched training conditions over evaluation-only toggles whenever such checkpoints exist or can be trained feasibly
 - run the pheromone comparison at multiple swarm sizes if practical:
   - at minimum `1`, `3`, and `6`
 - if compute is limited, treat `6` agents as the primary stigmergy condition and `1`/`3` agents as supporting context
@@ -373,10 +362,9 @@ Design requirements:
 - choose environments where trail reuse should matter:
   - not trivially easy
   - not so hard that all conditions fail
-  - enough episode length for one agent to discover a route and later agents to exploit it
+  - long enough that one agent can discover a route and later agents can exploit it
 
-For the pheromone family, do not treat total deliveries alone as sufficient evidence.
-You must also analyze whether performance improves **after the first discovery**.
+For the pheromone family, total deliveries alone are not enough. The analysis should also test whether performance improves **after the first discovery**.
 
 Focus metrics:
 
@@ -385,7 +373,7 @@ Focus metrics:
 - `exploration_coverage`
 - `pheromone_usage`
 
-Additional required pheromone-specific metrics:
+Additional pheromone-specific metrics:
 
 - `time_to_first_discovery`
 - `time_to_first_delivery`
@@ -396,8 +384,8 @@ Additional required pheromone-specific metrics:
 Statistical requirement for the pheromone family:
 
 - use paired or layout-matched statistical analysis whenever possible
-- if the main pheromone effect is borderline at `n=20`, rerun with a larger paired sample before concluding the effect is weak
-- the report must clearly identify:
+- if the main pheromone effect is borderline at `n=20`, rerun with a larger paired sample before concluding that the effect is weak
+- the report should clearly identify:
   - the primary pheromone hypothesis test
   - its sample size
   - its p-value and effect size
@@ -408,17 +396,17 @@ Execution requirement for the pheromone family:
   - the largest swarm size tested
   - matched training conditions
   - repeated-source or otherwise trail-reuse-friendly environment
-- the execution should aim to produce a **statistically significant** primary pheromone result
-- if the first pheromone run is not significant or not scientifically convincing, you must strengthen the design and rerun
+- aim to produce a statistically significant primary pheromone result
+- if the first pheromone run is not significant or not convincing, strengthen the design and rerun:
   - increase paired sample size
   - prioritize the primary swarm size over secondary sizes
   - use a more trail-reuse-friendly environment such as repeated-source foraging
   - keep the comparison matched and fair
-- do not stop at a merely qualitative “looks better” result if a stronger feasible design can still be run
+- do not stop at a merely qualitative "looks better" result if a stronger feasible design can still be run
 
 Acceptable stopping rule:
 
-- the pheromone section may stop iterating when the primary pheromone result is both:
+- the pheromone section can stop iterating when the primary pheromone result is both:
   - statistically significant by the stated primary test
   - scientifically interpretable as a stigmergy effect rather than a vague score difference
 
@@ -426,10 +414,10 @@ Interpretation requirement:
 
 - a strong stigmergy result should show either:
   - significantly higher total delivery under pheromone-enabled conditions
-  - or significantly faster/more efficient **post-discovery exploitation**
+  - or significantly faster or more efficient post-discovery exploitation
   - or both
 
-If the pheromone result remains weak, the report must say so plainly and explain whether the likely reason is:
+If the pheromone result remains weak, the report should say so plainly and explain whether the likely reason is:
 
 - evaluation-only ablation instead of matched training
 - environments that do not strongly reward trail reuse
@@ -439,6 +427,7 @@ If the pheromone result remains weak, the report must say so plainly and explain
 ### C. Swarm-Size Scaling
 
 Goal:
+
 - test collective-intelligence scaling
 
 Recommended swarm sizes:
@@ -449,7 +438,7 @@ Recommended swarm sizes:
 - `5`
 - `6`
 
-Optionally:
+Optional:
 
 - `8`
 - `10`
@@ -464,6 +453,7 @@ Focus metrics:
 ### D. Robustness Under Harder Environments
 
 Goal:
+
 - show that the learned system degrades gracefully rather than collapsing
 
 Vary:
@@ -482,6 +472,7 @@ Focus metrics:
 ### E. Baseline Comparison
 
 Goal:
+
 - compare the current system to simpler alternatives
 
 Required baselines where feasible:
@@ -527,7 +518,7 @@ Also generate tables for:
 - summary statistics
 - significance tests if used
 
-All figures and tables used in the final report must be saved as separate artifacts.
+All figures and tables used in the final report should be saved as separate artifacts.
 
 ## Phase 7: Statistical Analysis Requirements
 
@@ -547,8 +538,7 @@ Good candidates for significance testing:
 - pheromone-on vs pheromone-off
 - current curriculum vs weaker curriculum
 
-Use simple, defensible methods.
-Do not use flashy statistics unless justified.
+Use simple, defensible methods. Do not use flashy statistics unless justified.
 
 If statistical testing is omitted for any comparison, explain why.
 
@@ -558,7 +548,7 @@ Write the final report to:
 
 - `docs/gvrsf2026/experiments/<timestamp>/report.md`
 
-The report must be polished and publication-style, while still accessible to a smart semi-technical science-fair audience.
+The report should be polished and publication-style while still readable to a smart semi-technical reader.
 
 Required sections:
 
@@ -579,27 +569,25 @@ Required sections:
 15. Conclusion
 16. Reproducibility Appendix
 
-The report must:
+The report should:
 
 - cite the relevant repo files
 - cite the exact commands or command patterns used
 - include links to the generated figures and tables
 - state what was actually run
-- distinguish between planned and completed experiments if any were reduced
+- distinguish between planned and completed experiments if anything was reduced
 
 The tone should be:
 
 - rigorous
 - concise
 - evidence-driven
-- science-fair-ready
 
-Do not write it like an internal scratchpad.
-Write it like a serious project report.
+It should read like a serious project report, not an internal scratchpad.
 
 ## Phase 9: Reproducibility Requirements
 
-The final report must include a reproducibility section that states:
+The final report should include a reproducibility section stating:
 
 - repo revision used
 - important checkpoints used
@@ -618,7 +606,7 @@ This metadata should make the final report auditable.
 
 Do not modify unrelated code unless required to complete the experiments.
 
-You may update documentation under `docs/gvrsf2026/` only.
+Documentation updates may be made under `docs/gvrsf2026/` only.
 
 Do **not** update:
 
@@ -637,32 +625,4 @@ Before finalizing:
 4. verify that the conclusions match the actual data
 5. verify that no major claim is unsupported
 
-If any experiment family was not completed, the report must say so clearly.
-
-## Deliverables
-
-At the end, you must provide:
-
-1. a concise summary of what experiments were actually run
-2. the location of all main artifacts
-3. the location of the final report
-4. the strongest conclusions supported by the data
-5. remaining limitations or missing experiment families, if any
-
-## Important Constraints
-
-Do not:
-
-- fabricate results
-- hide incomplete experiments
-- rely on screenshots as primary evidence
-- claim stigmergy without an ablation
-- claim collective intelligence without a scaling experiment
-- cherry-pick one demo seed and present it as the main result
-
-Do:
-
-- prioritize scientific validity
-- preserve fairness across comparisons
-- be explicit about what was measured
-- produce a report worthy of a top science fair submission
+If any experiment family was not completed, the report should say so clearly.
