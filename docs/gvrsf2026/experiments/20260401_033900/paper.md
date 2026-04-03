@@ -10,7 +10,7 @@
 
 ## Abstract
 
-This paper studies whether collective intelligence emerges in a decentralized swarm of reinforcement-learning agents, and whether stigmergic communication through pheromone-like trails is one of the mechanisms that allows that intelligence to scale. The experimental evidence comes from a full-bundle campaign assembled from the strongest validated experiment families in the repository: a broad multi-family evaluation campaign and a targeted matched-training stigmergy-scaling campaign. Together, these experiments test curriculum quality, baseline superiority, robustness, aggregate swarm scaling, and the specific contribution of pheromone-mediated coordination.
+In this paper, I investigate whether collective intelligence emerges in a decentralized swarm of reinforcement-learning agents, and whether stigmergic communication through pheromone-like trails is one of the mechanisms that allows that intelligence to scale. The experimental evidence comes from a full-bundle campaign assembled from the strongest validated experiment families in the repository: a broad multi-family evaluation campaign and a targeted matched-training stigmergy-scaling campaign. Together, these experiments test curriculum quality, baseline superiority, robustness, aggregate swarm scaling, and the specific contribution of pheromone-mediated coordination.
 
 The broad campaign shows that the current curriculum-trained MAPPO system substantially outperforms a weaker older training configuration (`food_delivered = 1.25` vs `0.00`, Welch’s `p = 0.000828`), beats both rule-based and random baselines (`1.25` vs `0.30` and `0.05`), and improves with swarm size (`0.05` deliveries at `1` agent vs `1.25` at `6` agents). However, broad scaling alone does not prove emergent stigmergic intelligence, because more robots can produce more work even without meaningful coordination.
 
@@ -20,14 +20,14 @@ To test the central scientific claim, the killer experiment compares matched phe
 
 Swarm intelligence is scientifically interesting because it asks a deep question: when does a group become more capable than the sum of its individuals? In biology, ants and other social organisms achieve this through decentralized interaction, local sensing, and indirect communication through the environment. In computer science, the same question appears in distributed systems, multi-agent learning, and embodied AI: can a group of simple agents learn to coordinate without a central controller, and if so, under what conditions does that coordination become meaningfully scalable?
 
-This repository studies that question in a search-and-return setting. A swarm of agents must explore an environment, find food targets, pick them up, and return them to a nest. The agents are trained with recurrent MAPPO, and the environment optionally supports pheromone-like stigmergic communication. The technical challenge is not merely to produce a visually interesting swarm, but to demonstrate with controlled quantitative evidence that:
+In this project, I study that question in a search-and-return setting. A swarm of agents must explore an environment, find food targets, pick them up, and return them to a nest. The agents are trained with recurrent MAPPO, and the environment optionally supports pheromone-like stigmergic communication. The technical challenge is not merely to produce a visually interesting swarm, but to demonstrate with controlled quantitative evidence that:
 
 1. curriculum learning materially improves the learned decentralized policy,
 2. the learned policy outperforms simpler controls,
 3. performance improves as the number of agents increases, and
 4. pheromone-mediated stigmergy produces a scaling benefit that cannot be explained by “more robots doing more work” alone.
 
-This paper presents the strongest current full-bundle evidence for those claims.
+This paper presents the strongest current full-bundle evidence I have for those claims.
 
 ## 2. System Overview
 
@@ -62,14 +62,14 @@ This second question is the more fundamental one. If collective intelligence is 
 
 ## 4. Experimental Philosophy
 
-The full bundle uses a **federated** design. Instead of forcing one rushed monolithic rerun of every family, it combines the strongest completed broad campaign and the strongest completed stigmergy-scaling campaign. This choice was methodological, not cosmetic.
+The full bundle uses a **federated** design. Instead of forcing one rushed monolithic rerun of every family, I combined the strongest completed broad campaign and the strongest completed stigmergy-scaling campaign. This choice was methodological, not cosmetic.
 
 The bundle provenance in [metadata/provenance.json](./metadata/provenance.json) shows:
 
 - **Broad campaign source:** `20260401_014801`
 - **Killer scaling source:** `20260401_023140`
 
-This was scientifically stronger than rerunning everything together because:
+I selected this design because it was scientifically stronger than rerunning everything together:
 
 - the broad campaign already supplied the best completed curriculum/baseline/robustness/scaling evidence,
 - the killer campaign used a more specialized task and stronger paired statistical design for the pheromone claim,
@@ -142,7 +142,7 @@ The corresponding summary tables are:
 
 ## 5.2 Killer stigmergy-scaling design
 
-The killer experiment was explicitly designed to strengthen the pheromone claim. Its execution plan is in [killer_scaling/analysis_notes/execution_plan.md](./killer_scaling/analysis_notes/execution_plan.md), and its runner is [killer_scaling/commands/run_campaign.py](./killer_scaling/commands/run_campaign.py).
+I designed the killer experiment to strengthen the pheromone claim directly. Its execution plan is in [killer_scaling/analysis_notes/execution_plan.md](./killer_scaling/analysis_notes/execution_plan.md), and its runner is [killer_scaling/commands/run_campaign.py](./killer_scaling/commands/run_campaign.py).
 
 ### Killer conditions
 
@@ -161,7 +161,7 @@ The task was changed to repeated-source foraging:
 - `target_respawn = True`
 - `max_steps = 1200`
 
-This design is important. A generic final-stage map can make pheromone only modestly useful if exploration dominates the task. The repeated-source design makes route reuse central, which is exactly where stigmergy should matter.
+This design is important. A generic final-stage map can make pheromone only modestly useful if exploration dominates the task. I changed the task to repeated-source foraging because route reuse is exactly where stigmergy should matter most.
 
 ### Killer swarm sizes and sample sizes
 
@@ -217,9 +217,9 @@ The corresponding delivery-conversion plot from the source broad campaign shows 
 
 ### Interpretation
 
-This is a textbook curriculum-learning result. The weaker model could still pick up food, but it failed to complete the foraging loop. The stronger curriculum taught a more stable greedy policy that preserved subskills long enough to produce actual delivery behavior.
+This is a textbook curriculum-learning result. The weaker model could still pick up food, but it failed to complete the foraging loop. The stronger curriculum produced a more stable greedy policy that preserved subskills long enough to produce actual delivery behavior.
 
-This matters because it isolates a real algorithmic contribution: the project did not merely train longer, it trained more effectively.
+This matters because it isolates a real algorithmic contribution: I did not merely train longer, but trained more effectively.
 
 ## 6.2 Baseline superiority
 
@@ -256,7 +256,7 @@ The broad campaign also tracked exploration coverage under robustness conditions
 
 The system is **partially robust**, not universally robust. That is an honest and useful result. Observation noise hurts less than obstacle density and agent failures, suggesting that coordination quality depends more on navigational structure and swarm health than on small sensor perturbations.
 
-This is a strength, not a weakness, in a science-fair context: the experiment identifies a clear failure profile instead of pretending the system is perfect.
+I consider this a strength rather than a weakness because the experiment identifies a clear failure profile instead of pretending the system is perfect.
 
 ## 6.4 Broad swarm-size scaling
 
@@ -275,7 +275,7 @@ The source campaign also includes two additional broad scaling views:
 
 ### Interpretation
 
-These results show that the learned system scales in aggregate output and search coverage. But by themselves they do **not** prove collective intelligence through stigmergy. A larger team could simply produce more work by parallelism alone. This is why the killer experiment is necessary.
+These results show that the learned system scales in aggregate output and search coverage. But by themselves they do **not** prove collective intelligence through stigmergy. A larger team could simply produce more work by parallelism alone. This is why I needed the killer experiment.
 
 ## 6.5 Generic pheromone ablation was not enough
 
@@ -405,7 +405,7 @@ The strongest pheromone result comes from a repeated-source task deliberately ch
 
 ## 9. Why This Is an Award-Level Paper
 
-This work has the shape of a strong competition paper because it does more than present a system and a demo. It presents:
+I believe this work has the shape of a strong competition paper because it does more than present a system and a demo. It presents:
 
 - a clear decentralized learning problem,
 - a nontrivial curriculum-based training solution,
@@ -414,11 +414,11 @@ This work has the shape of a strong competition paper because it does more than 
 - scaling evidence,
 - and a targeted causal experiment that isolates the role of stigmergy.
 
-That combination is what makes the science-fair story compelling. The project is not merely “robots that move together.” It is a testable computational claim about emergent intelligence in decentralized multi-agent systems.
+That combination is what makes the paper compelling. The project is not merely “robots that move together.” It is a testable computational claim about emergent intelligence in decentralized multi-agent systems.
 
 ## 10. Conclusion
 
-The latest full-bundle experiment strongly supports the claim that the project’s swarm intelligence emerges from decentralized interaction and that stigmergy is one of the mechanisms that makes that intelligence scale.
+The latest full-bundle experiment strongly supports my claim that the project’s swarm intelligence emerges from decentralized interaction and that stigmergy is one of the mechanisms that makes that intelligence scale.
 
 The broad campaign shows that:
 
