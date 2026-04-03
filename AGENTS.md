@@ -29,7 +29,7 @@
 - If you add tests, document how to run them here and in `README.md`.
 
 ## Change Log Rule
-- When Codex updates any files, add a short summary of changes to `docs/PROJECT_LOG.md`.
+- When the agent updates any files, add a short summary of changes to `docs/PROJECT_LOG.md`.
 - When the user asks a question about the system or codebase, append a concise Q&A entry to `docs/QandA.md`.
 
 ## Commit & Pull Request Guidelines
