@@ -2,7 +2,7 @@
 
 You are working in an existing multi-agent swarm reinforcement learning codebase.
 
-Your task is to execute a science-fair-grade experimental program based on the plan in:
+Your task is to execute the experimental program based on the plan in:
 
 - [docs/gvrsf2026/experiments.md](./experiments.md)
 
