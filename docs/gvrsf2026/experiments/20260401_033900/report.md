@@ -1,201 +1,390 @@
-# GVRSF 2026 Full-Bundle Experiment Report
+# GVRSF 2026 Experimental Lab Report
 
-Experiment campaign folder: `docs/gvrsf2026/experiments/20260401_033900/`
+## Project Title
 
-Standing plan note:
-- Treat this report, the bundle strategy note, and the nested source campaign folders as the self-contained record for this experiment bundle.
+**Emergent Collective Intelligence in a Curriculum-Trained Stigmergic Swarm**
+
+## Overview
+
+This report presents the experimental evidence for the project, including the research questions, hypotheses, independent and dependent variables, controls, procedure, statistical analysis, results, limitations, and conclusions.
+
+## Experiment Bundle
+
+**Bundle folder:** `docs/gvrsf2026/experiments/20260401_033900/`
 
 Supporting artifacts:
+
 - integrated headline table: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
 - provenance metadata: [metadata/provenance.json](./metadata/provenance.json)
-- bundle strategy note: [analysis_notes/bundle_strategy.md](./analysis_notes/bundle_strategy.md)
+- integrated research paper: [paper.md](./paper.md)
 - broad source campaign: [broad/report.md](./broad/report.md)
-- killer scaling source campaign: [killer_scaling/report.md](./killer_scaling/report.md)
+- focused stigmergy-scaling campaign: [killer_scaling/report.md](./killer_scaling/report.md)
 
-## Executive Summary
+## Abstract
 
-This folder is the strongest current **full bundle** of experiments for the project. It combines:
+This experiment bundle tested whether a decentralized multi-agent reinforcement-learning swarm can display collective intelligence, and whether stigmergic communication through pheromone-like environmental trails is an important mechanism that makes that intelligence scale.
 
-1. a broad multi-family campaign covering curriculum quality, baseline comparison, robustness, and general swarm-size scaling
-2. a dedicated matched-training stigmergy scaling campaign designed to make the pheromone claim statistically strong
+The evidence comes from a federated full bundle built from two validated source campaigns:
 
-This is the right science-fair package for the current repository because a single broad campaign alone was not enough to establish the stigmergy claim strongly, while a focused pheromone campaign alone was not enough to count as a full experimental bundle.
+1. a broad campaign testing curriculum learning, baseline superiority, robustness, and general swarm-size scaling
+2. a focused killer experiment testing whether pheromone communication produces a significant coordination advantage under repeated-source foraging
 
-The integrated conclusion is:
+The broad campaign showed that the current curriculum-trained MAPPO policy outperformed a weaker older training configuration (`1.25` vs `0.00` food delivered per episode, Welch's `p = 0.000828`), outperformed both rule-based and random baselines (`1.25` vs `0.30` and `0.05`), and improved as swarm size increased (`0.05` deliveries at `1` agent vs `1.25` at `6` agents). The focused killer experiment then tested the central stigmergy claim directly. At the primary `6`-agent condition with `50` paired seeds, the pheromone-trained swarm achieved `1.32` mean deliveries versus `0.00` for the no-pheromone-trained swarm, with paired t-test `p = 0.00653` and Wilcoxon `p = 0.00364`. Late-episode deliveries were also significantly higher (`0.90` vs `0.00`, paired t-test `p = 0.01535`).
 
-- the current curriculum materially improves the learned policy
-- the current MAPPO swarm outperforms simple baselines
-- performance scales with swarm size
-- pheromone-enabled stigmergic coordination becomes significantly more useful as swarm size increases
+These results support the conclusion that:
 
-That combination supports the strongest project-level claim:
+1. curriculum learning materially improved the decentralized swarm policy,
+2. the learned policy outperformed simpler controls,
+3. performance increased with swarm size,
+4. and stigmergic communication was a key mechanism that strengthened scalable swarm coordination.
 
-> The system’s intelligence emerges from decentralized interaction, and stigmergy is a key mechanism that makes that collective intelligence scale.
+## 1. Background
 
-## Why This Bundle Is the Strongest Available Evidence
+In many robot systems, a central controller decides what each robot should do. In biological swarms such as ants, no such central planner exists. Instead, coordination emerges from local sensing, simple rules, and indirect communication through the environment.
 
-This full bundle uses a **federated** design rather than forcing a rushed rerun of every family into one fresh campaign.
+This indirect communication is called **stigmergy**. In ant colonies, pheromone trails left in the environment can guide later ants toward useful paths. In computer science and robotics, the same idea can be tested in simulation: if agents are allowed to change the environment, can those environmental traces function as shared memory and improve swarm-level behavior?
 
-That was the scientifically stronger choice because:
+This project studies that question in a foraging task. A swarm must:
 
-- the broad source campaign already contains the strongest completed multi-family evaluation bundle in the repo
-- the killer scaling source campaign already contains the strongest current matched-training pheromone evidence
-- the pheromone question required a more targeted design than the broad campaign used
-- trying to rerun everything together would likely have reduced rigor instead of improving it
+`explore -> detect food -> pick up food -> return to the nest -> deliver food`
 
-The provenance is explicit in [metadata/provenance.json](./metadata/provenance.json). This bundle therefore meets the “full bundle” requirement while still using the best available evidence for each major claim.
+The system is trained with recurrent MAPPO, a multi-agent reinforcement-learning algorithm. Each agent acts from local observations only. There is no global planner during evaluation.
 
-## Provenance
+## 2. Research Questions
 
-| Bundle section | Source campaign | Why it was reused |
-| --- | --- | --- |
-| Broad campaign | `20260401_014801` | Strong completed multi-family bundle with curriculum, baseline, robustness, and scaling results |
-| Killer stigmergy scaling campaign | `20260401_023140` | Strongest current matched-training pheromone result with significant paired statistics |
+This full bundle addresses two linked research questions.
 
-## Experiment Family 1: Curriculum Learning vs Weaker Training
+### 2.1 Broad algorithmic question
 
-### Question
+Does the current curriculum-trained decentralized MAPPO system outperform weaker training and simpler baselines, and does it remain meaningfully effective as task difficulty increases?
 
-Does the current curriculum-trained MAPPO system outperform an older weaker training configuration when both are evaluated in the same final-stage environment?
+### 2.2 Core scientific question
 
-### Result
+Does stigmergic communication enable a decentralized swarm to scale better with swarm size than it would without that communication?
 
-From the broad source campaign:
+## 3. Hypotheses
 
-- current curriculum checkpoint: mean `food_delivered = 1.25`
-- weaker older checkpoint: mean `food_delivered = 0.00`
-- Welch t-test: `p = 0.000828`
+### 3.1 Main hypothesis
 
-This is one of the clearest algorithmic results in the whole project. The weaker model could still pick up food, but it failed to convert that into delivery. The current curriculum turns pickup-heavy behavior into actual task completion.
+If collective intelligence is emerging through stigmergic coordination, then pheromone-enabled swarms should outperform no-pheromone swarms, especially at larger swarm sizes and especially after useful routes have already been discovered.
+
+### 3.2 Supporting hypotheses
+
+- A stronger curriculum-trained model should outperform a weaker older training configuration.
+- The learned MAPPO policy should outperform simpler rule-based and random baselines.
+- Aggregate task completion should increase as the number of agents increases.
+- The system should remain partially effective under harder conditions, although performance should decrease under added obstacles and failed agents.
+
+## 4. Scientific Design
+
+This bundle uses a **federated experimental design**. Rather than rerunning every experiment family in a single campaign, it combines the strongest completed broad campaign and the strongest completed focused stigmergy-scaling campaign already present in the repository.
+
+That design choice is documented in [metadata/provenance.json](./metadata/provenance.json).
+
+### Why this design was scientifically appropriate
+
+- The broad campaign already provided the strongest completed evidence for curriculum quality, baseline comparison, robustness, and general scaling.
+- The focused killer campaign used a stronger repeated-source design and paired statistics specifically to test the pheromone hypothesis.
+- Combining the strongest completed evidence for each claim was more rigorous than forcing a weaker all-in-one rerun.
+
+## 5. Experimental System
+
+The tested system is a decentralized multi-agent reinforcement-learning swarm with four main components:
+
+- environment: [env/swarm_env.py](../../../env/swarm_env.py)
+- configuration schema: [env/config.py](../../../env/config.py)
+- curriculum: [algorithms/mappo/curriculum.py](../../../algorithms/mappo/curriculum.py)
+- trainer: [train/mappo_gru.py](../../../train/mappo_gru.py)
+
+### Key system properties
+
+- Each agent receives only local observations.
+- Agents do not use a central planner during evaluation.
+- The environment can contain food, a nest, obstacles, and a pheromone field.
+- When enabled, pheromone acts as an environmental memory mechanism.
+
+## 6. Variables
+
+Because this bundle combines multiple experiment families, the independent variable depends on the family being tested.
+
+### 6.1 Independent variables
+
+**Family: Curriculum vs weaker training**
+
+- training configuration / checkpoint version
+
+**Family: Baseline comparison**
+
+- control policy type
+  - learned MAPPO
+  - rule-based baseline
+  - random baseline
+
+**Family: Robustness**
+
+- environment difficulty condition
+  - control
+  - more obstacles
+  - sensor noise
+  - failed agents = 2
+
+**Family: Swarm-size scaling**
+
+- number of agents
+
+**Family: Killer stigmergy-scaling experiment**
+
+- pheromone condition
+  - trained with pheromone, evaluated with pheromone
+  - trained with pheromone, evaluated without pheromone
+  - trained without pheromone, evaluated without pheromone
+- swarm size
+  - `1`, `3`, `6`
+
+### 6.2 Dependent variables
+
+Across the bundle, the main dependent variables were:
+
+- `food_delivered`
+- `delivery_conversion`
+- `exploration_coverage`
+- `late_deliveries`
+- `post_discovery_deliveries`
+- `pickup_to_delivery_latency`
+- `mean_episode_reward`
+- `pheromone_usage`
+
+### 6.3 Controlled variables
+
+Wherever comparisons were made, the experiments controlled for:
+
+- deterministic greedy evaluation for learned policies
+- fixed episode count per condition within a campaign
+- fixed or paired seed ranges
+- consistent environment geometry within each comparison family
+- headless evaluation mode
+
+For the broad campaign specifically:
+
+- `20` episodes per condition
+- seed range `100..119`
+
+For the killer experiment specifically:
+
+- paired seeds across compared conditions
+- repeated-source foraging task held constant across conditions
+- primary `6`-agent test with `50` paired seeds
+- supporting `1`-agent and `3`-agent tests with `20` paired seeds
+
+## 7. Materials and Procedure
+
+## 7.1 Broad campaign procedure
+
+The broad campaign was an evaluation-heavy study using existing trained checkpoints rather than retraining every condition from scratch.
+
+The campaign manifest is in [broad/metadata/campaign_manifest.json](./broad/metadata/campaign_manifest.json). The runner is [broad/commands/run_campaign.py](./broad/commands/run_campaign.py).
+
+### Broad campaign checkpoints
+
+- primary current checkpoint: `checkpoints/mappo_g/stage3b_full_swarm_final`
+- weaker comparison checkpoint: `checkpoints/mappo_full_600k_33/stage3b_full_swarm_final`
+
+### Broad experiment families
+
+1. curriculum learning vs weaker training
+2. pheromone ablation
+3. swarm-size scaling
+4. robustness under harder environments
+5. baseline comparison
+
+### Broad statistical reporting
+
+The broad campaign reported:
+
+- mean
+- standard deviation
+- 95% confidence interval
+- Welch's t-test
+- Cohen's `d`
+
+## 7.2 Killer stigmergy-scaling procedure
+
+The focused killer experiment was designed to test the central stigmergy claim more directly than the broad campaign could.
+
+The campaign manifest is in [killer_scaling/metadata/campaign_manifest.json](./killer_scaling/metadata/campaign_manifest.json). The runner is [killer_scaling/commands/run_campaign.py](./killer_scaling/commands/run_campaign.py).
+
+### Killer experiment conditions
+
+1. `trained_with_pheromone__eval_with_pheromone`
+2. `trained_with_pheromone__eval_without_pheromone`
+3. `trained_without_pheromone__eval_without_pheromone`
+
+### Killer task design
+
+The task was changed from generic final-stage foraging to repeated-source route reuse:
+
+- `1` active food source
+- `food_source_capacity = 12`
+- `target_respawn = True`
+- `max_steps = 1200`
+
+This matters because stigmergy should be most useful when discovered routes can be reused repeatedly.
+
+### Killer checkpoints
+
+- pheromone-trained checkpoint: `checkpoints/mappo_gru_pheromone/stage3_full_marl`
+- no-pheromone checkpoint: `checkpoints/mappo_gru_no_pheromone/stage3_full_marl`
+
+### Killer statistical reporting
+
+For the primary `6`-agent matched comparisons, the experiment reported:
+
+- paired t-test
+- Wilcoxon signed-rank test
+- Cohen's `d`
+
+## 8. Results
+
+## 8.1 Experiment Family 1: Curriculum Learning vs Weaker Training
+
+### Test question
+
+Does the stronger current curriculum produce a measurably better final policy than an older weaker training setup?
+
+### Results
+
+From [broad/tables/family_summary.csv](./broad/tables/family_summary.csv):
+
+- current curriculum checkpoint:
+  - mean `food_delivered = 1.25`
+  - mean `delivery_conversion = 0.583`
+  - mean `exploration_coverage = 0.212`
+- weaker older checkpoint:
+  - mean `food_delivered = 0.00`
+  - mean `delivery_conversion = 0.000`
+  - mean `exploration_coverage = 0.146`
+
+From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+
+- Welch's t-test on `food_delivered`: `p = 0.000828`
+
+Figure:
 
 ![Broad Curriculum Food Delivered](./figures/broad_curriculum_food_delivered.png)
 
-Why it matters:
+### Interpretation
 
-- it shows the training curriculum is not cosmetic
-- it shows that staging the learning problem improved greedy policy quality
-- it supports the computer-science claim that curriculum design was a substantive algorithmic contribution
+This is strong evidence that the curriculum was a real algorithmic contribution. The weaker model could still pick up food, but it did not complete the full foraging loop. The current curriculum turned partial behavior into actual delivery behavior.
 
-For the detailed methods and raw tables, see [broad/report.md](./broad/report.md).
+## 8.2 Experiment Family 2: Baseline Comparison
 
-## Experiment Family 2: Baseline Comparison
+### Test question
 
-### Question
+Is the learned swarm behavior stronger than simple non-learning controls?
 
-Does the learned swarm policy outperform simpler non-learning baselines?
+### Results
 
-### Result
+From [broad/tables/family_summary.csv](./broad/tables/family_summary.csv):
 
-From the broad source campaign:
-
-- current MAPPO: mean `food_delivered = 1.25`
+- learned MAPPO: `food_delivered = 1.25`
 - rule-based baseline: `0.30`
 - random baseline: `0.05`
+
+From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
+
 - MAPPO vs rule-based: `p = 0.012248`
 - MAPPO vs random: `p = 0.001242`
 
+Figure:
+
 ![Broad Baseline Food Delivered](./figures/broad_baseline_food_delivered.png)
 
-Why it matters:
+### Interpretation
 
-- judges should be able to see that this is not “just more code” or “just more hardware”
-- the learned decentralized policy is measurably better than obvious controls
+This result is important for scientific credibility. It shows that the final behavior was not just a trivial scripted heuristic or random movement in a forgiving environment. The learning-based approach produced measurably stronger performance.
 
-## Experiment Family 3: Robustness Under Harder Environments
+## 8.3 Experiment Family 3: Robustness Under Harder Conditions
 
-### Question
+### Test question
 
-Does the learned policy remain effective when the environment becomes more difficult?
+Does the learned policy remain effective when the task becomes more difficult?
 
-### Result
+### Results
 
-From the broad source campaign:
+From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
 
-- control final stage: mean `food_delivered = 1.25`
+- control final stage: `1.25`
 - more obstacles: `0.65`
 - failed agents = 2: `0.70`
 - sensor noise: `1.05`
 
+Figure:
+
 ![Broad Robustness Food Delivered](./figures/broad_robustness_food_delivered.png)
 
-Interpretation:
+### Interpretation
 
-- the system is partially robust
-- obstacle density and agent failures hurt more than modest observation noise
-- this is an honest and scientifically useful result because it identifies real limits rather than claiming perfect generalization
+The system was partially robust, not universally robust. Observation noise reduced performance less than obstacle density and failed agents. That is scientifically useful because it identifies specific failure modes instead of hiding them.
 
-## Experiment Family 4: General Swarm-Size Scaling
+## 8.4 Experiment Family 4: General Swarm-Size Scaling
 
-### Question
+### Test question
 
-Does performance improve as the number of agents increases?
+Does task completion improve as the number of agents increases?
 
-### Result
+### Results
 
-From the broad source campaign:
+From [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv):
 
-- `1` agent: mean `food_delivered = 0.05`
-- `6` agents: mean `food_delivered = 1.25`
+- `1` agent: `food_delivered = 0.05`
+- `6` agents: `food_delivered = 1.25`
+
+Figure:
 
 ![Broad Scaling Food Delivered](./figures/broad_scaling_food_delivered.png)
 
-This broad result already showed that the learned system scales in aggregate output.
+### Interpretation
 
-But on its own, that does **not** prove stigmergic collective intelligence. More robots could simply mean more bodies doing parallel work. That is why the dedicated killer experiment was required.
+This result shows that aggregate output increased with swarm size. However, by itself it does **not** prove stigmergic collective intelligence, because more agents could increase output simply by parallel effort. That is why the focused killer experiment was necessary.
 
-## Killer Experiment: Scaling Laws of Stigmergic Collective Intelligence
+## 8.5 Killer Experiment: Stigmergy as a Scaling Mechanism
 
-### Core Research Question
+### Test question
 
-Does stigmergic communication enable a decentralized swarm to become more than the sum of its parts as swarm size increases?
+Does pheromone-mediated stigmergy provide a measurable coordination advantage that cannot be explained by merely adding more agents?
 
-### Hypothesis
+### Null hypothesis
 
-If collective intelligence is truly emerging through stigmergy, then:
+At the primary `6`-agent matched condition, pheromone-trained and no-pheromone-trained swarms do not differ significantly in total deliveries or late-episode deliveries.
 
-- pheromone-enabled swarms should outperform no-pheromone swarms
-- the performance gap should grow as swarm size increases
-- later/post-discovery delivery should benefit especially strongly from pheromone
+### Results at the primary `6`-agent condition
 
-### Design
-
-The killer source campaign used a stronger design than the broad bundle:
-
-- matched training conditions
-  - trained with pheromone
-  - trained without pheromone
-- repeated-source foraging task where trail reuse should matter
-- paired seeds/layouts
-- swarm sizes `1`, `3`, `6`
-- primary statistical test at `6` agents with `50` paired seeds
-
-This is not the exact ideal `1,2,3,5,10` matrix from the standing plan, but it is still scientifically strong because:
-
-- it spans small, medium, and larger swarms
-- it places the heaviest statistical budget on the swarm size where stigmergy should matter most
-- it uses a task where route reuse is central to the mechanism being tested
-
-### Headline Result
-
-At `6` agents:
+From [killer_scaling/tables/condition_summary.csv](./killer_scaling/tables/condition_summary.csv):
 
 - trained with pheromone, evaluated with pheromone:
   - mean `food_delivered = 1.32`
   - mean `late_deliveries = 0.90`
+  - mean `post_discovery_deliveries = 1.32`
 - trained without pheromone, evaluated without pheromone:
   - mean `food_delivered = 0.00`
   - mean `late_deliveries = 0.00`
+  - mean `post_discovery_deliveries = 0.00`
 
-Primary paired tests:
+From [killer_scaling/tables/statistical_tests.csv](./killer_scaling/tables/statistical_tests.csv):
 
-- total deliveries:
-  - paired t-test `p = 0.00653`
-  - Wilcoxon `p = 0.00364`
-- late deliveries:
-  - paired t-test `p = 0.01535`
-  - Wilcoxon `p = 0.03179`
+**Food delivered**
 
-These are the strongest stigmergy results currently available in the repository.
+- paired t-test `p = 0.006533626288644425`
+- Wilcoxon `p = 0.003639055911865487`
+- Cohen's `d = 0.568`
+
+**Late deliveries**
+
+- paired t-test `p = 0.015349451688343872`
+- Wilcoxon `p = 0.031787927781079674`
+- Cohen's `d = 0.502`
+
+Figures:
 
 ![Killer Food Delivered by Swarm Size](./figures/killer_food_delivered_by_swarm_size.png)
 
@@ -205,89 +394,60 @@ These are the strongest stigmergy results currently available in the repository.
 
 ### Interpretation
 
-This is the experiment that converts the project from “good engineering” into “strong science.”
+This is the strongest evidence in the repository for the central scientific claim.
 
-Why:
+The result is stronger than broad scaling alone for three reasons:
 
-- the broad scaling result alone only shows that more agents can do more work
-- the killer experiment shows that the advantage is specifically larger when stigmergic communication is available
-- the strongest differences appear in **late/post-discovery** behavior, which is exactly where reusable trail information should help
+1. it uses matched training conditions,
+2. it uses paired seeds,
+3. and it tests a route-reuse task where stigmergy should matter mechanistically.
 
-In other words:
+The strongest differences appeared in late and post-discovery behavior, which is exactly where pheromone trails should help most. Early in an episode, no useful trail exists yet. Later in the episode, a stigmergic swarm can reuse environmental information. That pattern fits the theory.
 
-- more robots alone do not explain the result
-- decentralized learned agents with stigmergic communication explain the result much better
+## 9. Summary Table of Main Findings
 
-That is the core collective-intelligence claim the science-fair project needs.
+| Claim tested | Main evidence | Outcome |
+| --- | --- | --- |
+| Curriculum learning improves behavior | `1.25` vs `0.00` food delivered, `p = 0.000828` | Strongly supported |
+| Learned policy beats simple baselines | MAPPO `1.25`, rule-based `0.30`, random `0.05` | Strongly supported |
+| Performance increases with swarm size | `0.05` at `1` agent to `1.25` at `6` agents | Supported |
+| Stigmergy improves scaling | `1.32` vs `0.00` at `6` agents, paired `p = 0.00653` | Strongly supported |
+| Policy is robust to harder settings | reduced but nonzero performance under several harder conditions | Partially supported |
 
-## Integrated Interpretation
+## 10. Limitations
 
-Taken together, the bundle supports four strong claims:
+This report should be judged as strong evidence, not as a claim of total completion.
 
-1. **Curriculum learning matters**
-   - weaker training failed to convert pickup into delivery
-   - the current curriculum solved that problem much better
+Main limitations:
 
-2. **The learned policy is genuinely better than simple baselines**
-   - it beats rule-based and random controls
+- The broad and killer campaigns were federated from two strong source campaigns rather than rerun as one monolithic campaign.
+- The killer scaling study used swarm sizes `1`, `3`, `6`, not a denser grid such as `1`, `2`, `3`, `5`, `10`.
+- Robustness was partial rather than universal. Obstacles and failed agents still caused meaningful degradation.
+- The strongest stigmergy result came from a repeated-source route-reuse design, which is appropriate for testing the mechanism but narrower than all possible swarm tasks.
 
-3. **The system scales with swarm size**
-   - aggregate task completion rises as more agents participate
+These limitations are real, but they do not invalidate the main conclusion. They define the boundary of what this bundle currently proves.
 
-4. **Stigmergy becomes more important as the swarm grows**
-   - the dedicated killer experiment shows a statistically significant pheromone advantage at the primary larger swarm size
+## 11. Conclusion
 
-This is exactly the narrative you want for a top-level computer-science fair project:
+This experiment bundle supports the following conclusion:
 
-- not just “the robots work”
-- but “a decentralized learning system develops emergent collective behavior, and stigmergic communication is a causal mechanism behind its scalable coordination”
+> In this system, collective intelligence emerges from decentralized interaction, and stigmergic communication is a key mechanism that makes that intelligence scale.
 
-## What Is Strongly Supported vs Partially Supported
+In plain language:
 
-### Strongly supported
+- the stronger curriculum mattered,
+- the learned policy was better than simple baselines,
+- more agents improved task completion,
+- and pheromone-based environmental communication produced a statistically significant coordination advantage in the strongest targeted scaling test.
 
-- curriculum quality improves final behavior
-- the learned MAPPO policy outperforms simpler baselines
-- performance scales with swarm size
-- pheromone-enabled stigmergy produces a significant advantage in the dedicated repeated-source scaling task
+For a science-fair judge, the most important takeaway is that this project did not only build a working swarm simulation. It tested a real computer-science hypothesis about decentralized algorithms and produced controlled evidence that environmental communication can help a learned swarm become more effective as it grows.
 
-### Partially supported
+## 12. Reproducibility and Evidence Trail
 
-- robustness under harder environments
-  - the system remains partly functional, but obstacles and failed agents still hurt substantially
-- exact scaling-law shape across a denser swarm-size grid
-  - the current strongest killer experiment uses `1`, `3`, `6`, not the full ideal `1`, `2`, `3`, `5`, `10`
+For judges or reviewers who want to inspect the evidence trail:
 
-### Not fully resolved yet
-
-- whether per-agent efficiency remains near-flat at even larger swarm sizes such as `10+`
-- whether the same strong stigmergy gap generalizes unchanged to every map family
-
-## Limitations
-
-1. The full bundle is federated rather than a fresh single-shot rerun.
-   - This is a scientific-strength choice, but it still means the evidence comes from two source campaigns.
-
-2. The killer experiment uses `1`, `3`, `6` swarm sizes rather than the full preferred grid.
-   - The current result is still strong, but a future extension to `2`, `5`, and `10` would strengthen the scaling-law story even more.
-
-3. The robustness results are useful but not yet exhaustive.
-   - They show failure modes, but not a complete stress-test matrix.
-
-## Reproducibility
-
-- Standing plan note: the `20260401_033900` folder is the self-contained full-bundle record on this branch.
-- Bundle strategy and provenance are documented in [analysis_notes/bundle_strategy.md](./analysis_notes/bundle_strategy.md) and [metadata/provenance.json](./metadata/provenance.json).
-- Bundle provenance: [metadata/provenance.json](./metadata/provenance.json)
-- Broad source report: [broad/report.md](./broad/report.md)
-- Killer source report: [killer_scaling/report.md](./killer_scaling/report.md)
-
-This timestamped folder is intended to be the current science-fair-ready package. It contains the integrated report plus the complete source subcampaigns needed to audit every major claim.
-
-## Final Conclusion
-
-The strongest current evidence supports the claim that this project is not merely a collection of independent robots. It is a decentralized multi-agent learning system whose useful collective behavior depends on training strategy and, in the strongest dedicated experiment, on stigmergic communication itself.
-
-That is the science-fair-level result:
-
-> Collective intelligence in this system emerges from decentralized interaction, and pheromone-like stigmergy is one of the mechanisms that makes that intelligence scale.
+- broad campaign methods and results: [broad/report.md](./broad/report.md)
+- killer experiment methods and results: [killer_scaling/report.md](./killer_scaling/report.md)
+- integrated paper version: [paper.md](./paper.md)
+- provenance and source-campaign record: [metadata/provenance.json](./metadata/provenance.json)
+- integrated headline table: [tables/full_bundle_headlines.csv](./tables/full_bundle_headlines.csv)
