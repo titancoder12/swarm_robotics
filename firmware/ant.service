@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 # Ensure ant.py is at /home/pi/Ant for this to work.
-ExecStart=/home/pi/venvs/ant/bin/python /home/pi/Ant/swarm_robotics/firmware/ant.py
+ExecStart=/home/pi/ant-env/bin/python /home/pi/Ant/swarm_robotics/firmware/ant.py
 User=pi
 
 [Install]
