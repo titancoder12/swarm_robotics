@@ -355,7 +355,7 @@ At this stage, the repository was becoming a platform rather than just a script.
 
 The early prompt archive builds the project’s base research infrastructure.
 
-`00_INITIAL_PROMPTS.md` asked for the initial swarm RL repository skeleton.
+`00_INITIAL.md` asked for the initial swarm RL repository skeleton.
 
 Prompts `01` to `07` then escalated the codebase systematically:
 

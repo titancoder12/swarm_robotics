@@ -2,16 +2,16 @@
 
 This file captures review-style, history/audit-style, and architectural-assessment Q&A that is useful for repo auditing but is not primarily about understanding how to use or read the codebase.
 
-## Q: What were the main review comments on the updated `docs/prompts/10_command_centre_prompt.md`?
+## Q: What were the main review comments on the updated `docs/prompts/10_command_centre.md`?
 A: The updated prompt is much better aligned with the current repo than the earlier version. The main remaining review points were: (1) it now correctly requires `PHER_RESP,<id>,<p0>,<p1>,<p2>` and exact forward-sample compatibility with `_pheromone_samples()` in [env/swarm_env.py](../env/swarm_env.py); (2) it correctly scopes the command center to only the pheromone-related observation channels, which matches the fact that [firmware/run.py](../firmware/run.py) still computes the other observation fields locally or uses placeholders; and (3) the remaining risks are mostly precision issues around transport/integration details and ensuring the command center uses exactly the simulator’s sampling geometry and heading convention, not an approximation.
 
-## Q: What were the main review comments on the latest revision of `docs/prompts/10_command_centre_prompt.md`?
+## Q: What were the main review comments on the latest revision of `docs/prompts/10_command_centre.md`?
 A: The latest revision is now very close to the repo’s real contracts. The strongest improvement is that it explicitly hard-codes the simulator’s forward pheromone sampling distance formula and local-max normalization behavior from `_pheromone_samples()` in [env/swarm_env.py](../env/swarm_env.py). The main remaining comments were narrower: (1) if the goal is exact simulator compatibility, the normalization snippet in the prompt should acknowledge the simulator’s `+ 1e-6` denominator detail rather than showing a simplified formula; (2) the prompt still leaves some ambiguity around simulator-vs-physical unit conversion because the sim uses world units while the protocol requires centimeters; and (3) there are a few redundant separator / stray bullet lines that do not affect intent but make the prompt slightly noisier than necessary.
 
-## Q: What were the main review comments on the newest revision of `docs/prompts/10_command_centre_prompt.md`?
+## Q: What were the main review comments on the newest revision of `docs/prompts/10_command_centre.md`?
 A: This newest revision is the closest one yet to the repo’s current contracts. It now includes the simulator’s exact pheromone-sampling distance formula, the exact `+ 1e-6` local-max normalization behavior from `_pheromone_samples()` in [env/swarm_env.py](../env/swarm_env.py), and an explicit default sim-to-physical conversion contract of `1 simulator world unit = 1 cm`. The remaining comments were minor: (1) there is still a stray standalone bullet line in the protocol section that adds noise but not meaning, and (2) the command center prompt is now strong enough that the main implementation risk is operational correctness for multi-robot direct connections rather than spec ambiguity.
 
-## Q: What were the main review comments on the final cleanup revision of `docs/prompts/10_command_centre_prompt.md`?
+## Q: What were the main review comments on the final cleanup revision of `docs/prompts/10_command_centre.md`?
 A: The prompt is now effectively implementation-ready for this repo. The earlier contract issues around pheromone sampling geometry, normalization, and sim-to-physical scaling have been addressed. The only remaining comment was prompt hygiene: there are still a couple of redundant `---` separators and one stray line in the protocol section, but these are cosmetic rather than semantic. The main remaining risk is implementation quality for multi-robot connection handling, not prompt ambiguity.
 
 ## Q: What changed between commit `49ee2d9ab6388f9d660f79dfcd3d5e22a07e1b0c` and the current revision?
@@ -51,7 +51,7 @@ A: From the visible history after that baseline, the later revisions are:
 
 1. `41ca431597e686efae9dc38944186860c357cf34`
    Date-time: `2026-03-24 12:25:29 -0700`
-   Code changed: no runtime code; documentation files only: [docs/BLUETOOTH_FIRMWARE_NOTES.md](../docs/BLUETOOTH_FIRMWARE_NOTES.md), [docs/prompts/11_bluetooth_prompt.md](../docs/prompts/11_bluetooth_prompt.md), plus log/Q&A updates.
+   Code changed: no runtime code; documentation files only: [docs/BLUETOOTH_FIRMWARE_NOTES.md](../docs/BLUETOOTH_FIRMWARE_NOTES.md), [docs/prompts/11_bluetooth.md](../docs/prompts/11_bluetooth.md), plus log/Q&A updates.
    Change summary: added a Bluetooth design note for the firmware side and a reusable implementation prompt for adding Bluetooth transport later.
    Reason: the repo had a new command-center subsystem but no concrete written plan for how Bluetooth should fit the current architecture, especially given that the policy loop lives on the Raspberry Pi while the ESP32 is a lower-level motor/sensor controller.
    Enhancement: clarified the intended split between Pi-side model/runtime logic and ESP32-side hardware control, and gave the project a reusable prompt to implement Bluetooth consistently later.
@@ -114,7 +114,7 @@ A: From the visible history after that baseline, the later revisions are:
 
 8. `a008c01f8a456efc0b14e8e65fd6d3cd6ecf1ed8`
    Date-time: `2026-03-24 23:50:49 -0700`
-   Code changed: documentation only: [docs/QandA.md](../docs/QandA.md), [docs/PROJECT_LOG.md](../docs/PROJECT_LOG.md), and new [docs/prompts/12_additional_prompts.md](../docs/prompts/12_additional_prompts.md).
+   Code changed: documentation only: [docs/QandA.md](../docs/QandA.md), [docs/PROJECT_LOG.md](../docs/PROJECT_LOG.md), and new [docs/prompts/12_additional.md](../docs/prompts/12_additional.md).
    Change summary: documented the detailed repo evolution since `2c9ec70` and added a reconstructed set of incremental prompts that could plausibly have produced that evolution.
    Reason: by this point the repo had changed a lot in a short period, and the history was becoming hard to understand from commit subjects alone.
    Enhancement: improved maintainability and historical understanding by turning the recent evolution into explicit documentation and reusable prompts.
