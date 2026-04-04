@@ -223,7 +223,7 @@ All report-facing artifacts for one campaign should live inside that timestamped
 Required final folder structure for one experiment campaign should include at least:
 
 - `docs/gvrsf2026/experiments/experiments.md`
-- `docs/gvrsf2026/experiments/experiments_prompt.md`
+- `docs/gvrsf2026/experiments/instruction.md`
 - `docs/gvrsf2026/experiments/<timestamp>/report.md`
 - `docs/gvrsf2026/experiments/<timestamp>/figures/`
 - `docs/gvrsf2026/experiments/<timestamp>/tables/`
