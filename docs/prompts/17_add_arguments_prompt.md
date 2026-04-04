@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
+Work in the existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
 
 Task:
 Implement support for:

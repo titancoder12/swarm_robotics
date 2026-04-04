@@ -1,6 +1,6 @@
-Prompt 5 — Collective Intelligence Scaling Experiment
+Step 5 — Collective Intelligence Scaling Experiment
 
-You are a research scientist implementing the primary science-fair experiment inside an existing stigmergic swarm RL codebase.
+Implement the primary science-fair experiment inside the existing stigmergic swarm RL codebase.
 
 GOAL
 

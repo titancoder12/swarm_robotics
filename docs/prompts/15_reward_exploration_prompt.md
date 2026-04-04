@@ -1,5 +1,5 @@
 # Reward exploration and modify pheremone rules!
-You are working in an existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
+Work in the existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
 
 Task:
 1) Modify pheromone deposition so agents can ONLY lay pheromone after they have found food (i.e., when carrying food or after a successful food interaction).

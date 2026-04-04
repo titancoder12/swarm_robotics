@@ -1,5 +1,5 @@
 # Add debug statements
-You are working in an existing multi-agent swarm RL codebase.
+Work in the existing multi-agent swarm RL codebase.
 
 Task:
 Add debug logging so I can see, for each agent at each decision step, what the policy/model outputs and what final action the agent takes.

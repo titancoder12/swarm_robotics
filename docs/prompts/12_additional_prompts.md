@@ -1,12 +1,12 @@
-# Additional Incremental Prompts
+# Additional Incremental Steps
 
-Step-by-step prompts from commit `2c9ec7085858c4712c3cd4673635cb4d3c330a45` to the current revision `130452c`.
+Step-by-step changes from commit `2c9ec7085858c4712c3cd4673635cb4d3c330a45` to the current revision `130452c`.
 
 
-## Prompt 1 — Rename the Command Center Package
+## Step 1 — Rename the Command Center Package
 
 ```md
-# Prompt — Rename `server/` to `mission_control/`
+# Step — Rename `server/` to `mission_control/`
 
 The repo currently uses a desktop command-center package named `server/`, but I want the naming to be more explicit and domain-specific.
 
@@ -29,10 +29,10 @@ Definition of done:
 - no unrelated behavioral refactors are mixed into the rename
 ```
 
-## Prompt 2 — Add BLE Support to Mission Control
+## Step 2 — Add BLE Support to Mission Control
 
 ```md
-# Prompt — Add BLE Peripheral Support to Mission Control
+# Step — Add BLE Peripheral Support to Mission Control
 
 Extend the current `mission_control/` subsystem so the MacBook command center can communicate with robots over BLE in addition to TCP and serial.
 
@@ -60,10 +60,10 @@ Definition of done:
 - docs explain how BLE mode works
 ```
 
-## Prompt 3 — Add a Dedicated Pi-Side BLE Client
+## Step 3 — Add a Dedicated Pi-Side BLE Client
 
 ```md
-# Prompt — Add a Raspberry Pi BLE Client for Mission Control
+# Step — Add a Raspberry Pi BLE Client for Mission Control
 
 The Raspberry Pi runtime in `firmware/` is where the model loop runs, so I want the Pi to communicate directly with `mission_control/` over BLE.
 
@@ -89,10 +89,10 @@ Definition of done:
 - the code keeps the ESP32 link and Mission Control link conceptually separate
 ```
 
-## Prompt 4 — Integrate Mission Control into the Pi Policy Loop
+## Step 4 — Integrate Mission Control into the Pi Policy Loop
 
 ```md
-# Prompt — Integrate Mission Control Queries into `firmware/run.py`
+# Step — Integrate Mission Control Queries into `firmware/run.py`
 
 Now that the Pi has a BLE client, integrate Mission Control into the live policy loop in `firmware/run.py`.
 
@@ -117,10 +117,10 @@ Definition of done:
 - the rest of the observation remains locally assembled
 ```
 
-## Prompt 5 — Improve Mission Control UI and Fake Robot Tooling
+## Step 5 — Improve Mission Control UI and Fake Robot Tooling
 
 ```md
-# Prompt — Improve Mission Control Telemetry UI and Local Testing
+# Step — Improve Mission Control Telemetry UI and Local Testing
 
 The Mission Control UI is functional but still sparse. I want it to be more useful for live experiments and easier to test locally.
 
@@ -144,10 +144,10 @@ Definition of done:
 - the UI changes remain cleanly separated from protocol/world-state logic
 ```
 
-## Prompt 6 — Add Lidar Telemetry to the Mission Control Protocol
+## Step 6 — Add Lidar Telemetry to the Mission Control Protocol
 
 ```md
-# Prompt — Add `LIDAR` Telemetry to Mission Control
+# Step — Add `LIDAR` Telemetry to Mission Control
 
 I want Mission Control to display the robot's current lidar scan for debugging and demonstration.
 
@@ -170,10 +170,10 @@ Definition of done:
 - the UI renders it in a useful way
 ```
 
-## Prompt 7 — Fix Mission Control Pheromone Rendering Alignment
+## Step 7 — Fix Mission Control Pheromone Rendering Alignment
 
 ```md
-# Prompt — Fix Heatmap Alignment in Mission Control
+# Step — Fix Heatmap Alignment in Mission Control
 
 The Mission Control pheromone heatmap does not line up correctly with robot paths and world coordinates.
 
@@ -192,10 +192,10 @@ Definition of done:
 - world-coordinate rendering is internally consistent
 ```
 
-## Prompt 8 — Let the Policy Control Pheromone Deposition
+## Step 8 — Let the Policy Control Pheromone Deposition
 
 ```md
-# Prompt — Expand the Action Space to Include Pheromone Deposit
+# Step — Expand the Action Space to Include Pheromone Deposit
 
 Right now pheromone deposition is runtime-driven logic. I want the policy interface itself to control whether pheromone is deposited on a step.
 
@@ -219,10 +219,10 @@ Definition of done:
 - deposit is now policy-controlled rather than purely heuristic
 ```
 
-## Prompt 9 — Improve Training Reset Randomness and Exploration Controls
+## Step 9 — Improve Training Reset Randomness and Exploration Controls
 
 ```md
-# Prompt — Fix Repeated Resets and Expose Epsilon Schedule Controls
+# Step — Fix Repeated Resets and Expose Epsilon Schedule Controls
 
 I want training and demo behavior to be less misleading and easier to tune.
 
@@ -240,10 +240,10 @@ Definition of done:
 - docs explain the new behavior
 ```
 
-## Prompt 10 — Add Training Graph Export
+## Step 10 — Add Training Graph Export
 
 ```md
-# Prompt — Export Training and Evaluation Graphs to a Top-Level Folder
+# Step — Export Training and Evaluation Graphs to a Top-Level Folder
 
 I want the training workflow to produce easy-to-browse graph artifacts outside the run directory.
 
@@ -262,10 +262,10 @@ Definition of done:
 - the summary metadata points to the graph output location
 ```
 
-## Prompt 11 — Add Observation History to the Policy Contract
+## Step 11 — Add Observation History to the Policy Contract
 
 ```md
-# Prompt — Add a Short Observation History Window
+# Step — Add a Short Observation History Window
 
 The current policy is purely reactive to a single frame. I want to give it a short temporal window without introducing an RNN.
 
@@ -287,10 +287,10 @@ Definition of done:
 - docs clearly explain the new shape and ordering
 ```
 
-## Prompt 12 — Make Pheromone Awareness Radius Explicit
+## Step 12 — Make Pheromone Awareness Radius Explicit
 
 ```md
-# Prompt — Make the Pheromone Sensing Radius Explicit
+# Step — Make the Pheromone Sensing Radius Explicit
 
 The simulator currently derives forward pheromone sampling from an inline formula. I want that geometry made more explicit and easier to reason about across simulator, runtime, and Mission Control.
 
@@ -310,7 +310,7 @@ Definition of done:
 
 ## Summary
 
-Taken together, the prompts above describe a plausible path from the `2c9ec70` baseline to the current repo state:
+Taken together, the steps above describe a plausible path from the `2c9ec70` baseline to the current repo state:
 
 1. rename `server` to `mission_control`
 2. add BLE support on the desktop side
@@ -325,4 +325,4 @@ Taken together, the prompts above describe a plausible path from the `2c9ec70` b
 11. add observation history
 12. make pheromone awareness geometry explicit
 
-That sequence matches the broad evolution visible in the codebase, even though the exact historical prompts were not preserved verbatim.
+That sequence matches the broad evolution visible in the codebase, even though the exact historical wording was not preserved verbatim.

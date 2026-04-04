@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Reorganize the evaluation-comparison output structure so each comparison condition gets its own directory under `experiments/experiment_data/`, with separate `exploration_graphs`, `graphs`, and `raw` outputs.

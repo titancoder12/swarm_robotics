@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Improve the training efficiency of the custom DQN implementation in `train/independent_dqn_pytorch.py` so it performs much closer to the SB3 path in `train/sb3_dqn.py`, while preserving current training behavior, checkpoint compatibility, and experiment outputs.

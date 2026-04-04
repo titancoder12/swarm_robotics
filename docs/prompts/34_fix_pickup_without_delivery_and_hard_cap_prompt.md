@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Fix the two major problems shown by the latest full MAPPO run:
@@ -203,7 +203,7 @@ Required:
 Docs should explain:
 
 1. why the old run exceeded `--total-steps`
-2. how prompt 34 fixes the hard global stop
+2. how Step 34 fixes the hard global stop
 3. why pickup-without-delivery is now treated more strictly
 4. what later-stage promotion now requires
 5. which checkpoint should be demoed after the fix

@@ -1,6 +1,6 @@
-# Prompt — Build a Pygame Command Center for Physical Swarm Robots
+# Step — Build a Pygame Command Center for Physical Swarm Robots
 
-You are working in the existing repository and must **add a new `mission_control/` subsystem** for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
+Add a new `mission_control/` subsystem in the existing repository for a real-time desktop application that runs on a MacBook and visualizes a physical swarm robotics experiment.
 
 ## High-level goal
 
@@ -269,7 +269,7 @@ Prioritize in this order:
 
 ---
 
-## Non-goals for this prompt
+## Non-goals for this step
 
 Do **not** build:
 
@@ -337,7 +337,7 @@ The protocol is **bidirectional** and must be implemented on BOTH sides.
 * Match the style used in `firmware/ant.py` (simple serial text protocol)
 * Do NOT introduce binary framing or complex encodings
 
-### Command center (this prompt implements)
+### Command center (this step implements)
 
 * Receive: `POS`, `PHER`, `SENSE`
 * Send: `PHER_RESP`

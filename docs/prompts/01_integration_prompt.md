@@ -1,4 +1,4 @@
-You are a senior reinforcement learning and robotics engineer working with an existing swarm RL codebase.
+Work with the existing swarm RL codebase.
 
 GOAL
 

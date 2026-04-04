@@ -1,4 +1,4 @@
-You are an expert reinforcement learning researcher and Python engineer working on an existing swarm robotics simulation codebase.
+Work on the existing swarm robotics simulation codebase.
 
 GOAL
 

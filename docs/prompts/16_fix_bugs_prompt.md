@@ -1,5 +1,5 @@
 # Fix Pheromone Diffusion And Food Metric Bugs
-You are working in an existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
+Work in the existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
 
 Task:
 Fix two concrete simulator/training bugs without rewriting the architecture:

@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement the next focused fix for recurrent MAPPO so that the policy maintains
@@ -6,7 +6,7 @@ greedy delivery behavior once mild clutter is reintroduced after the dedicated
 homing lessons.
 
 Context:
-- Prompt 37 was the first pass that produced nonzero greedy delivery in:
+- Step 37 was the first pass that produced nonzero greedy delivery in:
   - `stage1d_single_agent_carry_bootstrap`
   - `stage1e_single_agent_guaranteed_homing`
 - The remaining bottleneck is now narrower:
@@ -78,7 +78,7 @@ Preferred directions:
 - pickup-only success must not be enough
 - sampled delivery alone must not be enough
 
-5. Keep the good parts of prompt 37
+5. Keep the good parts of Step 37
 - preserve:
   - `start_carrying_food`
   - `stage1d_single_agent_carry_bootstrap`

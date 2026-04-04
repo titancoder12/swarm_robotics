@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement a curriculum-learning training path centered on **recurrent MAPPO with GRU** as the main algorithm, using the existing swarm environment and preserving decentralized execution at inference time.

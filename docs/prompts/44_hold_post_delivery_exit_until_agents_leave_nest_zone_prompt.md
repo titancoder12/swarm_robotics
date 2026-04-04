@@ -1,6 +1,6 @@
-Implement the next nest-orbit fix after prompt 43.
+Implement the next nest-orbit fix after Step 43.
 
-Observed result after prompt 43:
+Observed result after Step 43:
 - `stage3a_full_swarm_large` and `stage3b_full_swarm_final` reduced non-carrying nest-loiter somewhat.
 - But nest-adjacent crowding is still high, and the post-delivery outward-search handoff is too short-lived.
 - The swarm still appears able to fall back into a nest-centered loop after the brief cooldown expires.
@@ -22,8 +22,8 @@ What to implement:
 
 5. Preserve delivery.
    - The goal is not just lower loiter metrics.
-   - Greedy delivery should stay at least as good as prompt 43 while non-carrying nest-loiter/crowding decreases further.
+   - Greedy delivery should stay at least as good as Step 43 while non-carrying nest-loiter/crowding decreases further.
 
 6. Update docs and logs.
-   - Record the new prompt in `docs/prompts/`.
+   - Record the new step in `docs/prompts/`.
    - Add concise notes to `docs/QandA.md` and `docs/PROJECT_LOG.md`.

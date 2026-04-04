@@ -1,6 +1,6 @@
-Prompt 4 — Experiment Framework
+Step 4 — Experiment Framework
 
-You are a research scientist building experiment infrastructure inside an existing swarm robotics reinforcement learning codebase.
+Build experiment infrastructure inside the existing swarm robotics reinforcement learning codebase.
 
 GOAL
 

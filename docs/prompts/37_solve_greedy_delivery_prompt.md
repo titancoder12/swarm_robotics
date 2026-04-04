@@ -1,10 +1,10 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement the next iteration of changes specifically to solve the remaining
 **greedy delivery** failure.
 
-Current situation after prompts 34-36:
+Current situation after Steps 34-36:
 
 - the trainer now enforces a hard total-step cap
 - delivery conversion is tracked and used for promotion/checkpoint scoring
@@ -18,7 +18,7 @@ But the short stage-1 verification still shows the same core failure:
 - sampled delivery can happen in the easier homing stages
 - greedy pickup/delivery in `stage1d`, `stage1e`, and `stage1f` still stays at `0.0`
 
-So this prompt should not merely add more diagnostics or minor reward tweaks.
+So this step should not merely add more diagnostics or minor reward tweaks.
 It must make the training path much more likely to produce a policy that
 actually delivers under greedy evaluation.
 
@@ -34,7 +34,7 @@ The main goal is:
 - in the return-focused single-agent stages, greedy delivery must become nonzero
 - and the policy should not leave those stages until that happens, unless the hard global step cap is reached
 
-This prompt should build on prompts 34-36, not revert them.
+This step should build on Steps 34-36, not revert them.
 
 --------------------------------------------------
 PART 2 — CORE RECOMMENDATION TO IMPLEMENT
@@ -182,5 +182,5 @@ It is:
 
 - “can the policy learn a deterministic return-to-nest policy that survives greedy evaluation?”
 
-So this prompt must focus on a stronger structural solution for that problem,
+So this step must focus on a stronger structural solution for that problem,
 not just more small reward nudges.

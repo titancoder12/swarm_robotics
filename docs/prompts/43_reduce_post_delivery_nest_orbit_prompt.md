@@ -1,7 +1,7 @@
 Implement the next fix for the remaining nest-circling failure mode in late pheromone-on stages.
 
 Problem to address:
-- After prompt 42, later swarm stages still show high non-carrying nest-loiter and nest-crowding fractions.
+- After Step 42, later swarm stages still show high non-carrying nest-loiter and nest-crowding fractions.
 - Greedy delivery improved somewhat, but empty agents can still settle into a nest-adjacent orbit after delivery.
 - The current system mostly discourages lingering near the nest, but it does not explicitly teach a post-delivery handoff back into outward search.
 
@@ -17,7 +17,7 @@ What to implement:
 
 3. Suppress pheromone attraction for post-delivery empty agents near the nest.
    - If an agent is in the post-delivery cooldown, do not let nest-adjacent pheromone gradients keep it trapped near the nest.
-   - This should be stronger than the generic non-carrying nest suppression already added in prompt 42.
+   - This should be stronger than the generic non-carrying nest suppression already added in Step 42.
 
 4. Stage the behavior only where it matters.
    - Apply the new post-delivery outward-search settings to the later pheromone-on swarm stages, not to the early homing curriculum.
@@ -32,5 +32,5 @@ What to implement:
    - Append concise notes to QandA and PROJECT_LOG.
 
 Success criterion:
-- Later pheromone-on stages should show lower non-carrying nest-loiter/crowding pressure than prompt 42.
+- Later pheromone-on stages should show lower non-carrying nest-loiter/crowding pressure than Step 42.
 - Greedy delivery should not regress while the swarm spends less time trapped in nest-adjacent loops.

@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Fix the current MAPPO failure mode after prompt 32: the new guaranteed-homing stage now produces meaningful **sampled** pickup and delivery, but the behavior still does not survive into **greedy** evaluation.
+Fix the current MAPPO failure mode after Step 32: the new guaranteed-homing stage now produces meaningful **sampled** pickup and delivery, but the behavior still does not survive into **greedy** evaluation.
 
 Goal:
 Make the recurrent MAPPO path convert post-pickup homing behavior from:
@@ -44,7 +44,7 @@ From the latest prompt-32 verification run:
 
 Interpretation:
 
-- prompt 32 improved the stage design in the right direction
+- Step 32 improved the stage design in the right direction
 - the policy is now capable of some sampled post-pickup homing
 - but the behavior is still not becoming robust enough to survive greedy execution
 
@@ -152,9 +152,9 @@ Required:
 
 Docs should explain:
 
-1. what prompt 32 improved
-2. what still remained broken after prompt 32
-3. what prompt 33 changes in trainer pressure / greedy alignment
+1. what Step 32 improved
+2. what still remained broken after Step 32
+3. what Step 33 changes in trainer pressure / greedy alignment
 4. which checkpoint should be demoed after the new changes
 
 --------------------------------------------------
@@ -167,7 +167,7 @@ After implementation:
 2. run at least one short smoke run
 3. verify:
    - sampled homing is still present
-   - greedy delivery in the guaranteed-homing stage is improved relative to prompt 32
+   - greedy delivery in the guaranteed-homing stage is improved relative to Step 32
    - bridge-stage greedy behavior is not immediately zero if feasible
 4. show exact commands used
 5. explain remaining limitations honestly

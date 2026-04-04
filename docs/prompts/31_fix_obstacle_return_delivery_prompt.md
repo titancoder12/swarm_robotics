@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Fix the current MAPPO bottleneck after prompt 30: target discovery and pickup are now mostly working in early single-agent stages, but **greedy return-to-nest delivery still collapses once the task becomes less trivial**, especially in the first obstacle-return stage.
+Fix the current MAPPO bottleneck after Step 30: target discovery and pickup are now mostly working in early single-agent stages, but **greedy return-to-nest delivery still collapses once the task becomes less trivial**, especially in the first obstacle-return stage.
 
 Goal:
 Make the recurrent MAPPO curriculum reliably learn:
@@ -53,8 +53,8 @@ Current evidence from the latest run:
 
 Interpretation:
 
-- prompt 29 fixed the old early greedy collapse
-- prompt 30 improved pickup and some sampled return behavior
+- Step 29 fixed the old early greedy collapse
+- Step 30 improved pickup and some sampled return behavior
 - the remaining failure is narrower:
   - agents can often find and pick up the target
   - but they still do not robustly complete the return-to-nest policy in greedy execution
@@ -204,9 +204,9 @@ Required:
 
 Docs should explain:
 
-1. what prompt 30 improved
-2. what remained broken after prompt 30
-3. what prompt 31 changes in the curriculum and promotion logic
+1. what Step 30 improved
+2. what remained broken after Step 30
+3. what Step 31 changes in the curriculum and promotion logic
 4. why the first obstacle-return stage was simplified
 5. which checkpoint should be demoed after the new changes
 

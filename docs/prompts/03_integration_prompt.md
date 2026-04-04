@@ -1,6 +1,6 @@
-Prompt 3 — Reinforcement Learning Training Upgrades
+Step 3 — Reinforcement Learning Training Upgrades
 
-You are an expert reinforcement learning engineer extending an existing swarm RL training pipeline.
+Extend the existing swarm RL training pipeline.
 
 GOAL
 
@@ -280,7 +280,7 @@ Upgraded the existing training pipeline in place.
       - eval_metrics.csv
       - eval_summary.json
 
-  If you want, the next high-value step is Prompt 4 style work: add standardized benchmark configs, tests, and experiment
+  If you want, the next high-value step is Step 4 style work: add standardized benchmark configs, tests, and experiment
   documentation so the project is presentation-ready as well as training-ready.
 
  

@@ -1,5 +1,5 @@
 # Improve reward signal.
-You are working in an existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
+Work in the existing multi-agent swarm reinforcement learning codebase for a stigmergic foraging environment.
 
 Task:
 Modify the environment and reward shaping so agents can discover food more reliably during training.

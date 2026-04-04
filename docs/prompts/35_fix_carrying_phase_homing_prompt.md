@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Implement the next training/system changes needed to fix the remaining MAPPO failure mode after prompt 34:
+Implement the next training/system changes needed to fix the remaining MAPPO failure mode after Step 34:
 
 - agents can often discover and pick up targets
 - but they still become pickup-rich and delivery-zero
@@ -30,7 +30,7 @@ Implement the next iteration of training and environment shaping so that:
 - carrying-phase obstacle traps and dithering are reduced
 - greedy evaluation reflects true carrying-to-delivery competence
 
-This prompt should build on the work from prompts 30 through 34, not replace it.
+This step should build on the work from Steps 30 through 34, not replace it.
 
 --------------------------------------------------
 PART 2 — REQUIRED TRAINING / REWARD CHANGES
@@ -122,7 +122,7 @@ Do not:
 - remove the need to return to the nest
 - add brittle hardcoded scripted return behavior
 - overfit only to one toy layout
-- revert the hard total-step cap from prompt 34
+- revert the hard total-step cap from Step 34
 - revert delivery-sensitive promotion / checkpoint scoring
 
 --------------------------------------------------
@@ -183,7 +183,7 @@ The main remaining failure is:
 - pickup happens
 - delivery still collapses
 
-So this prompt should focus on:
+So this step should focus on:
 
 - stronger post-pickup homing pressure
 - less reward for wandering while carrying

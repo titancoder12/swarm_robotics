@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement the next focused fix for recurrent MAPPO so the bridge stage
@@ -7,9 +7,9 @@ consistently enough that stage 1 is no longer the main blocker and the project
 can move into real full training runs.
 
 Context:
-- Prompt 37 was the first pass that produced nonzero greedy delivery in the
+- Step 37 was the first pass that produced nonzero greedy delivery in the
   dedicated homing stack.
-- Prompt 38 improved `stage1f_single_agent_delivery_bridge` materially:
+- Step 38 improved `stage1f_single_agent_delivery_bridge` materially:
   - sampled bridge delivery is nonzero
   - at least one bridge eval row showed strong greedy delivery
   - but later in the same short run, greedy bridge delivery still fell back to

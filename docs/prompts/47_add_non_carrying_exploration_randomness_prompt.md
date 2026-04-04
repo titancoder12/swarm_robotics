@@ -1,4 +1,4 @@
-# Prompt 47: Add Non-Carrying Exploration Randomness
+# Step 47: Add Non-Carrying Exploration Randomness
 
 Implement a stage-configurable mechanism that adds extra decision randomness to agents only while they are exploring, meaning they are not carrying food back to the nest.
 

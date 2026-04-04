@@ -1,6 +1,6 @@
-# Prompt — Add Bluetooth Transport to the Command Center
+# Step — Add Bluetooth Transport to the Command Center
 
-You are working in the existing repository and must extend the current [mission_control/](../../mission_control) subsystem so that the physical robots and the MacBook command center can communicate over **Bluetooth**.
+Extend the current [mission_control/](../../mission_control) subsystem in the existing repository so the physical robots and the MacBook command center can communicate over **Bluetooth**.
 
 ## High-level goal
 
@@ -250,7 +250,7 @@ Bluetooth handling must not stall the UI thread.
 
 ## Documentation requirements
 
-When implementing this prompt, also update the relevant docs to explain:
+When implementing this step, also update the relevant docs to explain:
 
 * which Bluetooth transport approach was chosen
 * how to configure robot connections
@@ -279,7 +279,7 @@ This is an additive transport feature.
 
 ## Deliverables
 
-When this prompt is executed later, the deliverables should include:
+When this step is executed later, the deliverables should include:
 
 1. Bluetooth transport support in the command center
 2. documentation for setup and usage

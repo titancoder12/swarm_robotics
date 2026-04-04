@@ -1,7 +1,7 @@
 Implement the next fix for the remaining nest-centered local-optimum problem.
 
 Problem to address:
-- Even after prompts 42 through 44, demo still shows cases where empty agents cluster near the nest and then stay there.
+- Even after Steps 42 through 44, demo still shows cases where empty agents cluster near the nest and then stay there.
 - The current nest-loiter and post-delivery penalties are only soft shaping terms; they reduce the behavior but do not reliably produce strong outward exploration.
 - The desired behavior is:
   - if an agent is carrying food, it should prioritize returning to the nest
@@ -9,7 +9,7 @@ Problem to address:
 
 Goal:
 - Make non-carrying agents explore broadly across the map when they are not delivering food.
-- Break the nest-centered local optimum more decisively than prompt 44.
+- Break the nest-centered local optimum more decisively than Step 44.
 
 What to implement:
 1. Add explicit non-carrying outward-search shaping.
@@ -36,7 +36,7 @@ What to implement:
 
 5. Add metrics that prove empty agents are really fanning out.
    - Track non-carrying near-nest idle fraction and non-carrying outward-search reward totals.
-   - Log enough information to compare prompt 45 against prompt 44 on:
+   - Log enough information to compare Step 45 against Step 44 on:
      - greedy delivery
      - non-carrying nest loiter / crowding
      - exploration coverage
@@ -52,4 +52,4 @@ What to implement:
 
 Success criterion:
 - In late pheromone-on stages, empty agents should visibly disperse and explore instead of clustering around the nest.
-- Greedy delivery should stay at least as good as prompt 44, while non-carrying nest-local behavior decreases further.
+- Greedy delivery should stay at least as good as Step 44, while non-carrying nest-local behavior decreases further.

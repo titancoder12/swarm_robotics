@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Fix the current recurrent MAPPO training path so it stops collapsing into a low-motion / no-useful-action greedy policy, as observed in the `mappo_full_600k` run.

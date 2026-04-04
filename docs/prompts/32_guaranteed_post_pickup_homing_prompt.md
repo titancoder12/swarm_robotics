@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Redesign the early MAPPO return curriculum so it teaches **guaranteed post-pickup homing** before expecting the policy to handle cluttered delivery.
@@ -34,7 +34,7 @@ Current evidence from the latest prompt-31 verification runs:
 
 Interpretation:
 
-- prompt 31 improved stage structure
+- Step 31 improved stage structure
 - but it still tried to teach too many things at once
 - the system still does not robustly learn:
   - “after pickup, go home”
@@ -174,9 +174,9 @@ Required:
 
 Docs should explain:
 
-1. what prompt 31 changed
-2. why prompt 31 still failed
-3. what prompt 32 changes in the early return curriculum
+1. what Step 31 changed
+2. why Step 31 still failed
+3. what Step 32 changes in the early return curriculum
 4. which stage is now the guaranteed post-pickup homing stage
 5. which checkpoint should be demoed after the change
 

@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Implement targeted training and configuration improvements that directly address the current weaknesses in the MAPPO trail-learning and delivery-learning setup, especially for the goals described in prompt 25 (trail formation) and prompt 26 (target delivery and carrying behavior).
+Implement targeted training and configuration improvements that directly address the current weaknesses in the MAPPO trail-learning and delivery-learning setup, especially for the goals described in Step 25 (trail formation) and Step 26 (target delivery and carrying behavior).
 
 Goal:
 I want the current MAPPO path to train more effectively toward:

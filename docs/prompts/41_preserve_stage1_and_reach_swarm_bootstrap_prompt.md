@@ -1,6 +1,6 @@
 Implement the next curriculum fix for recurrent MAPPO.
 
-Problem after prompt 40:
+Problem after Step 40:
 - The new small-swarm bootstrap stages are in place, but the focused `stage1_to_2` verification still spent too much of the total budget re-running already-solved single-agent return lessons.
 - The run ended at `stage1f_single_agent_delivery_bridge` without cleanly reaching the new swarm bootstrap stack.
 - The current failure mode is not “single-agent homing is impossible again”; it is “the curriculum is over-investing in already-solved stage-1 lessons before it reaches the new small-swarm stages.”

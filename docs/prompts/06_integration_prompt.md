@@ -1,6 +1,6 @@
-Prompt 6 — RL Algorithm Comparison Experiment
+Step 6 — RL Algorithm Comparison Experiment
 
-You are a reinforcement learning researcher implementing a comparative study inside an existing swarm RL project.
+Implement a comparative study inside the existing swarm RL project.
 
 GOAL
 
@@ -92,7 +92,7 @@ MUST integrate into benchmark_configs.py
 
 MUST run via run_experiments.py
 
-MUST produce outputs identical in structure to Prompt 5
+MUST produce outputs identical in structure to Step 5
 
 TASK
 
@@ -241,7 +241,7 @@ exact command to run this experiment
 
 confirmation that ALL algorithms used the SAME evaluation and logging pipeline
 
-confirmation that results are comparable to Prompt 5 outputs
+confirmation that results are comparable to Step 5 outputs
 
 Output:
 Implemented the RL algorithm comparison experiment in the existing framework.
@@ -272,7 +272,7 @@ Implemented the RL algorithm comparison experiment in the existing framework.
   - Added analysis-layer derived metrics:
       - convergence_speed
       - time_to_first_food
-  - Added Prompt 6 plots:
+  - Added Step 6 plots:
       - algorithm_food_retrieval.png
       - algorithm_efficiency.png
       - algorithm_convergence_speed.png
@@ -303,7 +303,7 @@ Implemented the RL algorithm comparison experiment in the existing framework.
   - all three algorithms, including rule_based, go through train/evaluate.py
   - all results are written into the same trial_metrics.csv and aggregate_metrics.csv schema
 
-  That makes the Prompt 6 outputs directly comparable to Prompt 5 outputs. I also smoke-tested the full experiment path with --trials
+  That makes the Step 6 outputs directly comparable to Step 5 outputs. I also smoke-tested the full experiment path with --trials
   1 --total-steps 10 --eval-episodes 1, and it produced both the aggregate CSVs and the four required plots.
 
  

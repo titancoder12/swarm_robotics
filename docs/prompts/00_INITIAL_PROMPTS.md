@@ -1,6 +1,6 @@
-# Prompt 1 - Initialize Code For A Swarm Reinforcement Learning Project
+# Step 1 - Initialize Code For A Swarm Reinforcement Learning Project
 
-You are a senior Python engineer building a new reinforcement learning repository for a 2D swarm robotics simulation.
+Build a new reinforcement learning repository for a 2D swarm robotics simulation.
 
 Build the initial project skeleton from scratch with these goals:
 
@@ -76,7 +76,7 @@ At the end, provide:
 - any assumptions you made about default hyperparameters
 
 
-# Prompt 2 - Implement A Proper Multi-Agent Swarm Environment With Stigmergy
+# Step 2 - Implement A Proper Multi-Agent Swarm Environment With Stigmergy
 
 Extend the existing project into a more complete swarm RL environment.
 
@@ -137,7 +137,7 @@ At the end, provide:
 - the command to run the updated random rollout
 
 
-# Prompt 3 - Add A Custom PyTorch DQN Trainer For The Swarm Environment
+# Step 3 - Add A Custom PyTorch DQN Trainer For The Swarm Environment
 
 The environment is ready. Now implement a custom DQN training pipeline for it.
 
@@ -198,7 +198,7 @@ At the end, provide:
 - a brief explanation of how independent-policy and shared-policy training differ in this codebase
 
 
-# Prompt 4 - Make The Environment PettingZoo Parallel API Compatible
+# Step 4 - Make The Environment PettingZoo Parallel API Compatible
 
 Refactor the current swarm environment so it follows the PettingZoo Parallel API cleanly.
 
@@ -236,7 +236,7 @@ At the end, provide:
 - commands to smoke test the environment and trainer after the refactor
 
 
-# Prompt 5 - Add Backend Flexibility With SB3, RLlib, And A Unified Training Entry Point
+# Step 5 - Add Backend Flexibility With SB3, RLlib, And A Unified Training Entry Point
 
 The custom DQN trainer is working and the environment now follows the PettingZoo Parallel API.
 
@@ -295,7 +295,7 @@ At the end, provide:
 - any backend-specific caveats
 
 
-# Prompt 6 - Add Screenshot Tooling And Beginner-Friendly Documentation
+# Step 6 - Add Screenshot Tooling And Beginner-Friendly Documentation
 
 The project is now functionally useful, but it needs documentation and lightweight presentation tooling.
 
@@ -361,7 +361,7 @@ At the end, provide:
 - a short summary of the beginner documentation coverage
 
 
-# Prompt 7 - Add A Sim-To-Real Deployment Skeleton Without Changing The Learning Contract
+# Step 7 - Add A Sim-To-Real Deployment Skeleton Without Changing The Learning Contract
 
 Add the first real deployment architecture for moving the trained policy from simulation onto a physical robot.
 
@@ -430,7 +430,7 @@ At the end, provide:
 - what still remains hardware-specific
 
 
-# Prompt 8 - Extract The Shared Q-Network And Reduce Robot Runtime Dependencies
+# Step 8 - Extract The Shared Q-Network And Reduce Robot Runtime Dependencies
 
 The deployment skeleton should not depend on importing the training script just to get the Q-network definition.
 
@@ -468,7 +468,7 @@ At the end, provide:
 - confirmation that the custom trainer, demo path, and robot runtime all share the same network definition
 
 
-# Prompt 9 - Add A Raspberry Pi Reference Integration Based On A Serial ESP32 Control Pattern
+# Step 9 - Add A Raspberry Pi Reference Integration Based On A Serial ESP32 Control Pattern
 
 Now add a concrete Raspberry Pi reference integration that shows how a real Pi-side robot script can reuse the deployment modules in this repository.
 
@@ -524,7 +524,7 @@ At the end, provide:
 - what assumptions the Pi integration makes about the ESP32 protocol
 
 
-# Prompt 10 - Preserve The Existing Rule-Based Pi Workflow And Document The Migration Path
+# Step 10 - Preserve The Existing Rule-Based Pi Workflow And Document The Migration Path
 
 The repository now has a generic deployment layer and a Pi-side learned-policy path. Add compatibility-first Pi artifacts so a robot developer can switch to this repository without immediately changing field behavior.
 

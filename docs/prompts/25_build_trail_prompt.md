@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement the training-side changes needed to make the swarm learn the full stigmergic loop described in [docs/trail.md](../trail.md):
@@ -16,7 +16,7 @@ Important context:
 
 - The environment already supports pheromone, target pickup, nest delivery, and randomized resets.
 - The recurrent MAPPO curriculum path already exists.
-- The environment curriculum from prompt 24 already makes the stages progressively harder.
+- The environment curriculum from Step 24 already makes the stages progressively harder.
 - Do not rewrite the simulator from scratch.
 - Do not invent a novel RL algorithm.
 - Focus on reward design, training logic, curriculum alignment, metrics, and evaluation so the intended trail behavior can actually emerge.

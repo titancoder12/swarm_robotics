@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Fix checkpoint saving so training no longer creates a duplicate top-level `shared.pt` in `checkpoints/`, and make the user-provided name drive a single enclosing checkpoint folder.
@@ -113,7 +113,7 @@ Search for:
 Likely files:
 - `train/independent_dqn_pytorch.py`
 - `train/experiment_utils.py`
-- any docs or prompts that reference training commands
+- any docs or steps that reference training commands
 
 Preferred implementation:
 - Add a small helper that resolves the final checkpoint root:

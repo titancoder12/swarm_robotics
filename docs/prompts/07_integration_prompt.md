@@ -1,10 +1,10 @@
-Prompt 7 — Documentation & User Manual Generator
+Step 7 — Documentation & User Manual Generator
 
-You are a senior software engineer and technical writer documenting a reinforcement learning swarm robotics system that has been incrementally developed through multiple stages.
+Document the reinforcement learning swarm robotics system that has been incrementally developed through multiple stages.
 
 GOAL
 
-Generate a complete, user-friendly, and technically accurate documentation set for the current project, based on the implementations from the previous prompts in this session (i.e., the latest six prompts).
+Generate a complete, user-friendly, and technically accurate documentation set for the current project, based on the implementations from the previous steps in this session (i.e., the latest six steps).
 
 This documentation should allow a new user (or judge) to:
 
@@ -858,7 +858,7 @@ Output:
 
   - top-level docs for architecture, onboarding, sim-to-real, and theory
   - `docs/manual/` for user guides
-  - `docs/prompts/` for integration prompt history
+  - `docs/prompts/` for integration step history
 
   ### `checkpoints/`
 

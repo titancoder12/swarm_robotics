@@ -1,4 +1,4 @@
-Please review the existing codebase and generate comprehensive developer-facing API documentation for the swarm robotics simulation environment.
+Review the existing codebase and generate comprehensive developer-facing API documentation for the swarm robotics simulation environment.
 
 Goal:
 Produce clear, precise, implementation-grounded API documentation for developers who want to:

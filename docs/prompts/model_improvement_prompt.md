@@ -1,8 +1,8 @@
-# Prompt — Upgrade This Repo to a Best-of-Breed Existing RL Stack
+# Step — Upgrade This Repo to a Best-of-Breed Existing RL Stack
 
-You are working in the existing repository and must upgrade the RL/training side of the project from a practical DQN baseline into a stronger, more modern, better-structured existing RL stack for a **cooperative, partially observable, homogeneous multi-robot swarm** problem with **decentralized execution** on physical robots.
+Upgrade the RL/training side of the existing repository from a practical DQN baseline into a stronger, more modern, better-structured existing RL stack for a **cooperative, partially observable, homogeneous multi-robot swarm** problem with **decentralized execution** on physical robots.
 
-This prompt is based on the plan in [docs/best_rl.md](../best_rl.md). Follow that direction, but implement the work in a repo-aware, incremental, well-documented way.
+This step is based on the plan in [docs/best_rl.md](../best_rl.md). Follow that direction, but implement the work in a repo-aware, incremental, well-documented way.
 
 ## High-level goal
 
@@ -289,7 +289,7 @@ Also update:
 
 ## Deliverables
 
-When implementing this prompt later, the repo should end up with:
+When implementing this later, the repo should end up with:
 
 1. **A stronger DQN-family baseline**
 

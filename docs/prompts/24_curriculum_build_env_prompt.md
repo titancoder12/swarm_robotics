@@ -1,4 +1,4 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in the existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement curriculum-stage-specific environment construction for the training pipeline so that each curriculum stage uses a deliberately different environment difficulty profile instead of only changing agent count.

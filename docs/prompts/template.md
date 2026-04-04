@@ -1,5 +1,5 @@
-# [Prompt Title]
-You are working in an existing [project / codebase type] for [problem domain].
+# [Step Title]
+Work in an existing [project / codebase type] for [problem domain].
 
 Task:
 [One-sentence summary of the requested implementation or analysis.]

@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Fix the remaining MAPPO failure mode after prompt 29: early-stage greedy pickup formation improved substantially, but the policy still fails to reliably **return to the nest and complete delivery**, especially once obstacles, larger spaces, or multiple agents are introduced.
+Fix the remaining MAPPO failure mode after Step 29: early-stage greedy pickup formation improved substantially, but the policy still fails to reliably **return to the nest and complete delivery**, especially once obstacles, larger spaces, or multiple agents are introduced.
 
 Goal:
 Make the recurrent MAPPO path learn reliable **carrying-food return-to-nest behavior** that survives into greedy evaluation, instead of only learning target discovery and pickup.
@@ -41,7 +41,7 @@ Current evidence from the latest run:
 
 Interpretation:
 
-- prompt 29 fixed the old “early greedy collapse” problem
+- Step 29 fixed the old “early greedy collapse” problem
 - the main failure is now more specific:
   - agents can find and pick up the target
   - but they still do not robustly learn the **return-to-nest completion policy**
@@ -195,9 +195,9 @@ Required:
 
 Documentation must explain:
 
-1. what prompt 29 fixed
-2. what still remained broken after prompt 29
-3. what prompt 30 changes about return-to-nest and delivery completion
+1. what Step 29 fixed
+2. what still remained broken after Step 29
+3. what Step 30 changes about return-to-nest and delivery completion
 4. how stage design or carrying-state shaping now works
 5. which checkpoint should be demoed after the new changes
 

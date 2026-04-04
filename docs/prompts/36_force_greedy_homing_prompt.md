@@ -1,11 +1,11 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
 Implement the next iteration of changes needed to produce **greedy delivery**, not just sampled delivery.
 
 Current situation:
 
-- prompts 30-35 improved pickup behavior, carrying-phase shaping, and trainer discipline
+- Steps 30-35 improved pickup behavior, carrying-phase shaping, and trainer discipline
 - sampled pickup and sampled delivery can now occur in the easier return stages
 - but greedy evaluation still remains at or near zero delivery in the critical homing / bridge / obstacle-return stages
 
@@ -15,7 +15,7 @@ The problem is:
 - the policy still does not form a stable greedy post-pickup homing behavior
 - it can still rely on stochastic behavior during training without turning that into reliable deterministic return-to-nest execution
 
-The goal of this prompt is to make the early carrying-to-delivery path become:
+The goal of this step is to make the early carrying-to-delivery path become:
 
 1. discover
 2. pick up
@@ -58,7 +58,7 @@ Implement the following directions.
 - the agent should be pushed toward forming a coherent return trajectory, not just isolated local progress steps
 
 4. Preserve hard global budget discipline
-- do not undo prompt 34’s hard total-step cap
+- do not undo Step 34’s hard total-step cap
 - do not undo delivery-conversion-aware promotion or later-stage delivery penalties
 
 --------------------------------------------------
@@ -172,7 +172,7 @@ The main remaining failure is:
 - sampled homing can happen
 - greedy homing still does not reliably happen
 
-So this prompt should specifically focus on:
+So this step should specifically focus on:
 
 - converting sampled delivery into greedy delivery
 - making the carrying-phase homing policy more stable and deterministic

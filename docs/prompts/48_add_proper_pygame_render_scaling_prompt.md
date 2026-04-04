@@ -1,4 +1,4 @@
-# Prompt 48: Add Proper PyGame Render Scaling
+# Step 48: Add Proper PyGame Render Scaling
 
 Implement proper PyGame render scaling so large environments fit on screen without changing simulation coordinates.
 

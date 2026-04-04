@@ -1,7 +1,7 @@
-You are working in an existing multi-agent swarm reinforcement learning codebase.
+Work in an existing multi-agent swarm reinforcement learning codebase.
 
 Task:
-Fix the remaining MAPPO failure mode after prompt 28: the trainer now has better stage-transfer stability and greedy-eval-aware progression, but the policy still learns behavior that occasionally succeeds under stochastic training-time sampling and then collapses to near-zero pickup/delivery under greedy evaluation.
+Fix the remaining MAPPO failure mode after Step 28: the trainer now has better stage-transfer stability and greedy-eval-aware progression, but the policy still learns behavior that occasionally succeeds under stochastic training-time sampling and then collapses to near-zero pickup/delivery under greedy evaluation.
 
 Goal:
 Make the recurrent MAPPO policy learn behavior that survives into greedy execution in early curriculum stages before expecting good final-stage behavior.
@@ -21,7 +21,7 @@ Current evidence from the latest run:
 
 Interpretation:
 
-- prompt 28 fixed important structural issues
+- Step 28 fixed important structural issues
 - but the remaining main problem is now **greedy-behavior formation**
 - the policy is still relying too much on stochastic action sampling during training
 - reward / exploration / control pressure in early stages still does not produce robust greedy pickup-return-delivery behavior
@@ -150,9 +150,9 @@ Required:
 
 Documentation must explain:
 
-1. what prompt 28 fixed structurally
+1. what Step 28 fixed structurally
 2. what remained broken afterward
-3. what prompt 29 changes about early-stage greedy-behavior formation
+3. what Step 29 changes about early-stage greedy-behavior formation
 4. how entropy / exploration / reward settings now behave
 5. which checkpoint should be demoed after the new changes
 
@@ -198,5 +198,5 @@ Prioritize in this order:
 4. keep the changes understandable and documented
 
 Do not solve this with cosmetic demo changes.
-Do not assume prompt 28 was enough.
+Do not assume Step 28 was enough.
 Use the new run evidence and fix the remaining greedy-behavior failure directly.
