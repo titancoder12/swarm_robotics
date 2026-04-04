@@ -14,7 +14,7 @@ It has four jobs:
 This reconstruction is grounded in the repository itself:
 
 - the code in `env/`, `train/`, and `algorithms/`,
-- the prompt archive in `docs/prompts/`,
+- the task archive in `docs/tasks/`,
 - the retrospective docs such as `docs/TRAINING_MAPPO.md`, `docs/building_curriculum_training.md`, and the integrated GVRSF experiment paper,
 - and the git commit history and per-commit file diffs.
 

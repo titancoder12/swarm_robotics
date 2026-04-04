@@ -25,5 +25,5 @@ What to implement:
    - Greedy delivery should stay at least as good as Step 43 while non-carrying nest-loiter/crowding decreases further.
 
 6. Update docs and logs.
-   - Record the new step in `docs/prompts/`.
+   - Record the new step in `docs/tasks/`.
    - Add concise notes to `docs/QandA.md` and `docs/PROJECT_LOG.md`.

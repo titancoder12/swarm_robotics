@@ -111,7 +111,7 @@ Project documentation.
 
 - top-level docs for architecture, onboarding, sim-to-real, and theory
 - `docs/manual/` for user guides
-- `docs/prompts/` for integration prompt history
+- `docs/tasks/` for integration step history
 
 ### `checkpoints/`
 

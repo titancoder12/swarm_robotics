@@ -126,7 +126,7 @@ UML.md
 
 ToDo.md
 
-docs/prompts/
+docs/tasks/
 
 Documentation strategy:
 
@@ -858,7 +858,7 @@ Output:
 
   - top-level docs for architecture, onboarding, sim-to-real, and theory
   - `docs/manual/` for user guides
-  - `docs/prompts/` for integration step history
+  - `docs/tasks/` for integration step history
 
   ### `checkpoints/`
 

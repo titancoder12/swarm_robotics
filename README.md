@@ -90,10 +90,10 @@ This repo has a large `docs/` tree. Use this table of contents to jump to the ri
 - [docs/swarm_robotics_presentation.md](docs/swarm_robotics_presentation.md)
   - Presentation-style summary material. Useful for talks or science-fair communication.
 
-### Prompt Archive
+### Task Archive
 
-- [docs/prompts/](docs/prompts/)
-  - Implementation prompt history used to iteratively build the current system. These files are historical build records, not the current source of truth for behavior.
+- [docs/tasks/](docs/tasks/)
+  - Implementation task history used to iteratively build the current system. These files are historical build records, not the current source of truth for behavior.
 
 
 # Swarm RL PyGame Environment (Stigmergy)
