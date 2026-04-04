@@ -407,7 +407,7 @@ Output:
   3. Training and evaluation
      - [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py) is the main custom
   DQN trainer.
-     - [train/evaluate.py](../../train/evaluate.py) runs shared evaluation for learned and rule-based
+     - [analysis/evaluate.py](../../analysis/evaluate.py) runs shared evaluation for learned and rule-based
   policies.
      - [train/train.py](../../train/train.py) dispatches between custom, SB3, and RLlib training
   backends.
@@ -440,8 +440,7 @@ Output:
 
   ### Observation Space
 
-  Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](/Users/christopherlin/dev/
-  cwsf2026/sim/env/swarm_env.py):
+  Each agent receives a 23-dimensional observation vector built in `_get_obs()` in [env/swarm_env.py](../../env/swarm_env.py):
 
   - lidar obstacle rays
   - nearest food vector in agent-local coordinates
@@ -486,8 +485,7 @@ Output:
 
   ## Training Architecture
 
-  The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](/Users/christopherlin/dev/cwsf2026/
-  sim/train/independent_dqn_pytorch.py).
+  The main research training path is the custom DQN trainer in [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py).
 
   It supports:
 
@@ -509,7 +507,7 @@ Output:
 
   ## Evaluation and Metrics
 
-  Shared evaluation is handled by [train/evaluate.py](../../train/evaluate.py). It evaluates:
+  Shared evaluation is handled by [analysis/evaluate.py](../../analysis/evaluate.py). It evaluates:
 
   - DQN checkpoints
   - shared-policy DQN checkpoints
@@ -784,7 +782,7 @@ Output:
 
   - [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
     - main custom DQN training path
-  - [train/evaluate.py](../../train/evaluate.py)
+  - [analysis/evaluate.py](../../analysis/evaluate.py)
     - shared evaluation for DQN and rule-based policies
   - [train/experiment_utils.py](../../train/experiment_utils.py)
     - CSV logging, JSON writing, config helpers, aggregation helpers
@@ -902,7 +900,7 @@ Output:
 
   1. [env/swarm_env.py](../../env/swarm_env.py)
   2. [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py)
-  3. [train/evaluate.py](../../train/evaluate.py)
+  3. [analysis/evaluate.py](../../analysis/evaluate.py)
   4. [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
   5. [train/run_experiments.py](../../train/run_experiments.py)
 

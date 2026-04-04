@@ -207,7 +207,7 @@ Typical flow:
 1. Train a pheromone-enabled model.
 2. Train a pheromone-disabled model.
 3. Confirm the checkpoints exist in directories such as:
-   - [checkpoints/dqn_foraging/full_policy/](../checkpoints/dqn_foraging/full_policy/)
+   - `checkpoints/<folder_name>/full_policy/`
 4. Run a quick single-checkpoint evaluation with [analysis/evaluate.py](../analysis/evaluate.py).
 5. Run the multi-condition comparison with [analysis/evaluate_comparison.py](../analysis/evaluate_comparison.py).
 6. Inspect:

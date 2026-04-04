@@ -56,10 +56,10 @@ The stigmergy claim remains plausible, but this experiment set does not establis
 
 This repository is not just “a robot demo.” It is an algorithmic system built from:
 
-- a decentralized recurrent policy in [train/mappo_gru.py](../../../train/mappo_gru.py)
-- a multi-agent environment in [env/swarm_env.py](../../../env/swarm_env.py)
-- a curriculum specification in [algorithms/mappo/curriculum.py](../../../algorithms/mappo/curriculum.py)
-- an evaluation path in [analysis/evaluate.py](../../../analysis/evaluate.py) and [analysis/evaluate_comparison.py](../../../analysis/evaluate_comparison.py)
+- a decentralized recurrent policy in [train/mappo_gru.py](../../../../train/mappo_gru.py)
+- a multi-agent environment in [env/swarm_env.py](../../../../env/swarm_env.py)
+- a curriculum specification in [algorithms/mappo/curriculum.py](../../../../algorithms/mappo/curriculum.py)
+- an evaluation path in [analysis/evaluate.py](../../../../analysis/evaluate.py) and [analysis/evaluate_comparison.py](../../../../analysis/evaluate_comparison.py)
 
 The core computer-science question is:
 
@@ -73,7 +73,7 @@ Before running experiments, the current code and checkpoints were audited.
 
 Key findings from the audit:
 
-- The main current research path is recurrent MAPPO with curriculum learning in [train/mappo_gru.py](../../../train/mappo_gru.py).
+- The main current research path is recurrent MAPPO with curriculum learning in [train/mappo_gru.py](../../../../train/mappo_gru.py).
 - The strongest current checkpoint available in the repo was:
   - `checkpoints/mappo_g/stage3b_full_swarm_final`
 - A meaningful weaker comparison checkpoint was:
@@ -146,7 +146,7 @@ The runner also logged:
 - `non_carrying_force_explore_fraction`
 - `non_carrying_random_explore_fraction`
 
-These metrics came from the current environment instrumentation in [env/swarm_env.py](../../../env/swarm_env.py).
+These metrics came from the current environment instrumentation in [env/swarm_env.py](../../../../env/swarm_env.py).
 
 ### Statistics
 
@@ -214,8 +214,8 @@ This is exactly what curriculum learning is supposed to do in reinforcement lear
 
 In this repository, that training logic lives primarily in:
 
-- [algorithms/mappo/curriculum.py](../../../algorithms/mappo/curriculum.py)
-- [train/mappo_gru.py](../../../train/mappo_gru.py)
+- [algorithms/mappo/curriculum.py](../../../../algorithms/mappo/curriculum.py)
+- [train/mappo_gru.py](../../../../train/mappo_gru.py)
 
 ## Experiment 2: Pheromone Ablation
 
@@ -472,10 +472,10 @@ For semi-technical readers, the biggest lesson is this:
 
 The repository’s long prompt and code history improved the model by solving exactly those problems through:
 
-- better stage design in [algorithms/mappo/curriculum.py](../../../algorithms/mappo/curriculum.py)
-- better promotion logic and greedy-eval selection in [train/mappo_gru.py](../../../train/mappo_gru.py)
-- better carrying and non-carrying behavior shaping in [env/swarm_env.py](../../../env/swarm_env.py)
-- richer, more controlled configuration in [env/config.py](../../../env/config.py)
+- better stage design in [algorithms/mappo/curriculum.py](../../../../algorithms/mappo/curriculum.py)
+- better promotion logic and greedy-eval selection in [train/mappo_gru.py](../../../../train/mappo_gru.py)
+- better carrying and non-carrying behavior shaping in [env/swarm_env.py](../../../../env/swarm_env.py)
+- richer, more controlled configuration in [env/config.py](../../../../env/config.py)
 
 That is what curriculum learning means in practice:
 

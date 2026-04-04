@@ -353,8 +353,8 @@ Suggested visual:
 ### Experimental Design
 
 The strongest experiment bundle is here:
-- [docs/gvrsf2026/experiments/20260401_033900/report.md](../experiments/20260401_033900/report.md)
-- paper version: [docs/gvrsf2026/experiments/20260401_033900/paper.md](../experiments/20260401_033900/paper.md)
+- [docs/gvrsf2026/experiments/report.md](../experiments/report.md)
+- paper version: [docs/gvrsf2026/experiments/paper.md](../experiments/paper.md)
 
 The bundle combines:
 
@@ -800,10 +800,10 @@ If a judge asks, “What is your biggest result?”, answer:
 ## Optional Footer
 
 Full experiment bundle:
-- [20260401_033900/report.md](../experiments/20260401_033900/report.md)
+- [experiments/report.md](../experiments/report.md)
 
 Full paper:
-- [20260401_033900/paper.md](../experiments/20260401_033900/paper.md)
+- [experiments/paper.md](../experiments/paper.md)
 
 Training retrospective:
 - [docs/building_curriculum_training.md](../../building_curriculum_training.md)

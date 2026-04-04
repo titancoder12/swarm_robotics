@@ -1,4 +1,4 @@
-# Prompt: Execute the Full GVRSF 2026 Experiment Program
+# Instructions: Execute the Full GVRSF 2026 Experiment Program
 
 This document is the standing execution brief for the full experiment program in this repository.
 
@@ -55,12 +55,12 @@ The main experiment design guidance is in:
 
 The practical evaluation and training tooling is in:
 
-- [analysis/evaluate.py](../../analysis/evaluate.py)
-- [analysis/evaluate_comparison.py](../../analysis/evaluate_comparison.py)
-- [train/train.py](../../train/train.py)
-- [train/mappo_gru.py](../../train/mappo_gru.py)
-- [train/run_experiments.py](../../train/run_experiments.py)
-- [experiments/benchmark_configs.py](../../experiments/benchmark_configs.py)
+- [analysis/evaluate.py](../../../analysis/evaluate.py)
+- [analysis/evaluate_comparison.py](../../../analysis/evaluate_comparison.py)
+- [train/train.py](../../../train/train.py)
+- [train/mappo_gru.py](../../../train/mappo_gru.py)
+- [train/run_experiments.py](../../../train/run_experiments.py)
+- [experiments/benchmark_configs.py](../../../experiments/benchmark_configs.py)
 
 Execution should be based on the current code, not on assumptions.
 

@@ -7,10 +7,10 @@ It is based on the repository as it exists now:
 - the main research path is recurrent MAPPO with curriculum learning
 - the key system behavior is `discover -> pick up -> return -> deliver -> deposit pheromone -> later exploit trail`
 - the main measurement paths are:
-  - [analysis/evaluate.py](../../analysis/evaluate.py)
-  - [analysis/evaluate_comparison.py](../../analysis/evaluate_comparison.py)
-  - [train/mappo_gru.py](../../train/mappo_gru.py)
-  - [env/swarm_env.py](../../env/swarm_env.py)
+  - [analysis/evaluate.py](../../../analysis/evaluate.py)
+  - [analysis/evaluate_comparison.py](../../../analysis/evaluate_comparison.py)
+  - [train/mappo_gru.py](../../../train/mappo_gru.py)
+  - [env/swarm_env.py](../../../env/swarm_env.py)
 
 The point here is to define the experiments in a way that stands up as real computer-science research, not just a collection of demos.
 

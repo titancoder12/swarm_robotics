@@ -20,7 +20,7 @@ PART 1 — Fix pheromone expansion bug
 --------------------------------
 
 Problem:
-- In [env/swarm_env.py](../env/swarm_env.py), `_update_pheromone()` currently diffuses using `np.roll(...)`.
+- In [env/swarm_env.py](../../env/swarm_env.py), `_update_pheromone()` currently diffuses using `np.roll(...)`.
 - `np.roll(...)` wraps the grid edges, so pheromone leaving one side of the world reappears on the opposite side.
 - The grid also keeps tiny residual values forever because there is no clipping threshold after decay/diffusion.
 - With ongoing deposits, this makes the rendered heatmap look like it expands without stopping.
@@ -53,9 +53,9 @@ PART 2 — Fix the food metric / demo-training mismatch
 --------------------------------
 
 Problem:
-- In [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py), the console print currently says `food {episode_food_retrieved}`.
+- In [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py), the console print currently says `food {episode_food_retrieved}`.
 - But `episode_food_retrieved` is accumulated from `info["food_delivered"]`, not from pickups.
-- In [env/swarm_env.py](../env/swarm_env.py), `step()` separately reports:
+- In [env/swarm_env.py](../../env/swarm_env.py), `step()` separately reports:
   - `targets_collected`
   - `food_delivered`
 - This makes training appear to find no food even when the demo visibly reaches and picks up food but does not deliver it yet.
@@ -66,7 +66,7 @@ Required fix:
 - Keep the environment semantics unchanged unless a real bug is found.
 
 Preferred implementation:
-- In [train/independent_dqn_pytorch.py](../train/independent_dqn_pytorch.py):
+- In [train/independent_dqn_pytorch.py](../../train/independent_dqn_pytorch.py):
   - keep `episode_food_discovered` sourced from `targets_collected`
   - keep `episode_food_retrieved` sourced from `food_delivered`
   - update the console print so both appear explicitly, for example:
@@ -75,8 +75,8 @@ Preferred implementation:
 - If any evaluation path has the same ambiguity, fix it there too.
 
 Also check:
-- [train/evaluate.py](../train/evaluate.py)
-- [train/demo.py](../train/demo.py)
+- [analysis/evaluate.py](../../analysis/evaluate.py)
+- [train/demo.py](../../train/demo.py)
 - any run summaries or plots that label food metrics ambiguously
 
 --------------------------------
