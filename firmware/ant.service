@@ -3,7 +3,7 @@ Description=Runs ant policy
 After=multi-user.target
 
 [Service]
-# Ensure ant.py is at /home/pi/Ant for this to work.
+# Ensure you are using virtual env named ant-env
 ExecStart=/home/pi/ant-env/bin/python /home/pi/Ant/swarm_robotics/firmware/ant.py
 User=pi
 
