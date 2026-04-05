@@ -59,14 +59,20 @@ class CommandCenterBLEClient:
         # name so deployment can choose whichever is more stable on the target
         # platform.
         if self.address:
+            if self.debug:
+                print(f"[debug] BLE using explicit address {self.address}", flush=True)
             return self.address
         if not self.device_name:
             raise RuntimeError("BLE command-center client requires --cc-ble-address or --cc-ble-device-name.")
         if BleakScanner is None:
             raise RuntimeError("bleak is not installed; BLE device discovery is unavailable.")
+        if self.debug:
+            print(f"[debug] BLE scanning for device name {self.device_name!r}", flush=True)
         device = await BleakScanner.find_device_by_name(self.device_name, timeout=self.timeout_s)
         if device is None:
             raise RuntimeError(f"BLE device named {self.device_name!r} was not found.")
+        if self.debug:
+            print(f"[debug] BLE resolved device {self.device_name!r} to {device.address}", flush=True)
         return str(device.address)
 
     async def _ensure_connected(self) -> None:
@@ -77,8 +83,14 @@ class CommandCenterBLEClient:
         if self._client is not None and self._client.is_connected:
             return
         address = await self._resolve_address()
+        if self.debug:
+            print(f"[debug] BLE creating client for {address}", flush=True)
         self._client = BleakClient(address)
+        if self.debug:
+            print(f"[debug] BLE connecting to {address}", flush=True)
         await self._client.connect()
+        if self.debug:
+            print(f"[debug] BLE connected to {address}; starting notifications on {self.notify_char_uuid}", flush=True)
         await self._client.start_notify(self.notify_char_uuid, self._notify_callback)
         if self.debug:
             print(f"[debug] BLE connected to command center at {address}", flush=True)
@@ -88,13 +100,19 @@ class CommandCenterBLEClient:
         # newline keeps behavior aligned with the TCP/serial transports.
         await self._ensure_connected()
         payload = (line.strip() + "\n").encode("utf-8")
+        if self.debug:
+            print(f"[debug] BLE write -> {line.strip()}", flush=True)
         await self._client.write_gatt_char(self.write_char_uuid, payload)
+        if self.debug:
+            print(f"[debug] BLE write complete -> {line.strip()}", flush=True)
 
     async def _read_matching_pheromone(self, robot_id: str, timeout_s: float) -> tuple[float, float, float]:
         # Only PHER_RESP for this robot counts as a valid SENSE reply. Anything
         # else is ignored so stale or unrelated traffic does not corrupt the
         # observation.
         deadline = self._loop.time() + timeout_s
+        if self.debug:
+            print(f"[debug] BLE waiting for PHER_RESP for {robot_id} (timeout={timeout_s:.2f}s)", flush=True)
         while self._loop.time() < deadline:
             while self._lines:
                 line = self._lines.popleft()
@@ -104,10 +122,14 @@ class CommandCenterBLEClient:
                 if parts[1] != robot_id:
                     continue
                 try:
+                    if self.debug:
+                        print(f"[debug] BLE recv <- {line}", flush=True)
                     return float(parts[2]), float(parts[3]), float(parts[4])
                 except ValueError:
                     continue
             await asyncio.sleep(0.01)
+        if self.debug:
+            print(f"[debug] BLE PHER_RESP timeout for {robot_id}", flush=True)
         return 0.0, 0.0, 0.0
 
     async def _send_position_async(self, robot_id: str, x_cm: float, y_cm: float, heading_deg: float) -> None:
