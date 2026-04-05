@@ -284,7 +284,7 @@ class BLEPeripheralWorker(_Worker):
             await self._server.add_new_characteristic(
                 self.service_uuid,
                 self.notify_char_uuid,
-                GATTCharacteristicProperties.notify,
+                GATTCharacteristicProperties.notify | GATTCharacteristicProperties.read,
                 None,
                 GATTAttributePermissions.readable,
             )
