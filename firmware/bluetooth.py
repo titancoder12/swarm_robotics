@@ -85,13 +85,16 @@ class CommandCenterBLEClient:
         address = await self._resolve_address()
         if self.debug:
             print(f"[debug] BLE creating client for {address}", flush=True)
-        self._client = BleakClient(address)
+        self._client = BleakClient(address, timeout=self.timeout_s)
         if self.debug:
             print(f"[debug] BLE connecting to {address}", flush=True)
-        await self._client.connect()
+        await asyncio.wait_for(self._client.connect(), timeout=self.timeout_s)
         if self.debug:
             print(f"[debug] BLE connected to {address}; starting notifications on {self.notify_char_uuid}", flush=True)
-        await self._client.start_notify(self.notify_char_uuid, self._notify_callback)
+        await asyncio.wait_for(
+            self._client.start_notify(self.notify_char_uuid, self._notify_callback),
+            timeout=self.timeout_s,
+        )
         if self.debug:
             print(f"[debug] BLE connected to command center at {address}", flush=True)
 
