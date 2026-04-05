@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 # Ensure you are using virtual env named ant-env
-ExecStart=/home/pi/ant-env/bin/python /home/pi/Ant/swarm_robotics/firmware/ant.py
+ExecStart=/home/pi/ant-env/bin/python /home/pi/Desktop/swarm_robotics/firmware/ant.py
 User=pi
 
 [Install]
