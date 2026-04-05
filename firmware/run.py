@@ -25,6 +25,7 @@ from firmware.bluetooth import (
     DEFAULT_BLE_WRITE_CHAR_UUID,
     CommandCenterBLEClient,
 )
+from firmware.command_center_client import CommandCenterTCPClient
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 
@@ -92,6 +93,10 @@ def parse_args(argv=None):
     parser.add_argument("--initial-heading-deg", type=float, default=0.0)
     parser.add_argument("--robot-id", type=str, default="robot_0")
     parser.add_argument("--agent-radius-cm", type=float, default=7.0)
+    parser.add_argument("--cc-tcp-enable", action="store_true")
+    parser.add_argument("--cc-tcp-host", type=str, default="")
+    parser.add_argument("--cc-tcp-port", type=int, default=8765)
+    parser.add_argument("--cc-tcp-timeout", type=float, default=1.0)
     parser.add_argument("--cc-ble-enable", action="store_true")
     parser.add_argument("--cc-ble-address", type=str, default="")
     parser.add_argument("--cc-ble-device-name", type=str, default="")
@@ -465,7 +470,14 @@ def main(argv=None):
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
     mission_control_link = None
-    if args.cc_ble_enable:
+    if args.cc_tcp_enable or args.cc_tcp_host:
+        mission_control_link = CommandCenterTCPClient(
+            host=args.cc_tcp_host or "127.0.0.1",
+            port=args.cc_tcp_port,
+            timeout_s=args.cc_tcp_timeout,
+            debug=args.debug,
+        )
+    elif args.cc_ble_enable:
         # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
         # with desktop Mission Control.
         mission_control_link = CommandCenterBLEClient(
@@ -501,6 +513,8 @@ def main(argv=None):
             f"hz={args.hz} scan_duration={args.scan_duration} "
             f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm} "
             f"initial_heading_deg={args.initial_heading_deg} robot_id={args.robot_id} "
+            f"cc_tcp_enable={args.cc_tcp_enable or bool(args.cc_tcp_host)} "
+            f"cc_tcp_host={args.cc_tcp_host or '-'} cc_tcp_port={args.cc_tcp_port} "
             f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f} "
             f"cc_deposit_enable={args.cc_deposit_enable}",
             flush=True,

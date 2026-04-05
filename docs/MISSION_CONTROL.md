@@ -139,6 +139,134 @@ Recommended runtime behavior:
 
 The transport should remain line-oriented and compatible with `serial.readline()`.
 
+## TCP Transport
+
+TCP is the recommended non-BLE path for connecting the Raspberry Pi runtime to
+Mission Control over:
+
+- home Wi-Fi
+- an iPhone hotspot
+- any shared private local network
+
+The protocol does not change. Only the transport changes.
+
+Pi -> Mission Control:
+
+```text
+POS,<id>,<x_cm>,<y_cm>,<heading_deg>
+LIDAR,<id>,<r0_mm>,...,<r8_mm>
+PHER,<id>,<x_cm>,<y_cm>,<amount>
+SENSE,<id>,<x_cm>,<y_cm>,<heading_deg>
+```
+
+Mission Control -> Pi:
+
+```text
+PHER_RESP,<id>,<p0>,<p1>,<p2>
+```
+
+### MacBook TCP Setup
+
+Start Mission Control on a LAN-reachable address:
+
+```bash
+python -m mission_control.main --tcp-host 0.0.0.0 --tcp-port 8765 --log-level INFO
+```
+
+Notes:
+
+- `--tcp-host 0.0.0.0` lets another device on the network connect to Mission Control
+- `--tcp-port 8765` is the default Mission Control TCP port
+- `--ble-enable` is not required for the TCP path
+
+### Find The MacBook IP
+
+The Pi needs the MacBook's local IP on the shared network.
+
+One simple command on the MacBook is:
+
+```bash
+ipconfig getifaddr en0
+```
+
+Typical examples:
+
+- home Wi-Fi: `192.168.x.x`
+- iPhone hotspot: often `172.20.10.x`
+
+### Pi TCP Setup
+
+Run the robot runtime with the new TCP flags:
+
+```bash
+python firmware/run.py \
+  --checkpoint-dir checkpoints \
+  --port /dev/ttyUSB0 \
+  --cc-tcp-enable \
+  --cc-tcp-host MACBOOK_IP \
+  --cc-tcp-port 8765 \
+  --cc-tcp-timeout 1.0 \
+  --debug
+```
+
+Replace `MACBOOK_IP` with the MacBook's real IP on the shared network.
+
+Example:
+
+```bash
+python firmware/run.py \
+  --checkpoint-dir checkpoints \
+  --port /dev/ttyUSB0 \
+  --cc-tcp-enable \
+  --cc-tcp-host 192.168.1.42 \
+  --cc-tcp-port 8765 \
+  --cc-tcp-timeout 1.0 \
+  --debug
+```
+
+### Pi TCP Flags
+
+- `--cc-tcp-enable`
+  - enable the Mission Control TCP client
+- `--cc-tcp-host`
+  - hostname or IP address of the MacBook running Mission Control
+- `--cc-tcp-port`
+  - Mission Control TCP port, default `8765`
+- `--cc-tcp-timeout`
+  - socket timeout in seconds
+
+If `--cc-tcp-enable` or `--cc-tcp-host` is provided, the Pi runtime uses TCP instead of BLE.
+
+### What Success Looks Like
+
+On the Pi, debug output should include lines like:
+
+```text
+[debug] TCP connecting to 192.168.x.x:8765
+[debug] TCP connected to 192.168.x.x:8765
+[debug] TCP write -> POS,...
+[debug] TCP recv <- PHER_RESP,...
+```
+
+On the MacBook, Mission Control should:
+
+- show robot count `1`
+- render the robot in the world view
+- update `x`, `y`, and heading in the side panel
+
+### Network Notes
+
+TCP works well on:
+
+- home Wi-Fi
+- iPhone hotspot
+- a private router you control
+
+Public or venue Wi-Fi may fail even if both devices have internet access,
+because some networks isolate clients from one another.
+
+For demos, a private network you control is the safer choice.
+
 ## BLE Transport
 
 Mission Control can also expose the same protocol over BLE.
