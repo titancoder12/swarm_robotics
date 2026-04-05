@@ -134,7 +134,7 @@ class CommandCenterBLEClient:
             self._loop.run_until_complete(self._send_position_async(robot_id, x_cm, y_cm, heading_deg))
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
-                print(f"[debug] BLE POS send failed: {exc}", flush=True)
+                print(f"[debug] BLE POS send failed: {type(exc).__name__}: {exc!r}", flush=True)
 
     def deposit_pheromone(self, robot_id: str, x_cm: float, y_cm: float, amount: float) -> None:
         # Deposits follow the same fire-and-forget pattern as position updates.
@@ -142,7 +142,7 @@ class CommandCenterBLEClient:
             self._loop.run_until_complete(self._deposit_pheromone_async(robot_id, x_cm, y_cm, amount))
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
-                print(f"[debug] BLE PHER send failed: {exc}", flush=True)
+                print(f"[debug] BLE PHER send failed: {type(exc).__name__}: {exc!r}", flush=True)
 
     def send_lidar(self, robot_id: str, ranges_mm: list[float] | tuple[float, ...]) -> None:
         # Lidar uploads are best-effort telemetry like position updates.
@@ -150,7 +150,7 @@ class CommandCenterBLEClient:
             self._loop.run_until_complete(self._send_lidar_async(robot_id, ranges_mm))
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
-                print(f"[debug] BLE LIDAR send failed: {exc}", flush=True)
+                print(f"[debug] BLE LIDAR send failed: {type(exc).__name__}: {exc!r}", flush=True)
 
     def sense_pheromone(self, robot_id: str, x_cm: float, y_cm: float, heading_deg: float) -> tuple[float, float, float]:
         # SENSE is the only request that feeds directly into inference, so this
@@ -162,7 +162,7 @@ class CommandCenterBLEClient:
             )
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
-                print(f"[debug] BLE SENSE failed: {exc}", flush=True)
+                print(f"[debug] BLE SENSE failed: {type(exc).__name__}: {exc!r}", flush=True)
             return 0.0, 0.0, 0.0
 
     def close(self) -> None:
@@ -175,6 +175,6 @@ class CommandCenterBLEClient:
             self._loop.run_until_complete(self._client.disconnect())
         except Exception as exc:  # pragma: no cover - hardware-dependent path
             if self.debug:
-                print(f"[debug] BLE disconnect failed: {exc}", flush=True)
+                print(f"[debug] BLE disconnect failed: {type(exc).__name__}: {exc!r}", flush=True)
         finally:
             self._loop.close()

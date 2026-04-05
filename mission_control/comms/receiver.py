@@ -253,7 +253,11 @@ class BLEPeripheralWorker(_Worker):
             return
         payload = (line.strip() + "\n").encode("utf-8")
         try:
-            self._server.update_value(self.service_uuid, self.notify_char_uuid, bytearray(payload))
+            characteristic = self._server.get_characteristic(self.notify_char_uuid)
+            characteristic.value = bytearray(payload)
+            delivered = self._server.update_value(self.service_uuid, self.notify_char_uuid)
+            if not delivered:
+                logger.warning("BLE notify dropped on %s: no subscribed centrals", self.device_name)
         except Exception as exc:  # pragma: no cover - depends on local BLE backend
             logger.error("BLE notify failed on %s: %s", self.device_name, exc)
 
@@ -280,8 +284,8 @@ class BLEPeripheralWorker(_Worker):
             await self._server.add_new_characteristic(
                 self.service_uuid,
                 self.notify_char_uuid,
-                GATTCharacteristicProperties.notify | GATTCharacteristicProperties.read,
-                bytearray(),
+                GATTCharacteristicProperties.notify,
+                None,
                 GATTAttributePermissions.readable,
             )
             self._server.get_characteristic(self.write_char_uuid).write_callback = self._handle_write
