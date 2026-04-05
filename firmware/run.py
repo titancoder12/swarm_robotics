@@ -26,6 +26,7 @@ from firmware.bluetooth import (
     CommandCenterBLEClient,
 )
 from firmware.command_center_client import CommandCenterTCPClient
+from firmware.relay_client import CommandCenterRelayClient
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 
@@ -97,6 +98,9 @@ def parse_args(argv=None):
     parser.add_argument("--cc-tcp-host", type=str, default="")
     parser.add_argument("--cc-tcp-port", type=int, default=8765)
     parser.add_argument("--cc-tcp-timeout", type=float, default=1.0)
+    parser.add_argument("--cc-relay-url", type=str, default="")
+    parser.add_argument("--cc-relay-session", type=str, default="")
+    parser.add_argument("--cc-relay-timeout", type=float, default=1.0)
     parser.add_argument("--cc-ble-enable", action="store_true")
     parser.add_argument("--cc-ble-address", type=str, default="")
     parser.add_argument("--cc-ble-device-name", type=str, default="")
@@ -470,7 +474,14 @@ def main(argv=None):
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
     mission_control_link = None
-    if args.cc_tcp_enable or args.cc_tcp_host:
+    if args.cc_relay_url:
+        mission_control_link = CommandCenterRelayClient(
+            relay_url=args.cc_relay_url,
+            session=args.cc_relay_session or args.robot_id,
+            timeout_s=args.cc_relay_timeout,
+            debug=args.debug,
+        )
+    elif args.cc_tcp_enable or args.cc_tcp_host:
         mission_control_link = CommandCenterTCPClient(
             host=args.cc_tcp_host or "127.0.0.1",
             port=args.cc_tcp_port,
@@ -513,6 +524,8 @@ def main(argv=None):
             f"hz={args.hz} scan_duration={args.scan_duration} "
             f"max_steps={args.max_steps} lidar_max_range_mm={args.lidar_max_range_mm} "
             f"initial_heading_deg={args.initial_heading_deg} robot_id={args.robot_id} "
+            f"cc_relay_url={args.cc_relay_url or '-'} "
+            f"cc_relay_session={args.cc_relay_session or args.robot_id} "
             f"cc_tcp_enable={args.cc_tcp_enable or bool(args.cc_tcp_host)} "
             f"cc_tcp_host={args.cc_tcp_host or '-'} cc_tcp_port={args.cc_tcp_port} "
             f"cc_ble_enable={args.cc_ble_enable} pheromone_awareness_radius_cm={awareness_radius_cm:.1f} "

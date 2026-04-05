@@ -267,6 +267,84 @@ because some networks isolate clients from one another.
 
 For demos, a private network you control is the safer choice.
 
+## Internet Relay Transport
+
+If the MacBook and Pi cannot talk directly over the local network, the repo now
+also supports a very small HTTP relay path.
+
+This is the intended fallback for:
+
+- hostile venue Wi-Fi with client isolation
+- home Wi-Fi that does not allow peer-to-peer traffic
+- cases where both devices can reach the internet but not each other directly
+
+The relay path has three pieces:
+
+1. a tiny HTTP relay server
+2. a Mac-side bridge that forwards relay traffic into the existing local Mission Control TCP listener
+3. the Pi runtime using the relay directly instead of BLE or direct TCP
+
+### Relay Server
+
+Run the relay server on any host both devices can reach, for example a small
+cloud VM:
+
+```bash
+python -m relay.relay_server --host 0.0.0.0 --port 8080
+```
+
+Example relay URL:
+
+```text
+http://YOUR_SERVER_IP:8080
+```
+
+### MacBook Relay Setup
+
+Start Mission Control locally:
+
+```bash
+python -m mission_control.main --tcp-host 127.0.0.1 --tcp-port 8765 --log-level INFO
+```
+
+Then start the relay bridge in a second terminal:
+
+```bash
+python -m mission_control.relay_bridge \
+  --relay-url http://YOUR_SERVER_IP:8080 \
+  --session robot_0 \
+  --tcp-host 127.0.0.1 \
+  --tcp-port 8765 \
+  --debug
+```
+
+Notes:
+
+- `--session` is the shared queue/session name for one robot link
+- the bridge talks to local Mission Control over `127.0.0.1:8765`
+- the bridge only forwards lines; the Mission Control app itself stays unchanged
+
+### Pi Relay Setup
+
+On the Pi:
+
+```bash
+python firmware/run.py \
+  --checkpoint-dir checkpoints \
+  --port /dev/ttyUSB0 \
+  --cc-relay-url http://YOUR_SERVER_IP:8080 \
+  --cc-relay-session robot_0 \
+  --cc-relay-timeout 1.0 \
+  --debug
+```
+
+### Relay Notes
+
+- The relay is intentionally minimal and keeps line-based message queues in memory.
+- It is meant for demos and controlled usage, not production networking.
+- The robot-side protocol remains the same: `POS`, `LIDAR`, `PHER`, `SENSE`, and `PHER_RESP`.
+- The relay path is less elegant than direct local TCP, but it avoids local client-isolation problems.
+
 ## BLE Transport
 
 Mission Control can also expose the same protocol over BLE.
