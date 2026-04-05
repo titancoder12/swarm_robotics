@@ -4,6 +4,7 @@ import argparse
 import json
 import socket
 import time
+from urllib.error import URLError
 from urllib.error import HTTPError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -69,6 +70,17 @@ class RelayBridge:
                 return line
         except HTTPError as exc:
             if exc.code == 204:
+                return None
+            raise
+        except (socket.timeout, TimeoutError):
+            if self.debug:
+                print("[debug] bridge relay poll timed out", flush=True)
+            return None
+        except URLError as exc:
+            reason = getattr(exc, "reason", None)
+            if isinstance(reason, socket.timeout):
+                if self.debug:
+                    print("[debug] bridge relay poll timed out", flush=True)
                 return None
             raise
 
