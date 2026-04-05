@@ -324,6 +324,42 @@ Notes:
 - the bridge talks to local Mission Control over `127.0.0.1:8765`
 - the bridge only forwards lines; the Mission Control app itself stays unchanged
 
+### Combined Mac Launcher
+
+There is also a combined Mac launcher that starts both Mission Control and the
+relay bridge together:
+
+```bash
+bash scripts/start_mission_control_relay.sh
+```
+
+Or via the desktop-friendly wrapper:
+
+```bash
+./scripts/start_mission_control_relay.command
+```
+
+Default launcher values:
+
+- relay URL: `https://relay.christopherlin.ca`
+- relay session: `robot_0`
+- local Mission Control TCP host: `127.0.0.1`
+- local Mission Control TCP port: `8765`
+
+You can override those with environment variables before launching:
+
+```bash
+MISSION_CONTROL_RELAY_URL=https://relay.example.com \
+MISSION_CONTROL_RELAY_SESSION=robot_1 \
+bash scripts/start_mission_control_relay.sh
+```
+
+Launcher behavior:
+
+- `Ctrl+C` stops both Mission Control and the relay bridge
+- closing the Mission Control UI window also causes the launcher to stop the relay bridge
+- if the relay bridge exits first, the launcher also stops Mission Control
+
 ### Pi Relay Setup
 
 On the Pi:
