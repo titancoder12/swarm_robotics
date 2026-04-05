@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 import time
@@ -18,6 +19,7 @@ if str(REPO_ROOT) not in sys.path:
 
 # ant.py should be in the same dir.
 from ant import ESP32Robot
+from algorithms.mappo.inference import load_actor
 from firmware.bluetooth import (
     DEFAULT_BLE_NOTIFY_CHAR_UUID,
     DEFAULT_BLE_WRITE_CHAR_UUID,
@@ -53,6 +55,15 @@ class PoseEstimate:
     x_mm: float = 0.0
     y_mm: float = 0.0
     heading_deg: float = 0.0
+
+
+@dataclass
+class LoadedPolicy:
+    kind: str
+    model: object
+    device: torch.device
+    hidden_state: torch.Tensor | None = None
+    checkpoint_dir: Path | None = None
 
 
 def pose_to_cm(pose: PoseEstimate) -> tuple[float, float]:
@@ -253,50 +264,124 @@ def build_observation_history(cfg: PolicyConfig, frames: list[np.ndarray]) -> np
     return observation
 
 
+def resolve_checkpoint_dir(checkpoint_dir: Path) -> Path:
+    checkpoint_dir = Path(checkpoint_dir)
+    if not checkpoint_dir.is_absolute():
+        checkpoint_dir = REPO_ROOT / checkpoint_dir
+    # The newer robot runtime defaults live under checkpoints/mappo_g/latest.
+    # If the caller points at the top-level checkpoints/ folder, prefer that
+    # canonical latest MAPPO checkpoint over the legacy DQN layout.
+    mappo_latest_dir = checkpoint_dir / "mappo_g" / "latest"
+    if (checkpoint_dir / "actor.pt").exists() or (checkpoint_dir / "metadata.json").exists():
+        return checkpoint_dir
+    if (checkpoint_dir / "shared.pt").exists() or (checkpoint_dir / "agent_0.pt").exists():
+        return checkpoint_dir
+    if mappo_latest_dir.is_dir() and (mappo_latest_dir / "actor.pt").exists():
+        return mappo_latest_dir
+    return checkpoint_dir
+
+
+def detect_checkpoint_format(checkpoint_dir: Path) -> str:
+    metadata_path = checkpoint_dir / "metadata.json"
+    actor_path = checkpoint_dir / "actor.pt"
+    if metadata_path.exists():
+        try:
+            metadata = json.loads(metadata_path.read_text())
+        except Exception:
+            metadata = {}
+        if str(metadata.get("algorithm", "")).lower() == "recurrent_mappo_gru":
+            return "mappo_gru"
+    if actor_path.exists():
+        return "mappo_gru"
+    if (checkpoint_dir / "shared.pt").exists() or (checkpoint_dir / "agent_0.pt").exists():
+        return "dqn"
+    raise FileNotFoundError(
+        f"Unsupported checkpoint directory: {checkpoint_dir}\n"
+        "Expected either a MAPPO actor checkpoint set (actor.pt / metadata.json) "
+        "or legacy DQN checkpoint files (shared.pt / agent_0.pt)."
+    )
+
+
 def load_policy(
     checkpoint_dir: Path,
     shared_policy: bool,
     observation_dim: int,
     num_actions: int,
     debug: bool = False,
-) -> QNetwork:
-    # The hardware runtime only supports the custom PyTorch checkpoint format
-    # used by the repo's QNetwork definition.
+) -> LoadedPolicy:
+    checkpoint_dir = resolve_checkpoint_dir(checkpoint_dir)
+    checkpoint_format = detect_checkpoint_format(checkpoint_dir)
+
+    if checkpoint_format == "mappo_gru":
+        metadata_path = checkpoint_dir / "metadata.json"
+        metadata = {}
+        if metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text())
+        checkpoint_obs_dim = int(metadata.get("obs_dim", observation_dim))
+        checkpoint_action_dim = int(metadata.get("action_dim", num_actions))
+        if checkpoint_obs_dim != observation_dim:
+            raise ValueError(
+                f"MAPPO checkpoint obs_dim mismatch: metadata says {checkpoint_obs_dim}, "
+                f"but firmware builds {observation_dim}."
+            )
+        if checkpoint_action_dim != num_actions:
+            raise ValueError(
+                f"MAPPO checkpoint action_dim mismatch: metadata says {checkpoint_action_dim}, "
+                f"but firmware expects {num_actions}."
+            )
+        if debug:
+            print(
+                f"[debug] loading MAPPO actor checkpoint_dir={checkpoint_dir} "
+                f"obs_dim={observation_dim} num_actions={num_actions}",
+                flush=True,
+            )
+        actor, device = load_actor(str(checkpoint_dir), observation_dim, num_actions, device="cpu")
+        hidden_state = actor.initial_hidden(1, device)
+        return LoadedPolicy(
+            kind="mappo_gru",
+            model=actor,
+            device=device,
+            hidden_state=hidden_state,
+            checkpoint_dir=checkpoint_dir,
+        )
+
+    # Legacy DQN fallback for older hardware checkpoints.
     model = QNetwork(observation_dim, num_actions)
     checkpoint_name = "shared.pt" if shared_policy else "agent_0.pt"
-
-    checkpoint_dir = Path(checkpoint_dir)
-    if not checkpoint_dir.is_absolute():
-        checkpoint_dir = REPO_ROOT / checkpoint_dir
-
     checkpoint_path = checkpoint_dir / checkpoint_name
-
     if not checkpoint_path.exists():
         raise FileNotFoundError(
             f"Checkpoint not found: {checkpoint_path}\n"
             f"Repo root: {REPO_ROOT}\n"
             f"Checkpoint dir arg: {checkpoint_dir}"
         )
-
     if debug:
         print(
-            f"[debug] loading checkpoint={checkpoint_path} "
+            f"[debug] loading DQN checkpoint={checkpoint_path} "
             f"obs_dim={observation_dim} num_actions={num_actions}",
             flush=True,
         )
-
     state_dict = torch.load(checkpoint_path, map_location="cpu")
     model.load_state_dict(state_dict)
     model.eval()
-    return model
+    return LoadedPolicy(kind="dqn", model=model, device=torch.device("cpu"), checkpoint_dir=checkpoint_dir)
 
 
-def predict_action(model: QNetwork, observation: np.ndarray) -> tuple[int, np.ndarray]:
-    # Inference is greedy argmax over Q-values; there is no exploration term in
-    # this runtime path.
+def predict_action(policy: LoadedPolicy, observation: np.ndarray) -> tuple[int, np.ndarray]:
+    # Inference is greedy argmax over policy outputs. For DQN these outputs are
+    # Q-values; for recurrent MAPPO they are action logits plus recurrent state.
+    obs_tensor = torch.tensor(observation, dtype=torch.float32, device=policy.device).unsqueeze(0)
     with torch.no_grad():
-        obs_tensor = torch.tensor(observation, dtype=torch.float32).unsqueeze(0)
-        q_values = model(obs_tensor)
+        if policy.kind == "mappo_gru":
+            if policy.hidden_state is None:
+                raise RuntimeError("MAPPO policy hidden state is uninitialized.")
+            done_mask = torch.ones((1,), dtype=torch.float32, device=policy.device)
+            logits, next_hidden = policy.model(obs_tensor, policy.hidden_state, done_mask)
+            policy.hidden_state = next_hidden
+            action_id = int(torch.argmax(logits, dim=1).item())
+            return action_id, logits.squeeze(0).cpu().numpy()
+
+        q_values = policy.model(obs_tensor)
         action_id = int(torch.argmax(q_values, dim=1).item())
         return action_id, q_values.squeeze(0).cpu().numpy()
 
@@ -473,9 +558,9 @@ def main(argv=None):
                     step=step,
                     agent_index=0,
                     agent_id=args.robot_id,
-                    policy_label="shared" if args.shared_policy else "agent_0",
+                    policy_label="mappo_gru" if policy.kind == "mappo_gru" else ("shared" if args.shared_policy else "agent_0"),
                     mode="greedy",
-                    output_name="q_values",
+                    output_name="policy_logits" if policy.kind == "mappo_gru" else "q_values",
                     output_values=q_values,
                     action=action_id,
                     num_actions=cfg.num_actions,
