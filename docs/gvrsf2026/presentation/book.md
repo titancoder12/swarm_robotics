@@ -8,7 +8,7 @@ It has four jobs:
 
 1. teach the theory behind the project deeply enough that a new reader can learn the main technologies,
 2. explain the actual system built in this repository,
-3. reconstruct the research-and-development process from the archived prompts and git history,
+3. reconstruct the research-and-development process from the archived tasks and git history,
 4. show the results, the failures, and the reasoning that turned those failures into progress.
 
 This reconstruction is grounded in the repository itself:
@@ -18,7 +18,7 @@ This reconstruction is grounded in the repository itself:
 - the retrospective docs such as `docs/TRAINING_MAPPO.md`, `docs/building_curriculum_training.md`, and the integrated GVRSF experiment paper,
 - and the git commit history and per-commit file diffs.
 
-Where the repository does not preserve every thought process directly, this book makes careful inferences from prompts, code changes, commit messages, and experiment artifacts.
+Where the repository does not preserve every thought process directly, this book makes careful inferences from tasks, code changes, commit messages, and experiment artifacts.
 
 ## Chapter 1. The Big Question
 
@@ -268,7 +268,7 @@ Conceptually:
 
 `P_next = (1 - evaporation) * P + deposits + diffusion`
 
-Several later prompts focused on making this field scientifically meaningful:
+Several later tasks focused on making this field scientifically meaningful:
 
 - prevent uncontrolled spread,
 - tie deposition to useful task phases,
@@ -312,16 +312,16 @@ This design is the technical heart of the mature system.
 
 ## Chapter 4. The Research Method
 
-The project’s development process was unusually explicit because the repository preserves a prompt archive. That means the project was not built as one large opaque implementation. It was built as a sequence of concrete hypotheses.
+The project’s development process was unusually explicit because the repository preserves a task archive. That means the project was not built as one large opaque implementation. It was built as a sequence of concrete hypotheses.
 
 The method looked like this:
 
 1. observe a failure in metrics or demo,
 2. isolate the likely mechanism,
-3. write a precise prompt that changes one part of the system,
+3. write a precise task that changes one part of the system,
 4. implement and verify,
 5. inspect new evidence,
-6. use the new evidence to write the next prompt.
+6. use the new evidence to write the next task.
 
 This is very similar to real research:
 
@@ -351,13 +351,13 @@ The next step was broadening the training stack:
 
 At this stage, the repository was becoming a platform rather than just a script.
 
-### 5.2 Prompts 00 to 09: establish the lab
+### 5.2 Tasks 00 to 09: establish the lab
 
-The early prompt archive builds the project’s base research infrastructure.
+The early task archive builds the project’s base research infrastructure.
 
 `00_INITIAL.md` asked for the initial swarm RL repository skeleton.
 
-Prompts `01` to `07` then escalated the codebase systematically:
+Tasks `01` to `07` then escalated the codebase systematically:
 
 - audit the existing repo,
 - upgrade the environment for science-fair-grade stigmergic experiments,
@@ -367,7 +367,7 @@ Prompts `01` to `07` then escalated the codebase systematically:
 - compare RL algorithms,
 - and generate documentation.
 
-Prompt `08` focused on API documentation, while prompt `09` added a policy probing script to inspect learned model behavior in isolation.
+Task `08` focused on API documentation, while task `09` added a policy probing script to inspect learned model behavior in isolation.
 
 The corresponding commits show a pattern:
 
@@ -381,11 +381,11 @@ Before the project could prove anything, it needed to become inspectable and rep
 
 ## Chapter 6. Mission Control, Sim-to-Real Thinking, and Instrumentation
 
-The prompt archive then turned briefly toward hardware-facing support and system instrumentation.
+The task archive then turned briefly toward hardware-facing support and system instrumentation.
 
 ### 6.1 Mission control
 
-Prompt `10` asked for a command center, later renamed `mission_control`.
+Task `10` asked for a command center, later renamed `mission_control`.
 
 The development sequence around that subsystem shows repeated refinement of the request and then implementation of a separate subsystem:
 
@@ -399,11 +399,11 @@ This part of the story matters because it shows the project was thinking beyond 
 
 ### 6.2 Bluetooth path
 
-Prompt `11` extended the hardware communication story through Bluetooth transport, again without collapsing subsystem boundaries. The repository’s prompts insist repeatedly on preserving low coupling, which is good systems thinking: deployment plumbing should not contaminate training logic.
+Task `11` extended the hardware communication story through Bluetooth transport, again without collapsing subsystem boundaries. The repository’s tasks insist repeatedly on preserving low coupling, which is good systems thinking: deployment plumbing should not contaminate training logic.
 
-### 6.3 Additional prompts and debug visibility
+### 6.3 Additional tasks and debug visibility
 
-Prompt `12` reconstructed incremental development history after an earlier commit range. Prompt `13` added policy-debug logging. These are signs of a maturing lab notebook:
+Task `12` reconstructed incremental development history after an earlier commit range. Task `13` added policy-debug logging. These are signs of a maturing lab notebook:
 
 - not just building features,
 - but making the build process legible.
@@ -416,14 +416,14 @@ Before MAPPO became the main path, the project spent significant effort improvin
 
 ### 7.1 Reward shaping and pheromone discipline
 
-Prompts `14`, `15`, and `16` focused on the early environment and reward problems:
+Tasks `14`, `15`, and `16` focused on the early environment and reward problems:
 
 - improve detectability and reward signal,
 - make pheromone deposition meaningful,
 - encourage exploration,
 - and fix concrete bugs in pheromone diffusion and food metrics.
 
-These prompts taught several important lessons:
+These tasks taught several important lessons:
 
 - a simulator can silently mislead you if its metrics are ambiguous,
 - indirect communication only matters if the signal is semantically meaningful,
@@ -431,7 +431,7 @@ These prompts taught several important lessons:
 
 ### 7.2 Experiment and output infrastructure
 
-Prompts `17`, `18`, `19`, `20`, `21`, and `22` focused on reproducibility and scale:
+Tasks `17`, `18`, `19`, `20`, `21`, and `22` focused on reproducibility and scale:
 
 - better CLI/config control,
 - recording comparison data,
@@ -453,7 +453,7 @@ But a deeper algorithmic issue remained: the strongest question in the project d
 
 ## Chapter 8. The Great Shift: Recurrent MAPPO and Curriculum Learning
 
-Prompt `23` is one of the decisive turning points in the entire repository.
+Task `23` is one of the decisive turning points in the entire repository.
 
 It asked for:
 
@@ -472,9 +472,9 @@ The first runnable recurrent MAPPO curriculum path was then implemented. This wa
 
 This commit changed the project from “swarm RL platform with several baselines” into “swarm MARL project with a serious main research path.”
 
-### 8.1 Prompt 24: shape the environment, not just the agent count
+### 8.1 Task 24: shape the environment, not just the agent count
 
-Prompt `24` recognized that simply increasing the number of agents was not a sufficient curriculum. The implementation added stage-specific environment construction so each curriculum stage could manipulate:
+Task `24` recognized that simply increasing the number of agents was not a sufficient curriculum. The implementation added stage-specific environment construction so each curriculum stage could manipulate:
 
 - world size,
 - number of obstacles,
@@ -488,13 +488,13 @@ This is a deep curriculum-learning insight:
 
 Teaching only by agent count would have been too crude.
 
-### 8.2 Prompt 25: teach the full stigmergic loop
+### 8.2 Task 25: teach the full stigmergic loop
 
-Prompt `25` insisted that the objective was not “touch the target” but the full stigmergic loop. The implementation altered training, environment behavior, and docs accordingly. This was the moment the repository’s training objective became fully aligned with the scientific story.
+Task `25` insisted that the objective was not “touch the target” but the full stigmergic loop. The implementation altered training, environment behavior, and docs accordingly. This was the moment the repository’s training objective became fully aligned with the scientific story.
 
-### 8.3 Prompt 26: make delivery explicit
+### 8.3 Task 26: make delivery explicit
 
-Prompt `26` made the delivery mechanic explicit:
+Task `26` made the delivery mechanic explicit:
 
 - one carried food item at a time,
 - visible carrying state,
@@ -505,7 +505,7 @@ This delivery upgrade is important because it transformed the environment from a
 
 ## Chapter 9. The Real Battle: Why the Policy Kept Failing
 
-By prompt `27`, the project had the right algorithmic direction and the right task structure. Yet the learned policy still struggled. This is where the development history becomes most educational.
+By task `27`, the project had the right algorithmic direction and the right task structure. Yet the learned policy still struggled. This is where the development history becomes most educational.
 
 The failures were not random. They formed a ladder:
 
@@ -519,13 +519,13 @@ The failures were not random. They formed a ladder:
 
 This sequence is exactly why the repo’s later history is worth reading closely. It is a case study in diagnosing multi-agent RL failure modes one layer at a time.
 
-## Chapter 10. Prompts 27 to 39: Building the Delivery Brain
+## Chapter 10. Tasks 27 to 39: Building the Delivery Brain
 
 This is the most important intellectual arc in the repository.
 
-### 10.1 Prompt 27: budgets and pressure
+### 10.1 Task 27: budgets and pressure
 
-Prompt `27` tightened curriculum budgeting and reward priorities. Its implementation reworked stage allocations and made delivery-oriented rewards more central.
+Task `27` tightened curriculum budgeting and reward priorities. Its implementation reworked stage allocations and made delivery-oriented rewards more central.
 
 Why it mattered:
 
@@ -533,9 +533,9 @@ Why it mattered:
 - pickup was no longer treated as almost equivalent to delivery,
 - and the curriculum became more honest.
 
-### 10.2 Prompt 28: structural MAPPO stability
+### 10.2 Task 28: structural MAPPO stability
 
-Prompt `28` attacked policy collapse. Its implementation heavily rewrote `train/mappo_gru.py`, including padded critic-state handling and stronger greedy-eval-aware progression logic.
+Task `28` attacked policy collapse. Its implementation heavily rewrote `train/mappo_gru.py`, including padded critic-state handling and stronger greedy-eval-aware progression logic.
 
 This was a structural fix, not a reward tweak. It recognized that:
 
@@ -543,9 +543,9 @@ This was a structural fix, not a reward tweak. It recognized that:
 - stage transfer must preserve value-learning structure,
 - and checkpoint quality must be judged by greedy behavior, not just sampled training episodes.
 
-### 10.3 Prompt 29: make early greedy behavior real
+### 10.3 Task 29: make early greedy behavior real
 
-Prompt `29` narrowed the problem further. If sampled behavior improved but greedy behavior still died, then the system had not truly learned stable policy logic. The implementation changed early single-agent stages:
+Task `29` narrowed the problem further. If sampled behavior improved but greedy behavior still died, then the system had not truly learned stable policy logic. The implementation changed early single-agent stages:
 
 - pheromone off,
 - softer motion penalties,
@@ -555,9 +555,9 @@ Prompt `29` narrowed the problem further. If sampled behavior improved but greed
 
 This produced the first strong sign that the pipeline could truly learn deterministic early success.
 
-### 10.4 Prompt 30: carrying phase over exploration
+### 10.4 Task 30: carrying phase over exploration
 
-Prompt `30` discovered that the learned policy could find food but often not bring it back. The implementation added carrying-aware exploration suppression and stronger nest-approach structure.
+Task `30` discovered that the learned policy could find food but often not bring it back. The implementation added carrying-aware exploration suppression and stronger nest-approach structure.
 
 This is a subtle but central RL lesson:
 
@@ -565,18 +565,18 @@ This is a subtle but central RL lesson:
 
 The agent should not keep being rewarded to wander once it is carrying food.
 
-### 10.5 Prompts 31 to 38: split the homing problem into lessons
+### 10.5 Tasks 31 to 38: split the homing problem into lessons
 
-These prompts gradually built the return stack:
+These tasks gradually built the return stack:
 
-- prompt `31`: obstacle-return bottleneck,
-- prompt `32`: guaranteed post-pickup homing,
-- prompt `33`: convert sampled homing into greedy homing,
-- prompt `34`: enforce hard global step cap and punish pickup-without-delivery,
-- prompt `35`: diagnose and penalize carrying-phase dithering,
-- prompt `36`: force more deterministic greedy homing,
-- prompt `37`: solve the remaining greedy-delivery failure,
-- prompt `38`: preserve greedy delivery under mild clutter.
+- task `31`: obstacle-return bottleneck,
+- task `32`: guaranteed post-pickup homing,
+- task `33`: convert sampled homing into greedy homing,
+- task `34`: enforce hard global step cap and punish pickup-without-delivery,
+- task `35`: diagnose and penalize carrying-phase dithering,
+- task `36`: force more deterministic greedy homing,
+- task `37`: solve the remaining greedy-delivery failure,
+- task `38`: preserve greedy delivery under mild clutter.
 
 The curriculum stages that emerged from this sequence are among the clearest pieces of design in the repo:
 
@@ -589,7 +589,7 @@ This is textbook curriculum design. A hard skill was decomposed into subskills w
 
 ### 10.6 The bug that mattered most
 
-Prompt `37` also exposed one of the most important bugs in the whole repo: movement updates could drop the `carrying_food` state during normal motion.
+Task `37` also exposed one of the most important bugs in the whole repo: movement updates could drop the `carrying_food` state during normal motion.
 
 This is the kind of bug that makes RL feel mystical until it is found. The model looked incompetent, but part of the problem was that the environment was breaking the very state transition the policy needed in order to complete delivery.
 
@@ -597,21 +597,21 @@ This is one of the book’s strongest lessons:
 
 > in RL, some “learning failures” are actually simulator-state bugs in disguise.
 
-### 10.7 Prompt 39: stabilize the bridge stage
+### 10.7 Task 39: stabilize the bridge stage
 
-Prompt `39` found another subtle issue. A stage could discover a good greedy policy and then drift away from it before final evaluation. The implementation fixed stage-end restoration of the best within-stage model state.
+Task `39` found another subtle issue. A stage could discover a good greedy policy and then drift away from it before final evaluation. The implementation fixed stage-end restoration of the best within-stage model state.
 
 This was the moment the single-agent return stack finally became stable enough for real full-run training.
 
-## Chapter 11. Prompts 40 to 47: Scaling Up Without Collapsing
+## Chapter 11. Tasks 40 to 47: Scaling Up Without Collapsing
 
 Once the single-agent delivery problem was largely solved, the next enemy appeared: scaling.
 
-### 11.1 Prompts 40 and 41: the first swarm cliff
+### 11.1 Tasks 40 and 41: the first swarm cliff
 
 The project learned that the jump from one agent to several agents was not a minor extension. It was another curriculum wall.
 
-Prompt `40` inserted small-swarm bootstrap stages. Prompt `41` reduced wasted budget on already-solved earlier stages so the trainer could reach those new lessons reliably.
+Task `40` inserted small-swarm bootstrap stages. Task `41` reduced wasted budget on already-solved earlier stages so the trainer could reach those new lessons reliably.
 
 The new stages included:
 
@@ -622,7 +622,7 @@ The new stages included:
 
 This transformed the jump to swarm behavior from a cliff into a staircase.
 
-### 11.2 Prompts 42 to 47: the nest-orbit dragon
+### 11.2 Tasks 42 to 47: the nest-orbit dragon
 
 After scaling became viable, the demos revealed a new pathology: empty agents clustering and circling near the nest.
 
@@ -632,14 +632,14 @@ This is a classic learned local optimum:
 - the agents are no longer carrying food,
 - but instead of leaving to search, they exploit a useless stable region.
 
-The prompts then escalated logically:
+The tasks then escalated logically:
 
-- prompt `42`: reduce nest circling,
-- prompt `43`: add post-delivery outward handoff,
-- prompt `44`: hold that handoff until actual nest exit,
-- prompt `45`: explicitly force empty agents to fan out and explore,
-- prompt `46`: if shaping still fails, add environment-side force-explore mode,
-- prompt `47`: add randomness only for non-carrying exploration.
+- task `42`: reduce nest circling,
+- task `43`: add post-delivery outward handoff,
+- task `44`: hold that handoff until actual nest exit,
+- task `45`: explicitly force empty agents to fan out and explore,
+- task `46`: if shaping still fails, add environment-side force-explore mode,
+- task `47`: add randomness only for non-carrying exploration.
 
 This sequence is another miniature textbook. It moves from:
 
@@ -650,9 +650,9 @@ This sequence is another miniature textbook. It moves from:
 
 The repo learned that some local optima are too strong to solve with scalar rewards alone.
 
-## Chapter 12. Prompt 48 and the Importance of Seeing Correctly
+## Chapter 12. Task 48 and the Importance of Seeing Correctly
 
-Prompt `48` may look cosmetic compared with the training prompts, but it matters. It fixed PyGame render scaling so large worlds could fit on screen without changing simulation coordinates.
+Task `48` may look cosmetic compared with the training tasks, but it matters. It fixed PyGame render scaling so large worlds could fit on screen without changing simulation coordinates.
 
 Why this matters scientifically:
 
@@ -779,15 +779,15 @@ Pheromone-like communication only means something if:
 
 The project’s later experiment design shows strong awareness of this distinction.
 
-## Chapter 16. Prompt-by-Prompt Chronicle
+## Chapter 16. Task-by-Task Chronicle
 
-This appendix walks through the prompt archive in order. Each prompt is summarized as:
+This appendix walks through the task archive in order. Each task is summarized as:
 
 - its intent,
 - the main implementation direction,
 - and the development lesson it contributed.
 
-| Prompt | Intent | Main diff / implementation story | Development lesson |
+| Task | Intent | Main diff / implementation story | Development lesson |
 |---|---|---|---|
 | 00 | Initialize the swarm RL repo | Created the skeleton: env, config, demo, DQN trainer, docs structure | Start with a runnable core |
 | 01 | Audit before editing | Established repo-aware incremental work | Diagnosis before intervention |
@@ -801,7 +801,7 @@ This appendix walks through the prompt archive in order. Each prompt is summariz
 | 09 | Add policy probing script | Added direct model inspection tooling | Visibility prevents magical thinking |
 | 10 | Build command center / mission control | Added desktop physical-swarm visualization subsystem | Sim-to-real observability matters |
 | 11 | Add Bluetooth transport | Extended mission-control communication path | Keep deployment layers modular |
-| 12 | Reconstruct incremental prompts | Documented missing development history | Preserve the lab notebook |
+| 12 | Reconstruct incremental tasks | Documented missing development history | Preserve the lab notebook |
 | 13 | Add debug logging | Logged per-agent outputs and actions | Fine-grained visibility speeds diagnosis |
 | 14 | Improve reward signal | Increased food detectability and intermediate shaping | Sparse tasks often need shaping |
 | 15 | Restrict pheromone deposition and reward exploration | Made pheromone more meaningful and exploration measurable | Communication signals need semantics |
@@ -850,20 +850,20 @@ This appendix compresses the repository history into reader-friendly milestones 
 | Readability pass | Added comments and cleanup in the simulator, demo, and DQN trainer to make the code easier to inspect. |
 | PettingZoo API transition | Converted the environment and surrounding scripts to a Parallel API style with dict-based observations and actions. This was a major architectural milestone. |
 | Multi-backend training support | Added SB3 and RLlib DQN backends plus a training dispatcher, then refined imports, demo behavior, and backend integration. |
-| Integration-prompt expansion | Added the first audited prompt artifacts and used them to drive large environment and training upgrades, including evaluation utilities and experiment helpers. |
+| Integration-task expansion | Added the first audited task artifacts and used them to drive large environment and training upgrades, including evaluation utilities and experiment helpers. |
 | Experiment framework phase | Added reusable experiment-running infrastructure and expanded it to support collective-intelligence scaling and RL algorithm comparisons. |
-| Documentation and API phase | Built prompt-driven user docs, API docs, and policy-probing tools so the system could be understood as well as run. |
+| Documentation and API phase | Built task-driven user docs, API docs, and policy-probing tools so the system could be understood as well as run. |
 | Mission-control phase | Refined the command-center concept, renamed it to `mission_control`, and implemented the subsystem for physical-swarm visualization and transport handling. |
-| Instrumentation and history preservation | Added observation history, training graph outputs, reconstructed missing prompt history, and introduced policy-debug logging. |
+| Instrumentation and history preservation | Added observation history, training graph outputs, reconstructed missing task history, and introduced policy-debug logging. |
 | Reward and pheromone repair phase | Reworked reward shaping, pheromone semantics, and several concrete simulator bugs, including diffusion and metric inconsistencies. |
-| Experiment-output hardening | Improved run naming, evaluation recording, comparison output layout, checkpoint organization, validation prompts, and training efficiency. |
+| Experiment-output hardening | Improved run naming, evaluation recording, comparison output layout, checkpoint organization, validation tasks, and training efficiency. |
 | Late DQN-era refinements | Improved performance, repeat-step control, observation design, and sim-to-real alignment while learning the limits of the DQN path. |
 | Recurrent MAPPO introduction | Added the first runnable GRU-based recurrent MAPPO curriculum path, including new algorithms, trainer, inference path, and documentation. |
 | Early MAPPO stabilization | Cleaned up merge issues, refined demo support, improved collisions and reward settings, and added control flags around the new training path. |
 | Stage-specific curriculum environments | Implemented curriculum stages that changed world difficulty, geometry, and clutter rather than only changing swarm size. |
 | Trail-learning alignment | Reworked training to teach the full stigmergic trail loop rather than just target contact. |
 | Explicit delivery mechanics | Added carrying state, target delivery semantics, and clearer delivery-focused environment behavior. |
-| Pre-collapse MAPPO tuning | Iterated on curriculum settings, obstacle layouts, demo overrides, and model tuning before the main prompt-loop debugging phase. |
+| Pre-collapse MAPPO tuning | Iterated on curriculum settings, obstacle layouts, demo overrides, and model tuning before the main task-loop debugging phase. |
 | Training-improvement phase | Added stronger curriculum budgeting and training configuration so later stages received real learning time and delivery carried more weight. |
 | Policy-collapse repair | Restructured the MAPPO trainer to preserve critic continuity, improve stage transfer, and make greedy evaluation central to promotion and checkpointing. |
 | Greedy-behavior repair | Adjusted early single-agent lessons so useful behavior survived greedy execution instead of only appearing under training-time randomness. |
@@ -872,7 +872,7 @@ This appendix compresses the repository history into reader-friendly milestones 
 | Carrying-state bug fix | Fixed the crucial simulator bug where movement updates could silently drop the carrying-food state during normal motion. |
 | Bridge-stage stabilization | Restored the best within-stage model state before final stage evaluation so discovered good behavior was not lost before promotion. |
 | Small-swarm scale-up | Added small-swarm bootstrap stages and reduced wasted repeats in earlier stages so the curriculum could reach true multi-agent learning reliably. |
-| Nest-orbit mitigation | Applied prompts 42 through 45 to reduce empty-agent circling near the nest through penalties, post-delivery handoff, and explicit fan-out shaping. |
+| Nest-orbit mitigation | Applied tasks 42 through 45 to reduce empty-agent circling near the nest through penalties, post-delivery handoff, and explicit fan-out shaping. |
 | Force-explore intervention | Added an environment-side force-explore mode because soft shaping alone was still not strong enough to break the local optimum. |
 | Exploration-randomness phase | Added targeted randomness for non-carrying exploration only, preserving carrying-food return behavior. |
 | Render-scaling and demo polish | Fixed PyGame scaling, then improved the demo with seed display, HUD, seed cycling, pause/resume, and click-to-inspect panels. |
@@ -899,7 +899,7 @@ The final engineering claim is equally important:
 
 > progress came from disciplined iteration, not from one clever trick.
 
-The archived prompts and git diffs show the project learning how to teach the swarm. In that sense, the adventure story has two protagonists:
+The archived tasks and git diffs show the project learning how to teach the swarm. In that sense, the adventure story has two protagonists:
 
 - the agents inside the simulator,
 - and the development process that gradually learned how to train them.
