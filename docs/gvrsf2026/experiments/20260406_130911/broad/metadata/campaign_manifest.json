@@ -1,0 +1,53 @@
+{
+  "episodes_per_condition": 20,
+  "families": [
+    {
+      "conditions": [
+        "current_curriculum_final",
+        "older_weaker_curriculum_final"
+      ],
+      "family": "curriculum_vs_weaker_training"
+    },
+    {
+      "conditions": [
+        "trained_with_pheromone_eval_with_pheromone",
+        "trained_with_pheromone_eval_without_pheromone"
+      ],
+      "family": "pheromone_ablation"
+    },
+    {
+      "conditions": [
+        "1_agents",
+        "2_agents",
+        "3_agents",
+        "4_agents",
+        "6_agents"
+      ],
+      "family": "swarm_size_scaling"
+    },
+    {
+      "conditions": [
+        "control_final_stage",
+        "more_obstacles",
+        "sensor_noise",
+        "failed_agents_2"
+      ],
+      "family": "robustness_harder_environments"
+    },
+    {
+      "conditions": [
+        "current_mappo",
+        "rule_based",
+        "random"
+      ],
+      "family": "baseline_comparison"
+    }
+  ],
+  "primary_checkpoint": "checkpoints/mappo_g/stage3b_full_swarm_final",
+  "seed_range": [
+    100,
+    119
+  ],
+  "timestamp": "20260401_014801",
+  "weaker_checkpoint": "checkpoints/mappo_full_600k_33/stage3b_full_swarm_final"
+}

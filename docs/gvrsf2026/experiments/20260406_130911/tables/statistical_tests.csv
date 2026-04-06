@@ -1,0 +1,5 @@
+family,condition_a,condition_b,metric,cohens_d,t_stat,p_value
+curriculum_vs_weaker_training,current_curriculum_final,older_weaker_curriculum_final,food_delivered,2.5298221281347035,4.0,0.01613008990009254
+pheromone_ablation,trained_with_pheromone_eval_with_pheromone,trained_with_pheromone_eval_without_pheromone,food_delivered,-0.6000000000000001,-0.9486832980505139,0.37162843028262754
+baseline_comparison,current_mappo,rule_based,food_delivered,2.5298221281347035,4.0,0.01613008990009254
+baseline_comparison,current_mappo,random,food_delivered,2.5298221281347035,4.0,0.01613008990009254
