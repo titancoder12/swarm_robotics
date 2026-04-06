@@ -546,6 +546,53 @@ python firmware/run.py \
   --debug
 ```
 
+There is also a convenience launcher script in [firmware/run_bluetooth.sh](../firmware/run_bluetooth.sh).
+
+From the repo root on the Pi:
+
+```bash
+bash firmware/run_bluetooth.sh
+```
+
+That defaults to:
+
+- robot ID: `robot_0`
+- BLE device name: `robot_0`
+- serial port: `/dev/ttyUSB0`
+- BLE timeout: `1.0`
+
+Examples:
+
+Default `robot_0`:
+
+```bash
+bash firmware/run_bluetooth.sh
+```
+
+Explicit robot ID:
+
+```bash
+bash firmware/run_bluetooth.sh --robot-id robot_1
+```
+
+Explicit robot ID plus serial port override:
+
+```bash
+bash firmware/run_bluetooth.sh --robot-id robot_1 --port /dev/ttyUSB1
+```
+
+Explicit BLE device name override:
+
+```bash
+bash firmware/run_bluetooth.sh --robot-id robot_1 --ble-device-name robot_1_ble
+```
+
+Pass extra `run.py` flags after `--`:
+
+```bash
+bash firmware/run_bluetooth.sh --robot-id robot_1 -- --max-steps 20
+```
+
 What you want to see on the Pi:
 
 - `robot connected`
