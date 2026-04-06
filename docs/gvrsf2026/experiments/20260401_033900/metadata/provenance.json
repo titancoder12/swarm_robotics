@@ -17,7 +17,7 @@
       "reason_reused": "This campaign contains the strongest current matched-training pheromone-scaling evidence, including statistically significant paired tests at the primary 6-agent condition."
     }
   ],
-  "scientific_rationale": "A federated bundle is stronger than a rushed rerun because it preserves the highest-quality completed results for each experiment family while keeping full provenance inside one timestamped science-fair package.",
+  "scientific_rationale": "A federated bundle is stronger than a rushed rerun because it preserves the highest-quality completed results for each experiment family while keeping full provenance inside one timestamped experiment package.",
   "top_level_figures": [
     "figures/broad_curriculum_food_delivered.png",
     "figures/broad_baseline_food_delivered.png",

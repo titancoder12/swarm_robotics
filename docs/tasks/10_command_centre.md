@@ -205,7 +205,7 @@ Do not allow trails to grow unbounded.
 
 ## Rendering guidance
 
-The display does not need to be flashy, but it should be clear and science-fair friendly.
+The display does not need to be flashy, but it should be clear and presentation-friendly.
 
 Recommended rendering approach:
 

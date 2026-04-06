@@ -1,6 +1,6 @@
 Step 5 — Collective Intelligence Scaling Experiment
 
-Implement the primary science-fair experiment inside the existing stigmergic swarm RL codebase.
+Implement the primary flagship experiment inside the existing stigmergic swarm RL codebase.
 
 GOAL
 

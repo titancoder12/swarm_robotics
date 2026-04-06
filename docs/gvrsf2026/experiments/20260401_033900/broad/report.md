@@ -19,7 +19,7 @@ Supporting artifacts:
 
 ## Executive Summary
 
-This experiment campaign tested the strongest feasible subset of the science-fair experiment plan using the current repository and existing trained recurrent MAPPO checkpoints. The main question was whether the project’s current curriculum-trained, pheromone-enabled multi-agent policy actually delivers stronger search-and-return behavior than weaker training and simpler baselines.
+This experiment campaign tested the strongest feasible subset of the broader experiment plan using the current repository and existing trained recurrent MAPPO checkpoints. The main question was whether the project’s current curriculum-trained, pheromone-enabled multi-agent policy actually delivers stronger search-and-return behavior than weaker training and simpler baselines.
 
 The strongest results are:
 
@@ -266,7 +266,7 @@ The pheromone-enabled evaluation condition was slightly better, but the differen
 
 That does **not** mean pheromone is useless. It means this particular test, with this checkpoint and sample size, produced only modest evidence for the stigmergy claim.
 
-For a science fair, honest nuance is a strength, not a weakness. The stronger supported claims in this campaign are the curriculum and baseline claims.
+Honest nuance is a strength, not a weakness. The stronger supported claims in this campaign are the curriculum and baseline claims.
 
 ## Experiment 3: Swarm-Size Scaling
 
@@ -444,7 +444,7 @@ The pheromone-on condition was somewhat better, but the effect was small and not
 
 ## Threats to Validity
 
-This section is important for a real science-fair report.
+This section is important for a rigorous scientific report.
 
 1. **This campaign reused existing checkpoints rather than running a full fresh retraining matrix.**
    - That makes the study feasible and still meaningful,
@@ -458,7 +458,7 @@ This section is important for a real science-fair report.
    - but the environment implementation itself is the current one.
 
 4. **Only `20` episodes per condition were used.**
-   - This is decent for a science-fair experiment,
+   - This is adequate for an exploratory experimental study,
    - but larger `n` would tighten confidence intervals.
 
 5. **One final-stage checkpoint may not represent the absolute best model the repository could produce.**
@@ -487,7 +487,7 @@ That is what curriculum learning means in practice:
 
 ## Recommended Next Experiments
 
-If this project is being prepared for final science-fair presentation, the next highest-value experiments would be:
+If this project is being prepared for a stronger publication-style presentation, the next highest-value experiments would be:
 
 1. A stronger pheromone study with a fully matched current no-pheromone training run.
 2. A multi-seed retraining comparison for:

@@ -90,7 +90,7 @@ Required work:
   - pheromone usage efficiency
   - sample efficiency
   - inference latency on Pi hardware
-- define success criteria for science-fair and deployment runs
+- define success criteria for research evaluation and deployment runs
 - add run manifests so every experiment records:
   - code revision
   - config
@@ -309,4 +309,4 @@ The highest-value path is:
 3. compare those two carefully
 4. deploy whichever wins under both simulator metrics and Pi runtime constraints
 
-That is the most credible path to a strong research result and a strong science-fair system without turning the repo into an unfocused benchmark zoo.
+That is the most credible path to a strong research result and a strong deployment-ready system without turning the repo into an unfocused benchmark zoo.

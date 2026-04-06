@@ -485,7 +485,7 @@ That is a larger research branch, not the recommended next implementation step.
 
 ## 12. Recommended Metrics For Camera Integration
 
-To judge whether the camera is actually helping, measure:
+To evaluate whether the camera is actually helping, measure:
 
 1. target detection success rate
 2. nest detection success rate

@@ -34,7 +34,7 @@ experiment scripts
 
 Summarize what already exists.
 
-Identify missing components needed for a science-fair-grade swarm RL system.
+Identify missing components needed for a research-grade swarm RL system.
 
 Produce an integration plan that maps the desired features onto the current files.
 
@@ -88,7 +88,7 @@ Output:
   - comparative backend experiments
   - early sim-to-real scaffolding
 
-  It is not yet a science-fair-grade RL system in the sense of:
+  It is not yet a research-grade RL system in the sense of:
 
   - rigorous experiment management
   - reproducible evaluation
@@ -200,7 +200,7 @@ Output:
   - Pi-side serial integration example
   - preserved rule-based Pi baseline
 
-  ## 4. Missing Components for a Science-Fair-Grade Swarm RL System
+  ## 4. Missing Components for a Research-Grade Swarm RL System
 
   ### Scientific Evaluation Gaps
 
@@ -245,7 +245,7 @@ Output:
   - smoke tests for each backend
   - checkpoint round-trip tests
 
-  ### Presentation / Science Fair Gaps
+  ### Presentation / Communication Gaps
 
   Missing or weak:
 
@@ -351,7 +351,7 @@ Output:
 
   - visual qualitative evaluation
   - demo-video generation hook
-  - science-fair presentation demos
+  - presentation demos
 
   Minimal change approach:
 
@@ -374,7 +374,7 @@ Output:
 
   Use for:
 
-  - documentation and poster visuals
+  - documentation and presentation visuals
 
   Minimal change approach:
 
@@ -461,7 +461,7 @@ Output:
   - experiments/default_eval.yaml or experiments/benchmark_configs.py
       - experiment definitions for reproducible runs
   - analysis/plot_metrics.py
-      - generate science-fair-grade plots from logged CSV/JSON
+      - generate publication-quality plots from logged CSV/JSON
   - tests/test_env_smoke.py
       - reset/step/shape/basic reward sanity checks
   - tests/test_checkpoint_inference.py
@@ -504,7 +504,7 @@ Output:
 
   ## 9. Assumptions
 
-  - “Science-fair-grade” means:
+  - “Research-grade” means:
       - reproducible experiments
       - interpretable metrics
       - baseline comparisons
