@@ -286,6 +286,7 @@ class CommandCenterBLEPeripheral:
                 GATTAttributePermissions.readable,
             )
             self._server.get_characteristic(self.write_char_uuid).write_callback = self._handle_write
+            self._server.write_request_func = self._handle_write
             await self._server.start()
             self._started_event.set()
             if self.debug:
@@ -306,7 +307,13 @@ class CommandCenterBLEPeripheral:
         finally:
             loop.close()
 
-    def _handle_write(self, value) -> None:
+    def _handle_write(self, *args) -> None:
+        if len(args) == 1:
+            value = args[0]
+        elif len(args) >= 2:
+            value = args[1]
+        else:
+            return
         if value is None:
             return
         if isinstance(value, bytearray):
