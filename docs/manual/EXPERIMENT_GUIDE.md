@@ -1,6 +1,6 @@
 # Experiment Guide
 
-This project currently has two primary science-fair experiments implemented in the shared framework.
+This project currently has two primary experiment families implemented in the shared framework.
 
 The common entry point is:
 
