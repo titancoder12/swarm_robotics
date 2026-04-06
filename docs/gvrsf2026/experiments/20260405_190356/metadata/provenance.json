@@ -1,0 +1,11 @@
+{
+  "timestamp": "20260405_190356",
+  "bundle_type": "focused_killer_scaling_extension",
+  "source_campaign": "docs/gvrsf2026/experiments/20260405_190356/killer_scaling",
+  "purpose": "Extend the focused repeated-source stigmergy scaling study to test swarm sizes up to 30 agents.",
+  "notes": [
+    "This bundle is a standalone focused extension rather than a federated broad-plus-killer full bundle.",
+    "Primary paired significance tests were run at 6 and 30 agents with 50 seeds each.",
+    "Supporting sizes 1, 3, 10, 15, and 20 used 20 seeds each."
+  ]
+}
