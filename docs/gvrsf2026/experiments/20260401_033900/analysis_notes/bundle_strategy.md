@@ -14,4 +14,4 @@ The integrated report in this folder therefore treats:
 - `broad/` as the broad experiment family source
 - `killer_scaling/` as the dedicated stigmergy scaling source
 
-The top-level `report.md` is the self-contained science-fair narrative that explains how these subcampaigns fit together.
+The top-level `report.md` is the self-contained integrated narrative that explains how these subcampaigns fit together.

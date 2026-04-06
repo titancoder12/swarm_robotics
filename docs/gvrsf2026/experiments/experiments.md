@@ -449,7 +449,7 @@ with:
 
 as the secondary comparison.
 
-## Final Set for the Science Fair Board
+## Final Core Experiment Set
 
 If time and compute are limited, the first four to prioritize are:
 
@@ -608,7 +608,7 @@ If the experiments work as expected, the strongest final claim is:
 
 > A curriculum-trained decentralized multi-agent reinforcement learning system with stigmergic trail formation achieves measurably better search-and-return performance than simpler baselines, scales across swarm sizes, and remains effective under harder environments.
 
-That is a strong computer-science science-fair claim because it is:
+That is a strong computer-science research claim because it is:
 
 - algorithmic
 - quantitative

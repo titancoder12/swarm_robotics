@@ -248,7 +248,7 @@ That is exactly what the repeated-source task provides.
    - That is the key stigmergy pattern.
    - The swarm is not just exploring more. It is reusing information more effectively later in the episode.
 
-## Why This Is a Better Science-Fair Result
+## Why This Is a Better Targeted Result
 
 This is stronger than simply saying “the pheromone heatmap exists” or “the swarm looks coordinated.”
 
@@ -260,7 +260,7 @@ It shows:
 - explicit post-discovery metrics
 - statistically significant results on the primary condition
 
-That is much closer to the standard judges would expect for a serious computer science project.
+That is much closer to the standard expected of a serious computer-science study.
 
 ## Remaining Limitations
 
@@ -282,4 +282,4 @@ The strongest supported statement is:
 
 > In a repeated-source foraging task with paired layouts and matched training conditions, pheromone-trained swarms significantly outperform no-pheromone-trained swarms on total deliveries and late-episode deliveries at `6` agents, and removing pheromone at evaluation time also reduces late-delivery performance.
 
-That is a much stronger experimental basis for the science-fair pheromone claim than the earlier generic ablation result.
+That is a much stronger experimental basis for the pheromone-related claim than the earlier generic ablation result.

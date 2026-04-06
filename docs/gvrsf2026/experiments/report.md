@@ -416,7 +416,7 @@ The strongest differences appeared in late and post-discovery behavior, which is
 
 ## 10. Limitations
 
-This report should be judged as strong evidence, not as a claim of total completion.
+This report should be read as strong evidence, not as a claim of total completion.
 
 Main limitations:
 
@@ -440,11 +440,11 @@ In plain language:
 - more agents improved task completion,
 - and pheromone-based environmental communication produced a statistically significant coordination advantage in the strongest targeted scaling test.
 
-For a science-fair judge, the most important takeaway is that this project did not only build a working swarm simulation. It tested a real computer-science hypothesis about decentralized algorithms and produced controlled evidence that environmental communication can help a learned swarm become more effective as it grows.
+The most important takeaway is that this project did not only build a working swarm simulation. It tested a concrete computer-science hypothesis about decentralized algorithms and produced controlled evidence that environmental communication can help a learned swarm become more effective as it grows.
 
 ## 12. Reproducibility and Evidence Trail
 
-For judges or reviewers who want to inspect the evidence trail:
+For readers who want to inspect the evidence trail:
 
 - broad campaign methods and results: [broad/report.md](./20260401_033900/broad/report.md)
 - killer experiment methods and results: [killer_scaling/report.md](./20260401_033900/killer_scaling/report.md)

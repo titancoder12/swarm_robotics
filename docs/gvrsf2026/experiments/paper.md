@@ -397,15 +397,15 @@ The killer experiment uses `1`, `3`, and `6` agents rather than the full ideal `
 
 ### 8.3 No physical validation in this bundle
 
-The ideal science-fair protocol would pair the simulation story with a smaller physical validation study. That is not part of this bundle.
+An ideal end-to-end validation program would pair the simulation results with a smaller physical validation study. That is not part of this bundle.
 
 ### 8.4 Mechanism-specific environment
 
 The strongest pheromone result comes from a repeated-source task deliberately chosen to emphasize route reuse. That is scientifically appropriate for a stigmergy claim, but it is narrower than claiming that pheromone helps equally in every environment.
 
-## 9. Why This Is an Award-Level Paper
+## 9. Why This Is a Strong Paper
 
-I believe this work has the shape of a strong competition paper because it does more than present a system and a demo. It presents:
+This work has the shape of a strong research paper because it does more than present a system and a demo. It presents:
 
 - a clear decentralized learning problem,
 - a nontrivial curriculum-based training solution,
