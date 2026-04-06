@@ -166,15 +166,15 @@ During execution on real robots, the critic is not needed.
 
 The actor defines a policy:
 
-\[
-\pi_\theta(a_t \mid o_t, h_t)
-\]
+```text
+pi_theta(a_t | o_t, h_t)
+```
 
 where:
 
-- \(o_t\) is the local observation
-- \(h_t\) is the recurrent hidden state
-- \(a_t\) is the action
+- `o_t` is the local observation
+- `h_t` is the recurrent hidden state
+- `a_t` is the action
 
 The actor produces logits over discrete actions, then a categorical distribution is formed.
 
@@ -182,26 +182,29 @@ The actor produces logits over discrete actions, then a categorical distribution
 
 The critic estimates:
 
-\[
-V_\phi(s_t, h_t^c)
-\]
+```text
+V_phi(s_t, h_t^c)
+```
 
 where:
 
-- \(s_t\) is the centralized global state
-- \(h_t^c\) is the critic recurrent hidden state
+- `s_t` is the centralized global state
+- `h_t^c` is the critic recurrent hidden state
 
 ### 8.3 GAE
 
 Advantages are estimated using Generalized Advantage Estimation:
 
-\[
-\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)
-\]
+```text
+delta_t = r_t + gamma * V(s_{t+1}) - V(s_t)
+```
 
-\[
-A_t = \delta_t + \gamma \lambda \delta_{t+1} + \gamma^2 \lambda^2 \delta_{t+2} + \cdots
-\]
+```text
+A_t = delta_t
+    + gamma * lambda * delta_{t+1}
+    + gamma^2 * lambda^2 * delta_{t+2}
+    + ...
+```
 
 This gives lower-variance advantage estimates than plain Monte Carlo returns.
 
@@ -209,15 +212,18 @@ This gives lower-variance advantage estimates than plain Monte Carlo returns.
 
 PPO uses the ratio:
 
-\[
-r_t(\theta) = \frac{\pi_\theta(a_t \mid o_t, h_t)}{\pi_{\theta_{old}}(a_t \mid o_t, h_t)}
-\]
+```text
+r_t(theta) = pi_theta(a_t | o_t, h_t) / pi_theta_old(a_t | o_t, h_t)
+```
 
 and the clipped surrogate:
 
-\[
-L^{CLIP} = \mathbb{E}\left[\min\left(r_t(\theta)A_t,\ \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)A_t\right)\right]
-\]
+```text
+L_CLIP = E[min(
+    r_t(theta) * A_t,
+    clip(r_t(theta), 1 - epsilon, 1 + epsilon) * A_t
+)]
+```
 
 This is the key idea that stabilizes PPO updates.
 
