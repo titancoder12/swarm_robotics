@@ -22,6 +22,8 @@ This repo has a large `docs/` tree. Use this table of contents to jump to the ri
   - Reference for `SwarmConfig` and the shared CLI-to-config mapping. Use this when changing environment or reward settings.
 - [docs/TRAINING_MAPPO.md](docs/TRAINING_MAPPO.md)
   - The current main training-path document. Explains the recurrent MAPPO curriculum, stage design, recommended commands, and checkpoint usage.
+- [docs/GRUMMAPO.md](docs/GRUMMAPO.md)
+  - Introductory, implementation-grounded guide to GRU MAPPO in this repo. Best when you want both intuition and a code walkthrough.
 - [docs/TRAINING_CUSTOM.md](docs/TRAINING_CUSTOM.md)
   - The older custom DQN training path. Useful if you want the baseline trainer rather than the current MAPPO path.
 - [docs/EVALUATE.md](docs/EVALUATE.md)
