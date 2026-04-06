@@ -31,24 +31,37 @@ def grouped_metric_plot(rows, metric, filename, title):
         "trained_with_pheromone__eval_without_pheromone",
         "trained_without_pheromone__eval_without_pheromone",
     ]
+    labels = {
+        "trained_with_pheromone__eval_with_pheromone": "Trained with pheromone, eval with pheromone",
+        "trained_with_pheromone__eval_without_pheromone": "Trained with pheromone, eval without pheromone",
+        "trained_without_pheromone__eval_without_pheromone": "Trained without pheromone",
+    }
     swarm_sizes = sorted({int(r["n_agents"]) for r in rows})
-    x = np.arange(len(swarm_sizes))
-    width = 0.25
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10, 5.4))
     colors = ["#2F5597", "#70AD47", "#C0504D"]
+    markers = ["o", "s", "^"]
     for idx, condition in enumerate(order):
         subset = [r for r in rows if r["condition"] == condition]
         subset.sort(key=lambda r: int(r["n_agents"]))
         means = [float(r[f"{metric}_mean"]) for r in subset]
         cis = [float(r[f"{metric}_ci95"]) for r in subset]
-        ax.bar(x + (idx - 1) * width, means, width, yerr=cis, capsize=4, label=condition, color=colors[idx])
-    ax.set_xticks(x)
-    ax.set_xticklabels([str(n) for n in swarm_sizes])
+        ax.errorbar(
+            swarm_sizes,
+            means,
+            yerr=cis,
+            marker=markers[idx],
+            linewidth=2.2,
+            markersize=6,
+            capsize=4,
+            label=labels[condition],
+            color=colors[idx],
+        )
     ax.set_xlabel("Number of Agents")
     ax.set_ylabel(metric.replace("_", " ").title())
     ax.set_title(title)
+    ax.set_xticks(swarm_sizes)
     ax.legend(fontsize=8)
-    ax.grid(True, axis="y", alpha=0.25)
+    ax.grid(True, alpha=0.25)
     fig.tight_layout()
     fig.savefig(FIGURES_DIR / filename)
     plt.close(fig)
