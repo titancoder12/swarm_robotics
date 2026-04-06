@@ -427,6 +427,81 @@ bash firmware/run_relay.sh --robot-id robot_1 -- --max-steps 20
 - The robot-side protocol remains the same: `POS`, `LIDAR`, `PHER`, `SENSE`, and `PHER_RESP`.
 - The relay path is less elegant than direct local TCP, but it avoids local client-isolation problems.
 
+### Simulator Relay Telemetry Mode
+
+The simulator demo now also supports a write-only Mission Control relay mode.
+
+This mode is intended for visualization only:
+
+- the simulator keeps using its own internal pheromone field
+- the simulator does not send `SENSE`
+- the simulator does not consume `PHER_RESP`
+- it only publishes telemetry outward to Mission Control through the relay
+
+The simulator currently publishes:
+
+- `POS`
+- `PHER`
+
+This is enough for Mission Control to visualize simulated agent motion and
+simulated pheromone deposit events without changing simulator behavior.
+
+#### Mac Setup
+
+Start Mission Control locally:
+
+```bash
+python -m mission_control.main --tcp-host 127.0.0.1 --tcp-port 8765 --log-level INFO
+```
+
+Then start the relay bridge for a simulator session, for example `sim_demo`:
+
+```bash
+python -m mission_control.relay_bridge \
+  --relay-url https://relay.christopherlin.ca \
+  --session sim_demo \
+  --tcp-host 127.0.0.1 \
+  --tcp-port 8765 \
+  --debug
+```
+
+#### Simulator Demo Setup
+
+From the repo root:
+
+```bash
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --mc-relay-url https://relay.christopherlin.ca \
+  --mc-relay-session sim_demo
+```
+
+Useful optional flags:
+
+- `--mc-relay-timeout 1.0`
+- `--mc-relay-debug`
+- `--seed 0`
+- `--max-steps 1000`
+
+Example with debug:
+
+```bash
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --mc-relay-url https://relay.christopherlin.ca \
+  --mc-relay-session sim_demo \
+  --mc-relay-debug
+```
+
+What success looks like:
+
+- the simulator demo continues running normally
+- Mission Control robot count rises above `0`
+- simulator agents appear in Mission Control using their simulator agent IDs
+- Mission Control shows the simulated pheromone deposits as they are published
+
 ## BLE Transport
 
 Mission Control also supports the same protocol over BLE.

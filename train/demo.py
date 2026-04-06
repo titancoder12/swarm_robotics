@@ -18,6 +18,7 @@ if ROOT not in sys.path:
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from algorithms.mappo.inference import load_actor
+from firmware.relay_client import CommandCenterRelayClient
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
 from train.experiment_utils import add_env_config_args, make_swarm_config
@@ -56,9 +57,69 @@ def parse_args(argv=None):
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
     parser.add_argument("--debug-policy-max-steps", type=int, default=0)
+    parser.add_argument("--mc-relay-url", type=str, default="")
+    parser.add_argument("--mc-relay-session", type=str, default="sim_demo")
+    parser.add_argument("--mc-relay-timeout", type=float, default=1.0)
+    parser.add_argument("--mc-relay-debug", action="store_true")
     add_env_config_args(parser)
     parser.set_defaults(n_obstacles=18)
     return parser.parse_args(argv)
+
+
+class SimulatorMissionControlRelayPublisher:
+    """Write-only simulator telemetry publisher for Mission Control relay mode."""
+
+    def __init__(self, relay_url: str, session: str, timeout_s: float = 1.0, debug: bool = False) -> None:
+        self.client = CommandCenterRelayClient(
+            relay_url=relay_url,
+            session=session,
+            timeout_s=timeout_s,
+            debug=debug,
+        )
+
+    @staticmethod
+    def _to_command_center_pose(env: SwarmEnv, agent_state) -> tuple[float, float, float]:
+        nest_x, nest_y = env.nest_position
+        x_cm = float(agent_state.x) - float(nest_x)
+        y_cm = float(nest_y) - float(agent_state.y)
+        heading_deg = -math.degrees(float(agent_state.theta))
+        return x_cm, y_cm, heading_deg
+
+    def publish_positions(self, env: SwarmEnv, agent_ids: list[str]) -> None:
+        for i, agent_id in enumerate(agent_ids):
+            if i >= len(env.agent_states) or i in env.failed_agent_indices:
+                continue
+            x_cm, y_cm, heading_deg = self._to_command_center_pose(env, env.agent_states[i])
+            self.client.send_position(agent_id, x_cm, y_cm, heading_deg)
+
+    def publish_step(self, env: SwarmEnv, agent_ids: list[str], chosen_actions: np.ndarray, prev_nest_distances: np.ndarray) -> None:
+        self.publish_positions(env, agent_ids)
+        if not bool(getattr(env.cfg, "pheromone_enabled", False)):
+            return
+
+        current_nest_distances = env._compute_nest_distance_state()
+        for i, agent_id in enumerate(agent_ids):
+            if i >= len(env.agent_states) or i in env.failed_agent_indices:
+                continue
+            _, _, deposit_requested = env.action_table[int(chosen_actions[i])]
+            if not deposit_requested:
+                continue
+            agent = env.agent_states[i]
+            if env.cfg.pheromone_requires_food and not agent.carrying_food:
+                continue
+            if env.cfg.pheromone_deposit_requires_nest_progress:
+                prev_dist = float(prev_nest_distances[i])
+                curr_dist = float(current_nest_distances[i])
+                if not (np.isfinite(prev_dist) and np.isfinite(curr_dist)) or curr_dist >= prev_dist:
+                    continue
+            amount = float(env.cfg.pheromone_deposit)
+            if agent.carrying_food:
+                amount *= float(env.cfg.pheromone_deposit_carrying_scale)
+            x_cm, y_cm, _heading_deg = self._to_command_center_pose(env, agent)
+            self.client.deposit_pheromone(agent_id, x_cm, y_cm, amount)
+
+    def close(self) -> None:
+        self.client.close()
 
 
 def _parse_seed_list(seed_list_raw: str) -> list[int]:
@@ -371,7 +432,7 @@ def _build_demo_env(args):
     return args_copy, cfg, env, metadata
 
 
-def _custom_demo(env, obs, agent_ids, args):
+def _custom_demo(env, obs, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
     # Infer model dimensions and device.
     obs_dim = obs.shape[1]
     action_dim = env.cfg.num_actions
@@ -445,8 +506,11 @@ def _custom_demo(env, obs, agent_ids, args):
                 env.render(fps=30)
             continue
 
+        prev_nest_distances = env._compute_nest_distance_state()
         action_dict = {agent: int(actions[i]) for i, agent in enumerate(agent_ids)}
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        if relay_publisher is not None:
+            relay_publisher.publish_step(env, agent_ids, actions, prev_nest_distances)
         obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
         prev_done = np.array(
@@ -468,7 +532,7 @@ def _custom_demo(env, obs, agent_ids, args):
     return obs
 
 
-def _sb3_demo(env, obs_dict, agent_ids, args):
+def _sb3_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
     from stable_baselines3 import DQN
 
     model = DQN.load(args.sb3_model, device="cpu")
@@ -543,7 +607,10 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
                 env.render(fps=30)
             continue
 
+        prev_nest_distances = env._compute_nest_distance_state()
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        if relay_publisher is not None:
+            relay_publisher.publish_step(env, agent_ids, chosen_actions, prev_nest_distances)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
         prev_done = np.array(
             [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
@@ -563,7 +630,7 @@ def _sb3_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
-def _rllib_demo(env, obs_dict, agent_ids, args):
+def _rllib_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
     import os
 
     os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
@@ -672,7 +739,10 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
                 env.render(fps=30)
             continue
 
+        prev_nest_distances = env._compute_nest_distance_state()
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        if relay_publisher is not None:
+            relay_publisher.publish_step(env, agent_ids, chosen_actions, prev_nest_distances)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
         prev_done = np.array(
             [bool(terminations[agent] or truncations[agent]) for agent in agent_ids],
@@ -694,7 +764,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
-def _mappo_demo(env, obs_dict, agent_ids, args):
+def _mappo_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
     obs_dim = env.observation_space(agent_ids[0]).shape[0]
     action_dim = env.cfg.num_actions
     actor, device = load_actor(args.checkpoint_dir, obs_dim, action_dim, device="cpu")
@@ -770,7 +840,10 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
                 env.render(fps=30)
             continue
 
+        prev_nest_distances = env._compute_nest_distance_state()
         obs_dict, rewards_dict, terminations, truncations, _ = env.step(action_dict)
+        if relay_publisher is not None:
+            relay_publisher.publish_step(env, agent_ids, chosen_actions, prev_nest_distances)
         prev_rewards = np.array([rewards_dict[agent] for agent in agent_ids], dtype=np.float32)
         prev_done = np.array(
             [float(terminations[agent] or truncations[agent]) for agent in agent_ids],
@@ -792,7 +865,7 @@ def _mappo_demo(env, obs_dict, agent_ids, args):
     return obs_dict
 
 
-def _random_demo(env, obs_dict, agent_ids, args):
+def _random_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
     random.seed(args.seed)
     np.random.seed(args.seed)
     _, next_reset_seed = _make_reset_seed_provider(args)
@@ -828,7 +901,10 @@ def _random_demo(env, obs_dict, agent_ids, args):
                 env.render(fps=30)
             continue
 
+        prev_nest_distances = env._compute_nest_distance_state()
         obs_dict, _, terminations, truncations, _ = env.step(action_dict)
+        if relay_publisher is not None:
+            relay_publisher.publish_step(env, agent_ids, chosen_actions, prev_nest_distances)
         terminated = any(terminations.values())
         truncated = any(truncations.values())
 
@@ -859,25 +935,37 @@ def main():
     obs_dict, _ = env.reset(seed=initial_seed)
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
+    relay_publisher = None
+    if demo_args.mc_relay_url:
+        relay_publisher = SimulatorMissionControlRelayPublisher(
+            relay_url=demo_args.mc_relay_url,
+            session=demo_args.mc_relay_session,
+            timeout_s=demo_args.mc_relay_timeout,
+            debug=demo_args.mc_relay_debug,
+        )
+        relay_publisher.publish_positions(env, agent_ids)
     if demo_args.headless and demo_args.max_steps <= 0:
         demo_args.max_steps = int(cfg.max_steps)
     if not demo_args.headless:
         env.render(fps=60) # render first frame
 
-    if demo_args.backend == "custom":
-        _custom_demo(env, obs, agent_ids, demo_args)
-    elif demo_args.backend == "sb3":
-        _sb3_demo(env, obs_dict, agent_ids, demo_args)
-    elif demo_args.backend == "rllib":
-        _rllib_demo(env, obs_dict, agent_ids, demo_args)
-    elif demo_args.backend == "mappo":
-        _mappo_demo(env, obs_dict, agent_ids, demo_args)
-    elif demo_args.backend == "random":
-        _random_demo(env, obs_dict, agent_ids, demo_args)
-    else:
-        raise ValueError(f"Unsupported backend: {demo_args.backend}")
-
-    env.close()
+    try:
+        if demo_args.backend == "custom":
+            _custom_demo(env, obs, agent_ids, demo_args, relay_publisher=relay_publisher)
+        elif demo_args.backend == "sb3":
+            _sb3_demo(env, obs_dict, agent_ids, demo_args, relay_publisher=relay_publisher)
+        elif demo_args.backend == "rllib":
+            _rllib_demo(env, obs_dict, agent_ids, demo_args, relay_publisher=relay_publisher)
+        elif demo_args.backend == "mappo":
+            _mappo_demo(env, obs_dict, agent_ids, demo_args, relay_publisher=relay_publisher)
+        elif demo_args.backend == "random":
+            _random_demo(env, obs_dict, agent_ids, demo_args, relay_publisher=relay_publisher)
+        else:
+            raise ValueError(f"Unsupported backend: {demo_args.backend}")
+    finally:
+        if relay_publisher is not None:
+            relay_publisher.close()
+        env.close()
 
 
 if __name__ == "__main__":

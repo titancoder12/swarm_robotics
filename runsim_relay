@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --max-steps 0 \
+  --render-scale 0.90 \
+  --seed-list 2,4,6,25,32,33,36,41 \
+  --mc-relay-url https://relay.christopherlin.ca \
+  --mc-relay-session robot_0
