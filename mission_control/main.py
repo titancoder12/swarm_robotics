@@ -34,7 +34,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--serial-baudrate", type=int, default=115200)
     parser.add_argument("--serial-timeout", type=float, default=0.1)
     parser.add_argument("--ble-enable", action="store_true")
-    parser.add_argument("--ble-device-name", default="CommandCenter")
+    parser.add_argument("--ble-address", default="")
+    parser.add_argument("--ble-device-name", default="robot_0")
+    parser.add_argument("--ble-timeout", type=float, default=1.0)
     parser.add_argument("--ble-service-uuid", default="6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
     parser.add_argument("--ble-write-char-uuid", default="6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
     parser.add_argument("--ble-notify-char-uuid", default="6E400003-B5A3-F393-E0A9-E50E24DCCA9E")
@@ -58,7 +60,9 @@ def main(argv: list[str] | None = None) -> int:
         serial_baudrate=args.serial_baudrate,
         serial_timeout_s=args.serial_timeout,
         ble_enable=args.ble_enable,
+        ble_address=args.ble_address,
         ble_device_name=args.ble_device_name,
+        ble_timeout_s=args.ble_timeout,
         ble_service_uuid=args.ble_service_uuid,
         ble_write_char_uuid=args.ble_write_char_uuid,
         ble_notify_char_uuid=args.ble_notify_char_uuid,
@@ -104,13 +108,14 @@ def main(argv: list[str] | None = None) -> int:
         # Each serial port is treated as an independent direct robot link.
         manager.add_serial_port(port, cfg.serial_baudrate, cfg.serial_timeout_s)
     if cfg.ble_enable:
-        # BLE exposes the same line-oriented protocol over a Nordic-UART-style
-        # GATT service so the Pi-side client can reuse POS / SENSE / PHER.
-        manager.add_ble_peripheral(
+        # In reversed-role BLE mode the robot advertises the UART-like
+        # peripheral and Mission Control connects as the central/client.
+        manager.add_ble_client(
+            address=cfg.ble_address,
             device_name=cfg.ble_device_name,
-            service_uuid=cfg.ble_service_uuid,
             write_char_uuid=cfg.ble_write_char_uuid,
             notify_char_uuid=cfg.ble_notify_char_uuid,
+            timeout_s=cfg.ble_timeout_s,
         )
 
     pygame.init()

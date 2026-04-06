@@ -21,9 +21,10 @@ if str(REPO_ROOT) not in sys.path:
 from ant import ESP32Robot
 from algorithms.mappo.inference import load_actor
 from firmware.bluetooth import (
+    DEFAULT_BLE_SERVICE_UUID,
     DEFAULT_BLE_NOTIFY_CHAR_UUID,
     DEFAULT_BLE_WRITE_CHAR_UUID,
-    CommandCenterBLEClient,
+    CommandCenterBLEPeripheral,
 )
 from firmware.command_center_client import CommandCenterTCPClient
 from firmware.relay_client import CommandCenterRelayClient
@@ -104,6 +105,7 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-enable", action="store_true")
     parser.add_argument("--cc-ble-address", type=str, default="")
     parser.add_argument("--cc-ble-device-name", type=str, default="")
+    parser.add_argument("--cc-ble-service-uuid", type=str, default=DEFAULT_BLE_SERVICE_UUID)
     parser.add_argument("--cc-ble-write-char-uuid", type=str, default=DEFAULT_BLE_WRITE_CHAR_UUID)
     parser.add_argument("--cc-ble-notify-char-uuid", type=str, default=DEFAULT_BLE_NOTIFY_CHAR_UUID)
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
@@ -489,11 +491,11 @@ def main(argv=None):
             debug=args.debug,
         )
     elif args.cc_ble_enable:
-        # The BLE helper owns the line-oriented POS / SENSE / PHER exchange
-        # with desktop Mission Control.
-        mission_control_link = CommandCenterBLEClient(
-            address=args.cc_ble_address,
-            device_name=args.cc_ble_device_name,
+        # In reversed-role BLE mode the robot advertises the UART-like
+        # peripheral and Mission Control connects as the client/central.
+        mission_control_link = CommandCenterBLEPeripheral(
+            device_name=args.cc_ble_device_name or args.robot_id,
+            service_uuid=args.cc_ble_service_uuid,
             write_char_uuid=args.cc_ble_write_char_uuid,
             notify_char_uuid=args.cc_ble_notify_char_uuid,
             timeout_s=args.cc_ble_timeout,

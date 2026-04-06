@@ -4,6 +4,8 @@ import logging
 import socket
 import threading
 import time
+import asyncio
+from collections import deque
 from dataclasses import dataclass
 from typing import Callable
 
@@ -19,6 +21,12 @@ except ImportError:  # pragma: no cover - depends on local runtime env
     BlessServer = None
     GATTCharacteristicProperties = None
     GATTAttributePermissions = None
+
+try:
+    from bleak import BleakClient, BleakScanner
+except ImportError:  # pragma: no cover - depends on local runtime env
+    BleakClient = None
+    BleakScanner = None
 
 logger = logging.getLogger(__name__)
 
@@ -308,6 +316,118 @@ class BLEPeripheralWorker(_Worker):
         self.stop_event.set()
 
 
+class BLEClientWorker(_Worker):
+    def __init__(
+        self,
+        address: str,
+        device_name: str,
+        write_char_uuid: str,
+        notify_char_uuid: str,
+        timeout_s: float,
+        on_line: ResponseCallback,
+    ) -> None:
+        super().__init__(name=f"ble-client-{address or device_name or 'unknown'}")
+        self.address = address
+        self.device_name = device_name
+        self.write_char_uuid = write_char_uuid
+        self.notify_char_uuid = notify_char_uuid
+        self.timeout_s = timeout_s
+        self.on_line = on_line
+        self.stop_event = threading.Event()
+        self._rx_buffer = ""
+        self._tx_queue: asyncio.Queue[str] | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    @property
+    def label(self) -> str:
+        return f"ble-client:{self.address or self.device_name or 'unknown'}"
+
+    def _line_label(self, line: str) -> str:
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) >= 2 and parts[1]:
+            return f"{self.label}:{parts[1]}"
+        return self.label
+
+    async def _resolve_address(self) -> str:
+        if self.address:
+            return self.address
+        if not self.device_name:
+            raise RuntimeError("BLE client requires an address or device name")
+        if BleakScanner is None:
+            raise RuntimeError("bleak is not installed; BLE discovery is unavailable")
+        device = await BleakScanner.find_device_by_name(self.device_name, timeout=self.timeout_s)
+        if device is None:
+            raise RuntimeError(f"BLE device named {self.device_name!r} was not found.")
+        return str(device.address)
+
+    async def _write_line(self, client: BleakClient, line: str) -> None:
+        await client.write_gatt_char(self.write_char_uuid, (line.strip() + "\n").encode("utf-8"))
+
+    def _notify_callback(self, client: BleakClient, _sender, data: bytearray) -> None:
+        self._rx_buffer += bytes(data).decode("utf-8", errors="ignore")
+        while "\n" in self._rx_buffer:
+            line, self._rx_buffer = self._rx_buffer.split("\n", 1)
+            line = line.strip()
+            if not line:
+                continue
+            responses = self.on_line(self._line_label(line), line)
+            if self._tx_queue is not None:
+                for response in responses:
+                    self._tx_queue.put_nowait(response)
+
+    async def _drain_writes(self, client: BleakClient) -> None:
+        assert self._tx_queue is not None
+        while not self.stop_event.is_set() and client.is_connected:
+            try:
+                line = await asyncio.wait_for(self._tx_queue.get(), timeout=0.1)
+            except asyncio.TimeoutError:
+                continue
+            await self._write_line(client, line)
+
+    async def _run_session(self) -> None:
+        if BleakClient is None:
+            raise RuntimeError("bleak is not installed; BLE client transport is unavailable")
+        address = await self._resolve_address()
+        async with BleakClient(address, timeout=self.timeout_s) as client:
+            self._tx_queue = asyncio.Queue()
+            await client.start_notify(self.notify_char_uuid, lambda sender, data: self._notify_callback(client, sender, data))
+            logger.info("command-center BLE client connected to %s", address)
+            writer_task = asyncio.create_task(self._drain_writes(client))
+            try:
+                while not self.stop_event.is_set() and client.is_connected:
+                    await asyncio.sleep(0.1)
+            finally:
+                writer_task.cancel()
+                try:
+                    await writer_task
+                except asyncio.CancelledError:
+                    pass
+                try:
+                    await client.stop_notify(self.notify_char_uuid)
+                except Exception:
+                    pass
+
+    def run(self) -> None:
+        loop = asyncio.new_event_loop()
+        self._loop = loop
+        asyncio.set_event_loop(loop)
+        try:
+            while not self.stop_event.is_set():
+                try:
+                    loop.run_until_complete(self._run_session())
+                except Exception as exc:  # pragma: no cover - runtime/hardware dependent
+                    logger.error("BLE client failed on %s: %s", self.address or self.device_name, exc)
+                    if self.stop_event.wait(1.0):
+                        break
+                else:
+                    break
+        finally:
+            loop.close()
+
+    def stop(self) -> None:
+        self.stop_event.set()
+
+
 class ReceiverManager:
     """Owns the live line-based connections to robots."""
 
@@ -337,6 +457,25 @@ class ReceiverManager:
             service_uuid=service_uuid,
             write_char_uuid=write_char_uuid,
             notify_char_uuid=notify_char_uuid,
+            on_line=self.on_line,
+        )
+        self._workers.append(worker)
+        return worker
+
+    def add_ble_client(
+        self,
+        address: str = "",
+        device_name: str = "",
+        write_char_uuid: str = DEFAULT_BLE_WRITE_CHAR_UUID,
+        notify_char_uuid: str = DEFAULT_BLE_NOTIFY_CHAR_UUID,
+        timeout_s: float = 1.0,
+    ) -> BLEClientWorker:
+        worker = BLEClientWorker(
+            address=address,
+            device_name=device_name,
+            write_char_uuid=write_char_uuid,
+            notify_char_uuid=notify_char_uuid,
+            timeout_s=timeout_s,
             on_line=self.on_line,
         )
         self._workers.append(worker)

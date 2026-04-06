@@ -26,7 +26,9 @@ class CommandCenterConfig:
     serial_baudrate: int = 115200
     serial_timeout_s: float = 0.1
     ble_enable: bool = False
+    ble_address: str = ""
     ble_device_name: str = "CommandCenter"
+    ble_timeout_s: float = 1.0
     ble_service_uuid: str = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
     ble_write_char_uuid: str = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
     ble_notify_char_uuid: str = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
