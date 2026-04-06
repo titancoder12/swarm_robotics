@@ -1,0 +1,30 @@
+{
+  "conditions": [
+    "trained_with_pheromone__eval_with_pheromone",
+    "trained_with_pheromone__eval_without_pheromone",
+    "trained_without_pheromone__eval_without_pheromone"
+  ],
+  "design": "extended repeated-source pheromone ablation up to 30 agents",
+  "primary_seed_range": [
+    100,
+    149
+  ],
+  "primary_swarm_sizes": [
+    6,
+    30
+  ],
+  "supporting_seed_range": [
+    100,
+    119
+  ],
+  "swarm_sizes": [
+    1,
+    3,
+    6,
+    10,
+    15,
+    20,
+    30
+  ],
+  "timestamp": "20260406_102744"
+}
