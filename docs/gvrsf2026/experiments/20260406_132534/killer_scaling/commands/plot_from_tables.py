@@ -71,6 +71,8 @@ def main():
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
     rows = load_rows()
     grouped_metric_plot(rows, "food_delivered", "food_delivered_by_swarm_size.png", "Stronger Pheromone Study: Deliveries by Swarm Size")
+    grouped_metric_plot(rows, "delivery_conversion", "delivery_conversion_by_swarm_size.png", "Stronger Pheromone Study: Delivery Conversion by Swarm Size")
+    grouped_metric_plot(rows, "exploration_coverage", "exploration_coverage_by_swarm_size.png", "Stronger Pheromone Study: Exploration Coverage by Swarm Size")
     grouped_metric_plot(rows, "late_deliveries", "late_deliveries_by_swarm_size.png", "Stronger Pheromone Study: Late Deliveries by Swarm Size")
     grouped_metric_plot(rows, "post_discovery_deliveries", "post_discovery_deliveries_by_swarm_size.png", "Stronger Pheromone Study: Post-Discovery Deliveries by Swarm Size")
     grouped_metric_plot(rows, "pickup_to_delivery_latency", "pickup_to_delivery_latency_by_swarm_size.png", "Stronger Pheromone Study: Pickup-to-Delivery Latency")
