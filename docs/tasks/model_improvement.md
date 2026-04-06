@@ -21,7 +21,7 @@ The end result should be a repo that is much stronger for:
 - RL learning
 - controlled experimentation
 - sim-to-real transfer
-- and science-fair-quality demonstration
+- and high-quality demonstration
 
 without breaking the current deployment architecture.
 

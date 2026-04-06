@@ -4,7 +4,7 @@ Build experiment infrastructure inside the existing swarm robotics reinforcement
 
 GOAL
 
-Add a reusable experiment framework to the existing project so experiments can be run consistently and produce science-fair-quality results.
+Add a reusable experiment framework to the existing project so experiments can be run consistently and produce research-quality results.
 
 CONTEXT FROM PROMPT 3 (CRITICAL — DO NOT IGNORE)
 

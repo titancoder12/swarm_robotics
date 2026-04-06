@@ -313,7 +313,7 @@ Goals:
 
 - make the codebase understandable to a beginner
 - capture recurring technical explanations in persistent docs
-- support generating screenshots for documentation and judging
+- support generating screenshots for documentation and evaluation
 
 Requirements for `train/capture_screenshots.py`:
 

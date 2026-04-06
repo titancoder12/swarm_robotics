@@ -2,7 +2,7 @@ Work on the existing swarm robotics simulation codebase.
 
 GOAL
 
-Upgrade the current environment and simulation so it supports science-fair-grade stigmergic swarm experiments.
+Upgrade the current environment and simulation so it supports research-grade stigmergic swarm experiments.
 
 Important constraints:
 

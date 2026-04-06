@@ -6,7 +6,7 @@ GOAL
 
 Generate a complete, user-friendly, and technically accurate documentation set for the current project, based on the implementations from the previous steps in this session (i.e., the latest six steps).
 
-This documentation should allow a new user (or judge) to:
+This documentation should allow a new user or reviewer to:
 
 understand the system architecture
 
@@ -292,7 +292,7 @@ or creating a concise separate file:
 
 docs/manual/QUICK_START.md
 
-A short version for judges:
+A short version for reviewers:
 
 what this project is
 
@@ -312,7 +312,7 @@ readable by:
 
 engineers
 
-science fair judges
+reviewers
 
 students
 
@@ -355,7 +355,7 @@ Output:
     94 +- Refreshed the top-level architecture and onboarding docs to match the current 23-dim environment, experiment framework, and
         baseline set.
     95 +- Added a focused `docs/manual/` set covering quick start, project structure, experiments, and results interpretation for new
-        users and judges.
+        users and reviewers.
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -910,7 +910,7 @@ Output:
 
   # Experiment Guide
 
-  This project currently has two primary science-fair experiments implemented in the shared framework.
+  This project currently has two primary experiment families implemented in the shared framework.
 
   The common entry point is:
 
