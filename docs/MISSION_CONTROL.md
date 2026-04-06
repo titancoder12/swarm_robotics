@@ -383,17 +383,23 @@ python firmware/run.py \
 
 ## BLE Transport
 
-Mission Control can also expose the same protocol over BLE.
+Mission Control also supports the same protocol over BLE.
 
-The BLE transport is intended to look like a line-oriented UART link to the
-robot runtime even though it is implemented as a GATT service underneath.
+The current BLE design uses reversed roles compared with the earlier desktop-
+peripheral approach:
 
-Current BLE design:
+- robot/Pi = BLE peripheral/server
+- Mission Control/Mac = BLE client/central
 
-- the desktop side advertises one BLE peripheral from [mission_control/main.py](../mission_control/main.py)
-- the Mission Control-side transport implementation lives in [mission_control/comms/receiver.py](../mission_control/comms/receiver.py)
-- the Raspberry Pi-side BLE client lives in [firmware/bluetooth.py](../firmware/bluetooth.py)
-- the policy/runtime integration lives in [firmware/run.py](../firmware/run.py)
+This change was made because the earlier Mac-as-peripheral design was less
+reliable in practice.
+
+Current BLE implementation:
+
+- the robot-side BLE peripheral lives in [firmware/bluetooth.py](../firmware/bluetooth.py)
+- the robot runtime integration lives in [firmware/run.py](../firmware/run.py)
+- the Mission Control-side BLE client lives in [mission_control/comms/receiver.py](../mission_control/comms/receiver.py)
+- Mission Control startup and BLE client wiring lives in [mission_control/main.py](../mission_control/main.py)
 
 Default BLE UUIDs:
 
@@ -409,47 +415,184 @@ runtime can keep using newline-delimited text messages.
 
 BLE message flow:
 
-1. the robot connects as a BLE client
-2. it writes `POS,...` lines to the write characteristic
-3. it writes `SENSE,...` when it wants pheromone samples
-4. Mission Control computes the response
-5. Mission Control emits `PHER_RESP,...` on the notify characteristic
-6. the robot filters responses by `robot_id`
+1. the robot advertises a UART-like BLE service
+2. Mission Control connects as the BLE client
+3. the robot emits `POS`, `LIDAR`, `PHER`, and `SENSE` over the notify characteristic
+4. Mission Control parses those lines exactly like TCP or relay traffic
+5. Mission Control computes `PHER_RESP`
+6. Mission Control writes `PHER_RESP,...` back to the robot on the write characteristic
 
 Digital deposits use the same pattern:
 
-- the robot writes `PHER,<id>,<x_cm>,<y_cm>,<amount>`
+- the robot emits `PHER,<id>,<x_cm>,<y_cm>,<amount>`
 - Mission Control applies that deposit to the authoritative pheromone field
 
 ### Multi-Robot BLE Behavior
 
-BLE support is now multiplexed by `robot_id` rather than by one dedicated BLE
-worker per robot.
+One Mission Control instance can now connect to multiple BLE robots.
 
 That means:
 
-- one shared BLE peripheral can service multiple robots
+- each robot advertises its own BLE peripheral
 - each robot must use a distinct `robot_id`
-- Mission Control derives a logical per-robot label from the protocol line
-- replies still include `robot_id`
-- each robot-side BLE client must ignore replies for other robots
+- Mission Control starts one BLE client worker per target robot
+- protocol state is still keyed by `robot_id`
 
-This is different from the TCP path, where each robot gets its own socket and
-worker thread. BLE multi-robot isolation is protocol-level rather than
-connection-level.
+This is different from TCP, where each robot usually reaches Mission Control
+over its own socket, but the end result is the same: one Mission Control window
+can track multiple robots.
 
 ### BLE Runtime Expectations
 
 For the current firmware path in [firmware/run.py](../firmware/run.py):
 
 - `--cc-ble-enable` turns on the BLE Mission Control link
+- the robot advertises the BLE service before Mission Control connects
 - the robot sends `POS` once per control iteration
+- the robot sends `LIDAR` once per control iteration
 - the robot sends `SENSE` before inference
 - the robot can send `PHER` deposits during forward motion
 - returned `PHER_RESP` values are inserted into the pheromone observation slots
 
 If BLE is unavailable or times out, the firmware falls back to zero pheromone
 samples instead of crashing the motion loop.
+
+### BLE Dependencies
+
+With the reversed BLE roles, the dependency requirements are:
+
+- Pi side needs `bless`
+- Mac Mission Control side needs `bleak`
+
+Quick checks:
+
+Pi:
+
+```bash
+python -c "import bless; print('bless ok')"
+```
+
+Mac:
+
+```bash
+python -c "import bleak; print('bleak ok')"
+```
+
+### BLE Bring-Up
+
+The correct bring-up order is:
+
+1. start the robot on the Pi first
+2. keep it running so it continues advertising BLE
+3. start Mission Control on the Mac
+
+Pi:
+
+```bash
+cd ~/Desktop/swarm_robotics
+source firmware/ant-env/bin/activate
+python firmware/run.py \
+  --checkpoint-dir checkpoints \
+  --port /dev/ttyUSB0 \
+  --cc-ble-enable \
+  --cc-ble-device-name robot_0 \
+  --cc-ble-timeout 1.0 \
+  --debug
+```
+
+What you want to see on the Pi:
+
+- `robot connected`
+- `BLE peripheral robot_0 started`
+- repeated `BLE notify -> POS,...`
+- repeated `BLE notify -> LIDAR,...`
+- repeated `BLE notify -> SENSE,...`
+- eventually `BLE recv <- PHER_RESP,...`
+
+Mac:
+
+```bash
+cd /Users/christopherlin/dev/cwsf2026/sim
+source .venv/bin/activate
+python -m mission_control.main \
+  --ble-enable \
+  --ble-device-name robot_0 \
+  --ble-timeout 5.0 \
+  --log-level INFO
+```
+
+If the robot is already advertising, the Mac should log:
+
+```text
+INFO:mission_control.comms.receiver:command-center BLE client connected to ...
+```
+
+### Multi-Robot BLE Launch
+
+Single robot:
+
+```bash
+python -m mission_control.main \
+  --ble-enable \
+  --ble-device-name robot_0
+```
+
+Multiple robots with repeated flags:
+
+```bash
+python -m mission_control.main \
+  --ble-enable \
+  --ble-device-name robot_0 \
+  --ble-device-name robot_1 \
+  --ble-device-name robot_2 \
+  --ble-timeout 5.0 \
+  --log-level INFO
+```
+
+Or with comma-separated names:
+
+```bash
+python -m mission_control.main \
+  --ble-enable \
+  --ble-device-name robot_0,robot_1,robot_2 \
+  --ble-timeout 5.0 \
+  --log-level INFO
+```
+
+If name discovery is unreliable, Mission Control also supports multiple
+explicit BLE addresses:
+
+```bash
+python -m mission_control.main \
+  --ble-enable \
+  --ble-address ADDR0 \
+  --ble-address ADDR1 \
+  --ble-address ADDR2 \
+  --ble-timeout 5.0 \
+  --log-level INFO
+```
+
+### BLE Success Criteria
+
+When BLE is working end to end:
+
+- Mission Control logs a BLE client connection
+- Mission Control robot count increases above `0`
+- the robot marker appears in the UI
+- the robot position and heading update over time
+- the Pi shows `BLE recv <- PHER_RESP,...`
+
+### BLE Caveats
+
+The updated BLE path is much closer to the intended architecture than the
+earlier version, but it should still be treated as an active bring-up path
+rather than the most battle-tested demo transport.
+
+Key caveats:
+
+- the robot must already be running and advertising before Mission Control tries to connect
+- if the robot restarts, Mission Control may need to reconnect cleanly
+- relay and direct TCP are still the most robust choices for demonstrations
 
 ## Running
 
@@ -465,11 +608,15 @@ Optional flags:
   - add one or more direct serial robot connections
 - `--serial-baudrate 115200`
 - `--ble-enable`
-  - expose the same line-oriented protocol over a BLE peripheral
-- `--ble-device-name CommandCenter`
-  - BLE advertised device name for the command center
+  - connect Mission Control as a BLE client to one or more robot peripherals
+- `--ble-device-name robot_0`
+  - robot BLE device name to connect to; may be repeated or comma-separated
+- `--ble-address AA:BB:CC:DD:EE:FF`
+  - explicit robot BLE address; may be repeated
+- `--ble-timeout 5.0`
+  - BLE discovery and connection timeout
 - `--ble-service-uuid`, `--ble-write-char-uuid`, `--ble-notify-char-uuid`
-  - override the Nordic-UART-style GATT UUIDs if your robot client expects different values
+  - override the Nordic-UART-style GATT UUIDs if your robot peripheral uses different values
 - `--render-scale 1.0`
 - `--fps 30`
 - `--headless`
@@ -477,7 +624,7 @@ Optional flags:
 - `--max-seconds 10`
   - auto-exit after N seconds
 
-BLE mode uses the same newline-delimited `POS`, `PHER`, `SENSE`, and `PHER_RESP` messages as the TCP and serial backends; only the transport changes.
+BLE mode uses the same newline-delimited `POS`, `LIDAR`, `PHER`, `SENSE`, and `PHER_RESP` messages as the TCP and relay backends; only the transport changes.
 
 ## Keyboard Controls
 

@@ -24,6 +24,16 @@ from mission_control.ui.renderer import Renderer
 logger = logging.getLogger(__name__)
 
 
+def _parse_multi_value_flags(values: list[str]) -> tuple[str, ...]:
+    items: list[str] = []
+    for value in values:
+        for part in value.split(","):
+            part = part.strip()
+            if part:
+                items.append(part)
+    return tuple(items)
+
+
 def build_parser() -> argparse.ArgumentParser:
     # Keep CLI flags close to the runtime wiring below so transport and UI
     # configuration stay easy to trace from the entrypoint.
@@ -34,8 +44,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--serial-baudrate", type=int, default=115200)
     parser.add_argument("--serial-timeout", type=float, default=0.1)
     parser.add_argument("--ble-enable", action="store_true")
-    parser.add_argument("--ble-address", default="")
-    parser.add_argument("--ble-device-name", default="robot_0")
+    parser.add_argument("--ble-address", action="append", default=[])
+    parser.add_argument("--ble-device-name", action="append", default=[])
     parser.add_argument("--ble-timeout", type=float, default=1.0)
     parser.add_argument("--ble-service-uuid", default="6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
     parser.add_argument("--ble-write-char-uuid", default="6E400002-B5A3-F393-E0A9-E50E24DCCA9E")
@@ -51,6 +61,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
+    ble_addresses = _parse_multi_value_flags(args.ble_address)
+    ble_device_names = _parse_multi_value_flags(args.ble_device_name)
+    if not ble_addresses and not ble_device_names:
+        ble_device_names = ("robot_0",)
 
     # One shared world model backs both the receiver threads and the renderer.
     cfg = CommandCenterConfig(
@@ -60,8 +74,10 @@ def main(argv: list[str] | None = None) -> int:
         serial_baudrate=args.serial_baudrate,
         serial_timeout_s=args.serial_timeout,
         ble_enable=args.ble_enable,
-        ble_address=args.ble_address,
-        ble_device_name=args.ble_device_name,
+        ble_addresses=ble_addresses,
+        ble_device_names=ble_device_names,
+        ble_address=ble_addresses[0] if ble_addresses else "",
+        ble_device_name=ble_device_names[0] if ble_device_names else "",
         ble_timeout_s=args.ble_timeout,
         ble_service_uuid=args.ble_service_uuid,
         ble_write_char_uuid=args.ble_write_char_uuid,
@@ -110,13 +126,24 @@ def main(argv: list[str] | None = None) -> int:
     if cfg.ble_enable:
         # In reversed-role BLE mode the robot advertises the UART-like
         # peripheral and Mission Control connects as the central/client.
-        manager.add_ble_client(
-            address=cfg.ble_address,
-            device_name=cfg.ble_device_name,
-            write_char_uuid=cfg.ble_write_char_uuid,
-            notify_char_uuid=cfg.ble_notify_char_uuid,
-            timeout_s=cfg.ble_timeout_s,
-        )
+        if cfg.ble_addresses:
+            for address in cfg.ble_addresses:
+                manager.add_ble_client(
+                    address=address,
+                    device_name="",
+                    write_char_uuid=cfg.ble_write_char_uuid,
+                    notify_char_uuid=cfg.ble_notify_char_uuid,
+                    timeout_s=cfg.ble_timeout_s,
+                )
+        else:
+            for device_name in cfg.ble_device_names:
+                manager.add_ble_client(
+                    address="",
+                    device_name=device_name,
+                    write_char_uuid=cfg.ble_write_char_uuid,
+                    notify_char_uuid=cfg.ble_notify_char_uuid,
+                    timeout_s=cfg.ble_timeout_s,
+                )
 
     pygame.init()
     if args.headless:

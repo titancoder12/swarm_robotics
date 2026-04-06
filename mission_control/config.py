@@ -26,6 +26,8 @@ class CommandCenterConfig:
     serial_baudrate: int = 115200
     serial_timeout_s: float = 0.1
     ble_enable: bool = False
+    ble_addresses: tuple[str, ...] = ()
+    ble_device_names: tuple[str, ...] = ()
     ble_address: str = ""
     ble_device_name: str = "CommandCenter"
     ble_timeout_s: float = 1.0

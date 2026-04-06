@@ -1,108 +1,135 @@
 # Sim-to-Real Deployment Architecture
 
-This repository now uses a direct robot runtime centered on [firmware/run.py](../firmware/run.py).
+This repository now deploys the physical robot through [firmware/run.py](../firmware/run.py).
 
-## 1) Active Deployment Boundary
+The live robot stack no longer uses the older DQN-only deployment description. The current runtime supports the newer recurrent MAPPO checkpoint layout and optional Mission Control integration.
 
-The learned policy boundary is unchanged:
+## 1) Active Robot Runtime
 
-- input: one normalized observation vector
-- output: one discrete action ID
+The physical robot loop is:
 
-On the physical robot, the active path is:
+`ESP32 serial scan -> local pose/observation build -> MAPPO actor inference -> motor command -> optional Mission Control exchange`
 
-`serial scan lines -> local observation builder -> QNetwork inference -> direct robot commands`
-
-Concretely:
+The key files are:
 
 - [firmware/ant.py](../firmware/ant.py)
-  handles serial communication and the low-level command vocabulary
+  handles the serial link to the ESP32 and the low-level robot command vocabulary
 - [firmware/run.py](../firmware/run.py)
-  builds the observation, loads the checkpoint, predicts an action, and executes it
-- [models/q_network.py](../models/q_network.py)
-  defines the network architecture expected by the custom PyTorch checkpoints
+  loads the policy, builds observations, runs inference, and drives the robot
+- [firmware/bluetooth.py](../firmware/bluetooth.py)
+  provides the BLE transport used for Mission Control integration
+- [firmware/command_center_client.py](../firmware/command_center_client.py)
+  provides the direct TCP Mission Control client
+- [firmware/relay_client.py](../firmware/relay_client.py)
+  provides the internet relay transport
 
-The older `pi/` and `robot/` abstraction layers are no longer part of the live deployment path.
+## 2) Current Policy Loader
 
-## 2) Runtime Flow
+The robot runtime now supports two checkpoint families:
 
-Each loop iteration in the active robot runtime does this:
+- current path: recurrent MAPPO actor checkpoints such as `checkpoints/mappo_g/latest`
+- legacy fallback: older DQN-style checkpoints such as `agent_0.pt` or `shared.pt`
+
+For the current robot deployments, the expected checkpoint set is:
+
+- `actor.pt`
+- `critic.pt`
+- `trainer.pt`
+- `metadata.json`
+
+under a directory like [checkpoints/mappo_g/latest](../checkpoints/mappo_g/latest).
+
+`firmware/run.py` auto-detects the current MAPPO layout and loads the actor for greedy deployment.
+
+## 3) Runtime Loop
+
+Each control iteration in [firmware/run.py](../firmware/run.py) does this:
 
 1. Read scan lines from the ESP32 over serial.
 2. Bucketize the scan into fixed lidar rays.
-3. Convert distances to meters and normalize them against `--lidar-max-range-mm`.
-4. Fill the remaining observation slots with the currently supported values.
-5. Load the observation into `QNetwork` and take `argmax` over Q-values.
-6. Map the chosen action ID into `turn`, `move`, or `stop`.
-7. Send the command directly back through `ant.py`.
+3. Dead-reckon the robot pose locally from commanded motion.
+4. Send `POS` and `LIDAR` to Mission Control if a transport is enabled.
+5. Query Mission Control with `SENSE` to retrieve pheromone samples.
+6. Assemble the observation vector.
+7. Run greedy policy inference.
+8. Execute the chosen movement on the robot.
+9. Optionally send `PHER` if the chosen action includes a deposit bit.
 
-## 3) Observation Contract
+If Mission Control is enabled, the transport-specific operator and connection
+instructions live in [MISSION_CONTROL.md](./MISSION_CONTROL.md).
 
-The real robot must still preserve the policy contract used during training:
+## 4) Observation Contract
+
+The physical runtime still has to preserve the learned policy contract:
 
 - same observation length
 - same feature order
 - same normalization and clipping
 - same action semantics
 
-Important current limitation:
+The current checkpoint metadata for the main deployment path indicates:
 
-- [firmware/run.py](../firmware/run.py) currently derives lidar from real scan data
-- several non-lidar channels are still placeholders, such as target, nest, neighbor, speed, and pheromone values
+- algorithm: `recurrent_mappo_gru`
+- observation dimension: `69`
+- action dimension: `18`
 
-That means the runtime is operational, but full sim-to-real fidelity still depends on future sensor integration or retraining.
+Important practical limitation:
 
-## 4) Action Contract
+- lidar and Mission Control pheromone channels are live
+- several non-lidar/non-pheromone channels are still approximated or placeholder-like compared with full simulation
 
-The action space remains the trained discrete 18-action table:
+So the robot runtime is operational, but sim-to-real fidelity is still constrained by the quality of the real observation reconstruction.
+
+## 5) Action Contract
+
+The action space remains the learned discrete 18-action table:
 
 - throttle in `[-1, 0, 1]`
 - turn in `[-1, 0, 1]`
 - pheromone deposit bit in `[0, 1]`
 
-The physical mapping is implemented directly in [firmware/run.py](../firmware/run.py) using:
+The physical mapping is applied in [firmware/run.py](../firmware/run.py) using parameters such as:
 
 - `--turn-step-deg`
 - `--move-distance-mm`
 - `--reverse-distance-mm`
 
-So the deployed robot keeps the same policy output semantics even though the transport and execution code are now simpler. When the action's deposit bit is enabled, the runtime can also emit the corresponding pheromone-side effect path where supported.
+## 6) Mission Control Transports
 
-## 5) Safety Expectations
+The robot can talk to Mission Control through three transports:
 
-Safety must still sit outside the learned policy.
+1. Internet relay
+2. direct TCP
+3. Bluetooth
 
-On the Pi/runtime side:
+The relay and TCP paths remain the most reliable operational choices today.
 
-- reject invalid or stale sensor data
-- stop on observation failures
-- clamp motion commands to safe ranges
-- preserve manual stop and watchdog behavior
+The Bluetooth path also remains available, but the full operator-side setup and
+bring-up instructions now live in [MISSION_CONTROL.md](./MISSION_CONTROL.md).
 
-On the ESP32 side:
-
-- stop motors if command traffic is lost
-- enforce low-level current, PWM, or motion limits
-- honor emergency-stop conditions
-
-## 6) Deployment Files
+## 7) Minimum Robot-Side Files
 
 The minimum robot-side set is now:
 
 - [firmware/ant.py](../firmware/ant.py)
 - [firmware/run.py](../firmware/run.py)
+- [firmware/bluetooth.py](../firmware/bluetooth.py)
 - [firmware/ant.service](../firmware/ant.service)
-- [models/q_network.py](../models/q_network.py)
 - [checkpoints/](../checkpoints)
 
-Plus Python dependencies:
+Plus Python dependencies such as:
 
 - `torch`
 - `numpy`
 - `pyserial`
+- `bless` for BLE mode
 
-## 7) Practical Recommendation
+On the Mission Control side, BLE mode additionally requires:
 
-If your goal is to run one physical robot today, treat [firmware/run.py](../firmware/run.py) as the single source of truth for deployment.
+- `bleak`
 
-If you later need multiple hardware backends or a more generic deployment framework, reintroduce modular layers only after the direct path is stable and calibrated.
+## 8) Practical Recommendation
+
+If you are deploying one or more real robots today, treat [firmware/run.py](../firmware/run.py) as the robot-side source of truth and [mission_control/main.py](../mission_control/main.py) as the operator-side source of truth.
+
+If you need the most dependable demo transport, prefer relay or TCP. If you want to continue validating the local wireless path without relying on shared IP networking, use the Bluetooth workflow documented in [MISSION_CONTROL.md](./MISSION_CONTROL.md).
