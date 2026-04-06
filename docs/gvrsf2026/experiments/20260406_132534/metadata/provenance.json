@@ -1,0 +1,35 @@
+{
+  "timestamp": "20260406_132534",
+  "bundle_type": "full_rerun_bundle_explicit_8_seed_subset",
+  "standing_plan": "docs/gvrsf2026/experiments/experiments.md",
+  "standing_prompt": "docs/gvrsf2026/experiments/instruction.md",
+  "seed_policy": {
+    "broad_seeds": [2, 4, 6, 25, 32, 33, 36, 41],
+    "killer_seeds": [2, 4, 6, 25, 32, 33, 36, 41]
+  },
+  "source_campaigns": [
+    {
+      "role": "broad_campaign",
+      "source_timestamp": "20260406_132534",
+      "source_folder": "docs/gvrsf2026/experiments/20260406_132534/broad",
+      "reason_reused": "Fresh broad rerun completed for this bundle and finalized from streamed raw episode exports."
+    },
+    {
+      "role": "killer_stigmergy_scaling_campaign",
+      "source_timestamp": "20260406_132534",
+      "source_folder": "docs/gvrsf2026/experiments/20260406_132534/killer_scaling",
+      "reason_reused": "Fresh repeated-source killer rerun completed for this bundle using the explicit 8-seed list."
+    }
+  ],
+  "scientific_rationale": "This bundle repeats the full broad-plus-killer structure with a fixed explicit seed subset so the project can compare a medium-cost rerun against both the larger full rerun and the faster 5-run bundle.",
+  "top_level_figures": [
+    "figures/broad_curriculum_food_delivered.png",
+    "figures/broad_baseline_food_delivered.png",
+    "figures/broad_robustness_food_delivered.png",
+    "figures/broad_scaling_food_delivered.png",
+    "figures/killer_food_delivered_by_swarm_size.png",
+    "figures/killer_late_deliveries_by_swarm_size.png",
+    "figures/killer_post_discovery_deliveries_by_swarm_size.png",
+    "figures/killer_pickup_to_delivery_latency_by_swarm_size.png"
+  ]
+}
