@@ -374,6 +374,52 @@ python firmware/run.py \
   --debug
 ```
 
+There is also a convenience launcher script in [firmware/run_relay.sh](../firmware/run_relay.sh).
+
+From the repo root on the Pi:
+
+```bash
+bash firmware/run_relay.sh
+```
+
+That defaults to:
+
+- relay URL: `https://relay.christopherlin.ca`
+- robot ID: `robot_0`
+- serial port: `/dev/ttyUSB0`
+
+Examples:
+
+Default `robot_0`:
+
+```bash
+bash firmware/run_relay.sh
+```
+
+Explicit robot ID:
+
+```bash
+bash firmware/run_relay.sh --robot-id robot_1
+```
+
+Explicit robot ID plus serial port override:
+
+```bash
+bash firmware/run_relay.sh --robot-id robot_1 --port /dev/ttyUSB1
+```
+
+Override the relay URL:
+
+```bash
+bash firmware/run_relay.sh --robot-id robot_1 --relay-url https://relay.example.com
+```
+
+Pass extra `run.py` flags after `--`:
+
+```bash
+bash firmware/run_relay.sh --robot-id robot_1 -- --max-steps 20
+```
+
 ### Relay Notes
 
 - The relay is intentionally minimal and keeps line-based message queues in memory.
