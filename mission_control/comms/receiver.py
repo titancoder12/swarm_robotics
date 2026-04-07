@@ -265,6 +265,7 @@ class BLEClientWorker(_Worker):
             raise RuntimeError("bleak is not installed; BLE client transport is unavailable")
         address = await self._resolve_address()
         async with BleakClient(address, timeout=self.timeout_s) as client:
+            self._rx_buffer = ""
             self._tx_queue = asyncio.Queue()
             await client.start_notify(self.notify_char_uuid, lambda sender, data: self._notify_callback(client, sender, data))
             logger.info("command-center BLE client connected to %s", address)
@@ -273,6 +274,7 @@ class BLEClientWorker(_Worker):
                 while not self.stop_event.is_set() and client.is_connected:
                     await asyncio.sleep(0.1)
             finally:
+                logger.info("command-center BLE client disconnected from %s", address)
                 writer_task.cancel()
                 try:
                     await writer_task
@@ -296,7 +298,8 @@ class BLEClientWorker(_Worker):
                     if self.stop_event.wait(1.0):
                         break
                 else:
-                    break
+                    if self.stop_event.wait(1.0):
+                        break
         finally:
             loop.close()
 
