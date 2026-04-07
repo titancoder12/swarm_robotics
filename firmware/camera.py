@@ -118,6 +118,11 @@ class CameraTargetDetector:
     def detect(self) -> CameraDetection:
         if not self._ensure_open():
             return CameraDetection()
+        if cv2 is None:
+            if self.debug and not self._warned_unavailable:
+                print("[debug] camera disabled: cv2 is required for HSV target detection", flush=True)
+                self._warned_unavailable = True
+            return CameraDetection()
 
         frame = None
         if self._picam2 is not None:

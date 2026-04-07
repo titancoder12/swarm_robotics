@@ -34,6 +34,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
 
     y += 8
     robot_rows = telemetry.get("robot_rows", [])
+    stale_ids = set(telemetry.get("stale_ids", []))
     surface.blit(body_font.render("Robots", True, colors.SUBTEXT), (rect.left + 16, y))
     y += 24
     if not robot_rows:
@@ -43,19 +44,24 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
         for row in robot_rows[:8]:
             heading = row.get("heading_deg")
             heading_text = "--" if heading is None else f"{heading:.0f}"
+            is_stale = row["robot_id"] in stale_ids
+            status_text = "disconnected" if is_stale else "connected"
+            row_color = colors.STALE if is_stale else colors.TEXT
             label = (
                 f"{row['robot_id']}: "
+                f"{status_text} "
                 f"x={row['x_cm']:+.1f} "
                 f"y={row['y_cm']:+.1f} "
                 f"hdg={heading_text} "
                 f"age={row['age_s']:.1f}s"
             )
-            surface.blit(body_font.render(label, True, colors.TEXT), (rect.left + 16, y))
+            surface.blit(body_font.render(label, True, row_color), (rect.left + 16, y))
             y += 22
             lidar_ranges_mm = row.get("lidar_ranges_mm", [])
             if lidar_ranges_mm:
                 lidar_text = "lidar: " + " ".join(f"{int(round(value)):>3d}" for value in lidar_ranges_mm[:9])
-                surface.blit(body_font.render(lidar_text, True, colors.SUBTEXT), (rect.left + 24, y))
+                lidar_color = colors.SUBTEXT if not is_stale else colors.STALE
+                surface.blit(body_font.render(lidar_text, True, lidar_color), (rect.left + 24, y))
                 y += 20
 
     y += 8
