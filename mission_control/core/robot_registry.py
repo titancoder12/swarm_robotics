@@ -15,6 +15,10 @@ class RobotState:
     lidar_ranges_mm: tuple[float, ...] = ()
     carrying_food: bool | None = None
     connection_label: str | None = None
+    target_x_cm: float | None = None
+    target_y_cm: float | None = None
+    target_confidence: float = 0.0
+    last_target_seen: float | None = None
 
     @property
     def age_s(self) -> float:
@@ -79,6 +83,23 @@ class RobotRegistry:
         state.last_seen = time.time()
         return state
 
+    def update_target(self, robot_id: str, x_cm: float, y_cm: float, confidence: float) -> RobotState:
+        state = self._robots.get(robot_id)
+        if state is None:
+            state = RobotState(
+                robot_id=robot_id,
+                x_cm=0.0,
+                y_cm=0.0,
+                heading_deg=None,
+                last_seen=time.time(),
+            )
+            self._robots[robot_id] = state
+        state.target_x_cm = float(x_cm)
+        state.target_y_cm = float(y_cm)
+        state.target_confidence = float(confidence)
+        state.last_target_seen = time.time()
+        return state
+
     def snapshot(self) -> dict[str, RobotState]:
         return dict(self._robots)
 
@@ -101,6 +122,10 @@ class RobotRegistry:
                     "heading_deg": state.heading_deg,
                     "age_s": state.age_s,
                     "lidar_ranges_mm": list(state.lidar_ranges_mm),
+                    "target_x_cm": state.target_x_cm,
+                    "target_y_cm": state.target_y_cm,
+                    "target_confidence": state.target_confidence,
+                    "target_age_s": None if state.last_target_seen is None else max(0.0, time.time() - state.last_target_seen),
                 }
             )
         return {

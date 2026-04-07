@@ -21,6 +21,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
         f"paused: {telemetry.get('paused', False)}",
         f"show trails: {telemetry.get('show_trails', False)}",
         f"show pheromone: {telemetry.get('show_pheromone', False)}",
+        f"show targets: {telemetry.get('show_targets', False)}",
         # Show aggregate field numbers so operators can tell whether the map is
         # decaying, saturating, or has effectively gone empty.
         f"pher total: {telemetry.get('pheromone_total', 0.0):.2f}",
@@ -63,6 +64,17 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                 lidar_color = colors.SUBTEXT if not is_stale else colors.STALE
                 surface.blit(body_font.render(lidar_text, True, lidar_color), (rect.left + 24, y))
                 y += 20
+            target_x_cm = row.get("target_x_cm")
+            target_y_cm = row.get("target_y_cm")
+            target_age_s = row.get("target_age_s")
+            if target_x_cm is not None and target_y_cm is not None and target_age_s is not None and target_age_s <= 3.0:
+                target_text = (
+                    f"target: x={target_x_cm:+.1f} y={target_y_cm:+.1f} "
+                    f"conf={row.get('target_confidence', 0.0):.2f} age={target_age_s:.1f}s"
+                )
+                target_color = colors.TARGET_MARKER if not is_stale else colors.STALE
+                surface.blit(body_font.render(target_text, True, target_color), (rect.left + 24, y))
+                y += 20
 
     y += 8
     flashed_controls = set(telemetry.get("flashed_controls", []))
@@ -70,6 +82,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
         ("space", "Space", ": pause"),
         ("t", "T", ": toggle trails"),
         ("p", "P", ": toggle pheromone"),
+        ("y", "Y", ": toggle targets"),
         ("c", "C", ": clear pheromone"),
         ("quit", "Q / Esc", ": quit"),
     ]

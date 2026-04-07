@@ -34,6 +34,7 @@ class WorldState:
         self._paused = False
         self._show_trails = True
         self._show_pheromone = True
+        self._show_targets = True
         self._last_decay = time.time()
         self._control_flash_until: dict[str, float] = {}
 
@@ -58,6 +59,10 @@ class WorldState:
     def deposit_pheromone(self, x_cm: float, y_cm: float, amount: float) -> tuple[int, int]:
         with self._lock:
             return self.pheromone.deposit(x_cm, y_cm, amount)
+
+    def update_target_detection(self, robot_id: str, x_cm: float, y_cm: float, confidence: float) -> None:
+        with self._lock:
+            self.robot_registry.update_target(robot_id, x_cm, y_cm, confidence)
 
     def sample_pheromone(self, x_cm: float, y_cm: float, heading_deg: float) -> np.ndarray:
         heading_rad = math.radians(heading_deg)
@@ -94,6 +99,11 @@ class WorldState:
             self._show_pheromone = not self._show_pheromone
             return self._show_pheromone
 
+    def toggle_targets(self) -> bool:
+        with self._lock:
+            self._show_targets = not self._show_targets
+            return self._show_targets
+
     def flash_control(self, control_id: str, duration_s: float = 0.3) -> None:
         with self._lock:
             self._control_flash_until[control_id] = time.time() + max(0.0, duration_s)
@@ -117,6 +127,7 @@ class WorldState:
                 "paused": self._paused,
                 "show_trails": self._show_trails,
                 "show_pheromone": self._show_pheromone,
+                "show_targets": self._show_targets,
                 "stale_ids": self.robot_registry.stale_ids(self.cfg.robot_stale_after_s),
                 "flashed_controls": flashed_controls,
             }

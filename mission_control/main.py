@@ -12,6 +12,7 @@ from mission_control.comms.protocol import (
     PositionMessage,
     ProtocolError,
     SenseMessage,
+    TargetMessage,
     format_pheromone_response,
     parse_line,
 )
@@ -110,6 +111,10 @@ def main(argv: list[str] | None = None) -> int:
             world.robot_registry.update_lidar(msg.robot_id, msg.ranges_mm)
             return []
 
+        if isinstance(msg, TargetMessage):
+            world.update_target_detection(msg.robot_id, msg.x_cm, msg.y_cm, msg.confidence)
+            return []
+
         if isinstance(msg, SenseMessage):
             # `SENSE` is the request/response path: sample the field and return
             # the simulator-compatible pheromone observation slice.
@@ -178,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
                     elif event.key == pygame.K_p:
                         world.flash_control("p")
                         world.toggle_pheromone()
+                    elif event.key == pygame.K_y:
+                        world.flash_control("y")
+                        world.toggle_targets()
 
             world.tick()
             renderer.draw(world.snapshot())

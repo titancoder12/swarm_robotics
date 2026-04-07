@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 
 import numpy as np
 import pygame
@@ -36,6 +37,8 @@ class Renderer:
         self._draw_nest(world_rect)
         self._draw_trails(world_rect, snapshot.trails)
         self._draw_robots(world_rect, snapshot)
+        if snapshot.telemetry.get("show_targets", True):
+            self._draw_targets(world_rect, snapshot)
         draw_status_panel(self.screen, panel_rect, snapshot.telemetry)
         pygame.display.flip()
         self.clock.tick(self.cfg.fps)
@@ -108,6 +111,25 @@ class Renderer:
                 pygame.draw.line(self.screen, colors.TEXT, center, tip, 2)
             label = self.robot_font.render(robot_id, True, colors.TEXT)
             self.screen.blit(label, (center[0] + 8, center[1] - 8))
+
+    def _draw_targets(self, rect: pygame.Rect, snapshot: WorldSnapshot) -> None:
+        for robot_id, state in sorted(snapshot.robots.items()):
+            if state.target_x_cm is None or state.target_y_cm is None or state.last_target_seen is None:
+                continue
+            age_s = max(0.0, time.time() - state.last_target_seen)
+            fade = max(0.0, 1.0 - age_s / 3.0)
+            if fade <= 0.0:
+                continue
+            center = self._world_to_screen(rect, state.target_x_cm, state.target_y_cm)
+            radius = max(5, int((6.0 + 12.0 * min(1.0, max(0.0, state.target_confidence))) * self.render_scale))
+            ring_radius = radius + max(4, int(6 * self.render_scale))
+            marker_surface = pygame.Surface((ring_radius * 2 + 4, ring_radius * 2 + 4), pygame.SRCALPHA)
+            local_center = (marker_surface.get_width() // 2, marker_surface.get_height() // 2)
+            ring_alpha = int(90 * fade)
+            fill_alpha = int(180 * fade)
+            pygame.draw.circle(marker_surface, (*colors.TARGET_RING, ring_alpha), local_center, ring_radius, width=2)
+            pygame.draw.circle(marker_surface, (*colors.TARGET_MARKER, fill_alpha), local_center, radius)
+            self.screen.blit(marker_surface, (center[0] - local_center[0], center[1] - local_center[1]))
 
     def _draw_lidar_semicircle(
         self,

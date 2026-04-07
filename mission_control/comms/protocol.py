@@ -44,6 +44,14 @@ class LidarMessage(Message):
     ranges_mm: tuple[float, ...]
 
 
+@dataclass(frozen=True)
+class TargetMessage(Message):
+    robot_id: str
+    x_cm: float
+    y_cm: float
+    confidence: float
+
+
 def parse_line(line: str) -> Message:
     # Keep the wire format deliberately small and line-oriented so it can be
     # mirrored easily on the robot side with serial.readline()-style loops.
@@ -76,6 +84,17 @@ def parse_line(line: str) -> Message:
         except ValueError as exc:
             raise ProtocolError(f"LIDAR contains a non-numeric range: {exc}") from exc
         return LidarMessage(kind="LIDAR", robot_id=parts[1], ranges_mm=ranges_mm)
+
+    if kind == "TARGET":
+        if len(parts) != 5:
+            raise ProtocolError(f"TARGET expects 5 fields, got {len(parts)}")
+        return TargetMessage(
+            kind="TARGET",
+            robot_id=parts[1],
+            x_cm=float(parts[2]),
+            y_cm=float(parts[3]),
+            confidence=float(parts[4]),
+        )
 
     raise ProtocolError(f"unknown message type {kind}")
 

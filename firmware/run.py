@@ -75,6 +75,15 @@ def pose_to_cm(pose: PoseEstimate) -> tuple[float, float]:
     return pose.x_mm / 10.0, pose.y_mm / 10.0
 
 
+def project_camera_target_to_world_cm(pose: PoseEstimate, detection: CameraDetection) -> tuple[float, float]:
+    distance_cm = max(0.0, float(detection.distance_m) * 100.0)
+    absolute_heading_rad = math.radians(pose.heading_deg) + float(detection.angle_rad)
+    return (
+        pose.x_mm / 10.0 + math.cos(absolute_heading_rad) * distance_cm,
+        pose.y_mm / 10.0 + math.sin(absolute_heading_rad) * distance_cm,
+    )
+
+
 def parse_args(argv=None):
     # Keep runtime, robot-link, and command-center transport flags together so
     # the deployment surface is visible from one place.
@@ -619,6 +628,9 @@ def main(argv=None):
                 x_cm, y_cm = pose_to_cm(pose)
                 mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
                 mission_control_link.send_lidar(args.robot_id, lidar_ranges_mm)
+                if camera_detection is not None and camera_detection.found:
+                    target_x_cm, target_y_cm = project_camera_target_to_world_cm(pose, camera_detection)
+                    mission_control_link.send_target(args.robot_id, target_x_cm, target_y_cm, camera_detection.confidence)
                 # Mission Control is the source of truth for the digital pheromone
                 # field, so the runtime pulls the latest 3-sample slice right
                 # before inference.

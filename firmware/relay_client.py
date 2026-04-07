@@ -62,6 +62,13 @@ class CommandCenterRelayClient:
             if self.debug:
                 print(f"[debug] RELAY LIDAR send failed: {type(exc).__name__}: {exc!r}", flush=True)
 
+    def send_target(self, robot_id: str, x_cm: float, y_cm: float, confidence: float) -> None:
+        try:
+            self._send_line(f"TARGET,{robot_id},{x_cm:.2f},{y_cm:.2f},{confidence:.3f}")
+        except Exception as exc:  # pragma: no cover - network-dependent path
+            if self.debug:
+                print(f"[debug] RELAY TARGET send failed: {type(exc).__name__}: {exc!r}", flush=True)
+
     def deposit_pheromone(self, robot_id: str, x_cm: float, y_cm: float, amount: float) -> None:
         try:
             self._send_line(f"PHER,{robot_id},{x_cm:.2f},{y_cm:.2f},{amount:.3f}")
