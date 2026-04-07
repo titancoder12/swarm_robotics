@@ -36,16 +36,29 @@ class RobotRegistry:
         connection_label: str | None = None,
         carrying_food: bool | None = None,
     ) -> RobotState:
-        state = RobotState(
-            robot_id=robot_id,
-            x_cm=float(x_cm),
-            y_cm=float(y_cm),
-            heading_deg=None if heading_deg is None else float(heading_deg),
-            last_seen=time.time(),
-            carrying_food=carrying_food,
-            connection_label=connection_label,
-        )
-        self._robots[robot_id] = state
+        now = time.time()
+        state = self._robots.get(robot_id)
+        if state is None:
+            state = RobotState(
+                robot_id=robot_id,
+                x_cm=float(x_cm),
+                y_cm=float(y_cm),
+                heading_deg=None if heading_deg is None else float(heading_deg),
+                last_seen=now,
+                carrying_food=carrying_food,
+                connection_label=connection_label,
+            )
+            self._robots[robot_id] = state
+            return state
+
+        state.x_cm = float(x_cm)
+        state.y_cm = float(y_cm)
+        state.heading_deg = None if heading_deg is None else float(heading_deg)
+        state.last_seen = now
+        if carrying_food is not None:
+            state.carrying_food = carrying_food
+        if connection_label is not None:
+            state.connection_label = connection_label
         return state
 
     def get(self, robot_id: str) -> RobotState | None:
@@ -54,7 +67,14 @@ class RobotRegistry:
     def update_lidar(self, robot_id: str, ranges_mm: tuple[float, ...]) -> RobotState | None:
         state = self._robots.get(robot_id)
         if state is None:
-            return None
+            state = RobotState(
+                robot_id=robot_id,
+                x_cm=0.0,
+                y_cm=0.0,
+                heading_deg=None,
+                last_seen=time.time(),
+            )
+            self._robots[robot_id] = state
         state.lidar_ranges_mm = tuple(float(value) for value in ranges_mm)
         state.last_seen = time.time()
         return state

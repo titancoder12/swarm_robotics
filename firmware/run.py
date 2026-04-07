@@ -103,7 +103,12 @@ def parse_args(argv=None):
     parser.add_argument("--cc-relay-session", type=str, default="")
     parser.add_argument("--cc-relay-timeout", type=float, default=1.0)
     parser.add_argument("--cc-ble-enable", action="store_true")
-    parser.add_argument("--cc-ble-address", type=str, default="")
+    parser.add_argument(
+        "--cc-ble-address",
+        type=str,
+        default="",
+        help="Deprecated in current reversed-role BLE mode; the robot advertises and Mission Control connects.",
+    )
     parser.add_argument("--cc-ble-device-name", type=str, default="")
     parser.add_argument("--cc-ble-service-uuid", type=str, default=DEFAULT_BLE_SERVICE_UUID)
     parser.add_argument("--cc-ble-write-char-uuid", type=str, default=DEFAULT_BLE_WRITE_CHAR_UUID)
@@ -475,6 +480,12 @@ def main(argv=None):
         agent_radius_cm=args.agent_radius_cm,
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
+    if args.cc_ble_enable and args.cc_ble_address and args.debug:
+        print(
+            "[debug] ignoring --cc-ble-address; in current BLE mode the robot is the peripheral "
+            "and Mission Control connects as the client",
+            flush=True,
+        )
     mission_control_link = None
     if args.cc_relay_url:
         mission_control_link = CommandCenterRelayClient(
