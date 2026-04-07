@@ -26,6 +26,7 @@ from firmware.bluetooth import (
     DEFAULT_BLE_WRITE_CHAR_UUID,
     CommandCenterBLEPeripheral,
 )
+from firmware.camera import CameraDetection, CameraTargetDetector
 from firmware.command_center_client import CommandCenterTCPClient
 from firmware.relay_client import CommandCenterRelayClient
 from models.q_network import QNetwork
@@ -116,6 +117,15 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
+    parser.add_argument("--camera-enable", action="store_true")
+    parser.add_argument("--camera-index", type=int, default=0)
+    parser.add_argument("--camera-width", type=int, default=640)
+    parser.add_argument("--camera-height", type=int, default=480)
+    parser.add_argument("--camera-horizontal-fov-deg", type=float, default=62.0)
+    parser.add_argument("--camera-target-width-cm", type=float, default=6.0)
+    parser.add_argument("--camera-min-area-px", type=int, default=400)
+    parser.add_argument("--camera-hsv-lower", type=str, default="20,120,120")
+    parser.add_argument("--camera-hsv-upper", type=str, default="40,255,255")
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
@@ -227,6 +237,7 @@ def build_single_observation(
     cfg: PolicyConfig,
     scan_points: list[dict],
     pose: PoseEstimate,
+    camera_detection: CameraDetection | None = None,
     pheromone_values: list[float] | tuple[float, ...] | None = None,
     speed_mps: float = 0.0,
 ) -> np.ndarray:
@@ -235,9 +246,18 @@ def build_single_observation(
     # from the command center.
     ranges_m = [value / 1000.0 for value in bucketize_scan(cfg, scan_points)]
     lidar = normalize_ranges(cfg, ranges_m)
-    # These channels are still placeholders in the current robot runtime
-    # because the Pi does not yet estimate target and neighbor state.
-    target = normalize_xy(cfg, [0.0, 0.0])
+    if camera_detection is not None and camera_detection.found:
+        target = np.array(
+            [
+                np.clip(camera_detection.distance_m / max(cfg.lidar_max_range_m, 1e-6), 0.0, 1.0),
+                np.clip(camera_detection.angle_rad / math.pi, -1.0, 1.0),
+            ],
+            dtype=np.float32,
+        )
+        food_presence = np.array([1.0], dtype=np.float32)
+    else:
+        target = np.zeros(2, dtype=np.float32)
+        food_presence = np.array([0.0], dtype=np.float32)
     # Starting at the nest means the nest-relative vector is just the negative
     # of our current dead-reckoned pose.
     nest = normalize_xy(cfg, [-(pose.x_mm / 1000.0), -(pose.y_mm / 1000.0)])
@@ -247,7 +267,6 @@ def build_single_observation(
     heading_rad = math.radians(pose.heading_deg)
     heading = np.array([math.sin(heading_rad), math.cos(heading_rad)], dtype=np.float32)
     speed = np.array([np.clip(speed_mps / max(cfg.max_speed_mps, 1e-6), -1.0, 1.0)], dtype=np.float32)
-    food_presence = np.array([0.0], dtype=np.float32)
     carrying = np.array([0.0], dtype=np.float32)
     pheromone = normalize_pheromone(cfg, list(pheromone_values or ([0.0] * cfg.pheromone_samples)))
 
@@ -480,6 +499,28 @@ def main(argv=None):
         agent_radius_cm=args.agent_radius_cm,
     )
     awareness_radius_cm = pheromone_awareness_radius_cm(cfg)
+    camera_detector = None
+    if args.camera_enable:
+        try:
+            lower = tuple(int(part.strip()) for part in args.camera_hsv_lower.split(","))
+            upper = tuple(int(part.strip()) for part in args.camera_hsv_upper.split(","))
+            if len(lower) != 3 or len(upper) != 3:
+                raise ValueError("camera HSV bounds must each contain exactly 3 comma-separated integers")
+            camera_detector = CameraTargetDetector(
+                camera_index=args.camera_index,
+                width=args.camera_width,
+                height=args.camera_height,
+                horizontal_fov_deg=args.camera_horizontal_fov_deg,
+                target_width_cm=args.camera_target_width_cm,
+                min_area_px=args.camera_min_area_px,
+                hsv_lower=lower,
+                hsv_upper=upper,
+                debug=args.debug,
+            )
+        except Exception as exc:
+            if args.debug:
+                print(f"[debug] camera detector initialization failed: {type(exc).__name__}: {exc!r}", flush=True)
+            camera_detector = None
     if args.cc_ble_enable and args.cc_ble_address and args.debug:
         print(
             "[debug] ignoring --cc-ble-address; in current BLE mode the robot is the peripheral "
@@ -569,6 +610,7 @@ def main(argv=None):
             start = time.perf_counter()
             scan_points = robot.read_sensor_lines(duration=args.scan_duration)
             lidar_ranges_mm = bucketize_scan(cfg, scan_points)
+            camera_detection = camera_detector.detect() if camera_detector is not None else None
             pheromone_values = (0.0, 0.0, 0.0)
             if mission_control_link is not None:
                 # Publish the latest dead-reckoned pose before the query so
@@ -586,6 +628,7 @@ def main(argv=None):
                 cfg,
                 scan_points,
                 pose=pose,
+                camera_detection=camera_detection,
                 pheromone_values=pheromone_values,
                 speed_mps=speed_mps,
             )
@@ -669,12 +712,22 @@ def main(argv=None):
                     f"[debug] lidar={lidar_preview} pheromone={list(np.round(pheromone_values, 3))} q_values={q_values_preview}",
                     flush=True,
                 )
+                if camera_detector is not None:
+                    found = bool(camera_detection and camera_detection.found)
+                    print(
+                        f"[debug] camera found={found} "
+                        f"distance_m={(camera_detection.distance_m if camera_detection else 0.0):.3f} "
+                        f"angle_deg={(math.degrees(camera_detection.angle_rad) if camera_detection else 0.0):.1f}",
+                        flush=True,
+                    )
 
             if sleep_time > 0:
                 time.sleep(sleep_time)
     finally:
         if args.debug:
             print("[debug] closing robot connection", flush=True)
+        if camera_detector is not None:
+            camera_detector.close()
         if mission_control_link is not None:
             mission_control_link.close()
         robot.close()
