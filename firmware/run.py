@@ -601,6 +601,21 @@ def main(argv=None):
     if args.debug:
         print("[debug] robot connected", flush=True)
 
+    stream_ready = robot.wait_for_stream_ready(timeout=max(3.0, args.scan_duration + 1.0))
+    if args.debug:
+        print(f"[debug] robot stream_ready={stream_ready}", flush=True)
+    if not stream_ready:
+        if args.debug:
+            print("[debug] robot stream not ready after first connect; retrying serial startup once", flush=True)
+        robot.close()
+        time.sleep(0.5)
+        robot.connect()
+        if args.debug:
+            print("[debug] robot reconnected for startup retry", flush=True)
+        stream_ready = robot.wait_for_stream_ready(timeout=max(3.0, args.scan_duration + 1.0))
+        if args.debug:
+            print(f"[debug] robot stream_ready_after_retry={stream_ready}", flush=True)
+
     if mission_control_link is not None:
         # Publish the origin/nest pose immediately so Mission Control has a
         # consistent starting point before the first SENSE request arrives.

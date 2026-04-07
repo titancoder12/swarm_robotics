@@ -44,6 +44,11 @@ class ESP32Robot:
         self.ser.reset_input_buffer()
         self.ser.reset_output_buffer()
 
+    def reset_buffers(self) -> None:
+        ser = self._require_serial()
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
+
     def close(self) -> None:
         if self.ser is not None:
             self.ser.close()
@@ -61,15 +66,44 @@ class ESP32Robot:
         ser.write(line.encode("utf-8"))
         ser.flush()
 
-    def read_line(self) -> Optional[str]:
+    def read_line(self, timeout_override: float | None = None) -> Optional[str]:
         ser = self._require_serial()
-        raw = ser.readline()
+        if timeout_override is None:
+            raw = ser.readline()
+        else:
+            original_timeout = ser.timeout
+            try:
+                ser.timeout = max(0.0, float(timeout_override))
+                raw = ser.readline()
+            finally:
+                ser.timeout = original_timeout
         if not raw:
             return None
 
         line = raw.decode("utf-8", errors="ignore").strip()
         #print(line)
         return line if line else None
+
+    def wait_for_stream_ready(self, timeout: float = 3.0, line_timeout: float = 0.1) -> bool:
+        ser = self._require_serial()
+        start = time.time()
+        saw_any_bytes = False
+
+        while time.time() - start < timeout:
+            if ser.in_waiting:
+                saw_any_bytes = True
+                line = self.read_line(timeout_override=line_timeout)
+                if not line:
+                    time.sleep(0.01)
+                    continue
+                parsed = self.parse_line(line)
+                if parsed.get("type") == "scan":
+                    return True
+            time.sleep(0.01)
+
+        if saw_any_bytes:
+            self.reset_buffers()
+        return False
 
     def wait_response(self, timeout: float = 5.0) -> Dict[str, Any]:
         ser = self._require_serial()
@@ -125,7 +159,7 @@ class ESP32Robot:
 
         while time.time() - start < duration:
             if ser.in_waiting:
-                line = self.read_line()
+                line = self.read_line(timeout_override=0.05)
                 if line:
                     results.append(self.parse_line(line))
             time.sleep(0.005)
@@ -139,7 +173,7 @@ class ESP32Robot:
         while time.time() - start < timeout:
 
             if ser.in_waiting:
-                line = self.read_line()
+                line = self.read_line(timeout_override=0.05)
                 if not line:
                     continue
 
@@ -172,7 +206,7 @@ class ESP32Robot:
 
         while time.time() - start < timeout:
             if self._require_serial().in_waiting:
-                line = self.read_line()
+                line = self.read_line(timeout_override=0.05)
                 if not line:
                     continue
 
