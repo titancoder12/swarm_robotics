@@ -10,6 +10,11 @@ try:
 except ImportError:  # pragma: no cover - depends on runtime environment
     cv2 = None
 
+try:
+    from picamera2 import Picamera2
+except ImportError:  # pragma: no cover - depends on runtime environment
+    Picamera2 = None
+
 
 @dataclass
 class CameraDetection:
@@ -44,19 +49,52 @@ class CameraTargetDetector:
         self.hsv_upper = hsv_upper
         self.debug = debug
         self._cap = None
+        self._picam2 = None
         self._warned_unavailable = False
+        self._reported_backend = False
         # Simple pinhole estimate. Good enough for a first feature-level integration.
         self._focal_px = (self.width * 0.5) / max(math.tan(math.radians(self.horizontal_fov_deg) * 0.5), 1e-6)
 
+    def _ensure_picamera_open(self) -> bool:
+        if Picamera2 is None:
+            return False
+        if self._picam2 is not None:
+            return True
+        try:
+            picam2 = Picamera2(camera_num=self.camera_index)
+            config = picam2.create_preview_configuration(main={"size": (self.width, self.height)})
+            picam2.configure(config)
+            picam2.start()
+            self._picam2 = picam2
+            if self.debug and not self._reported_backend:
+                print(f"[debug] camera using Picamera2 backend at index {self.camera_index}", flush=True)
+                self._reported_backend = True
+            return True
+        except Exception as exc:  # pragma: no cover - depends on runtime environment
+            if self.debug:
+                print(f"[debug] Picamera2 init failed at index {self.camera_index}: {type(exc).__name__}: {exc!r}", flush=True)
+            if self._picam2 is not None:
+                try:
+                    self._picam2.stop()
+                except Exception:
+                    pass
+            self._picam2 = None
+            return False
+
     def _ensure_open(self) -> bool:
+        if self._ensure_picamera_open():
+            return True
         if cv2 is None:
             if self.debug and not self._warned_unavailable:
-                print("[debug] camera disabled: cv2 is not installed", flush=True)
+                if Picamera2 is None:
+                    print("[debug] camera disabled: neither picamera2 nor cv2 is installed", flush=True)
+                else:
+                    print("[debug] camera disabled: cv2 is not installed and Picamera2 could not initialize", flush=True)
                 self._warned_unavailable = True
             return False
         if self._cap is not None and self._cap.isOpened():
             return True
-        cap = cv2.VideoCapture(self.camera_index)
+        cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
         if not cap or not cap.isOpened():
             if self.debug and not self._warned_unavailable:
                 print(f"[debug] camera unavailable at index {self.camera_index}", flush=True)
@@ -67,16 +105,33 @@ class CameraTargetDetector:
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self._cap = cap
+        if self.debug and not self._reported_backend:
+            print(f"[debug] camera using OpenCV/V4L2 backend at index {self.camera_index}", flush=True)
+            self._reported_backend = True
         return True
 
     def detect(self) -> CameraDetection:
         if not self._ensure_open():
             return CameraDetection()
 
-        ok, frame = self._cap.read()
-        if not ok or frame is None:
-            if self.debug:
-                print("[debug] camera frame read failed", flush=True)
+        frame = None
+        if self._picam2 is not None:
+            try:
+                frame = self._picam2.capture_array()
+                if frame is not None and len(frame.shape) == 3 and frame.shape[2] == 4 and cv2 is not None:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+            except Exception as exc:  # pragma: no cover - depends on runtime environment
+                if self.debug:
+                    print(f"[debug] Picamera2 frame read failed: {type(exc).__name__}: {exc!r}", flush=True)
+                frame = None
+        elif self._cap is not None:
+            ok, frame = self._cap.read()
+            if not ok or frame is None:
+                if self.debug:
+                    print("[debug] camera frame read failed", flush=True)
+                return CameraDetection()
+
+        if frame is None:
             return CameraDetection()
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -122,6 +177,12 @@ class CameraTargetDetector:
         )
 
     def close(self) -> None:
+        if self._picam2 is not None:
+            try:
+                self._picam2.stop()
+            except Exception:
+                pass
+            self._picam2 = None
         if self._cap is not None:
             self._cap.release()
             self._cap = None
