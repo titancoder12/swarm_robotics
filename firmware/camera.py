@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass
 
 import numpy as np
@@ -62,9 +63,13 @@ class CameraTargetDetector:
             return True
         try:
             picam2 = Picamera2(camera_num=self.camera_index)
-            config = picam2.create_preview_configuration(main={"size": (self.width, self.height)})
+            config = picam2.create_still_configuration(
+                main={"size": (self.width, self.height), "format": "RGB888"},
+                buffer_count=2,
+            )
             picam2.configure(config)
-            picam2.start()
+            picam2.start(show_preview=False)
+            time.sleep(0.5)
             self._picam2 = picam2
             if self.debug and not self._reported_backend:
                 print(f"[debug] camera using Picamera2 backend at index {self.camera_index}", flush=True)
@@ -117,9 +122,12 @@ class CameraTargetDetector:
         frame = None
         if self._picam2 is not None:
             try:
-                frame = self._picam2.capture_array()
-                if frame is not None and len(frame.shape) == 3 and frame.shape[2] == 4 and cv2 is not None:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                frame = self._picam2.capture_array("main")
+                if frame is not None and len(frame.shape) == 3:
+                    if frame.shape[2] == 4 and cv2 is not None:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+                    elif frame.shape[2] == 3 and cv2 is not None:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             except Exception as exc:  # pragma: no cover - depends on runtime environment
                 if self.debug:
                     print(f"[debug] Picamera2 frame read failed: {type(exc).__name__}: {exc!r}", flush=True)
