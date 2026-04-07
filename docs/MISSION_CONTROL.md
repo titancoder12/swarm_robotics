@@ -173,6 +173,10 @@ target. The launcher defaults are tuned for a yellow-ish marker in HSV:
 - lower: `20,120,120`
 - upper: `40,255,255`
 
+For the tested Raspberry Pi setup, dependency recovery steps, Picamera2
+backend notes, and the known-good launch command and HSV range, see
+[CAMERA_SETUP.md](./CAMERA_SETUP.md).
+
 ### Direct Runtime Flags
 
 `firmware/run.py` accepts:

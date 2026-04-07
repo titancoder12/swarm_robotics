@@ -71,6 +71,8 @@ This repo has a large `docs/` tree. Use this table of contents to jump to the ri
   - Notes on the BLE / firmware-side communication path. Useful for the live robot stack.
 - [docs/MISSION_CONTROL.md](docs/MISSION_CONTROL.md)
   - Mission Control system overview. Use this when working on desktop-side multi-robot coordination infrastructure.
+- [docs/CAMERA_SETUP.md](docs/CAMERA_SETUP.md)
+  - Practical Raspberry Pi camera bring-up and recovery notes, including Picamera2 setup, dependency fixes, tested HSV bounds, and a known-good launch command.
 - [docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md](docs/MISSION_CONTROL_FIRMWARE_PSEUDOCODE.md)
   - Pseudocode-level view of the Mission Control firmware path. Helpful before editing the runtime code.
 - [docs/CAMERA_PROPOSAL.md](docs/CAMERA_PROPOSAL.md)
