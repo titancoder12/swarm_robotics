@@ -111,9 +111,15 @@ class RobotRegistry:
             if now - state.last_seen > stale_after_s
         ]
 
-    def telemetry(self) -> dict[str, Any]:
+    def telemetry(self, stale_after_s: float | None = None) -> dict[str, Any]:
         robot_rows = []
+        stale_after_s = None if stale_after_s is None else max(0.0, float(stale_after_s))
+        stale_ids: list[str] = []
         for robot_id, state in sorted(self._robots.items()):
+            is_stale = False
+            if stale_after_s is not None and state.age_s > stale_after_s:
+                is_stale = True
+                stale_ids.append(robot_id)
             robot_rows.append(
                 {
                     "robot_id": robot_id,
@@ -126,10 +132,13 @@ class RobotRegistry:
                     "target_y_cm": state.target_y_cm,
                     "target_confidence": state.target_confidence,
                     "target_age_s": None if state.last_target_seen is None else max(0.0, time.time() - state.last_target_seen),
+                    "connected": not is_stale,
                 }
             )
         return {
-            "robot_count": len(self._robots),
+            "robot_count": max(0, len(self._robots) - len(stale_ids)),
+            "tracked_count": len(self._robots),
             "robot_ids": sorted(self._robots.keys()),
+            "stale_ids": stale_ids,
             "robot_rows": robot_rows,
         }

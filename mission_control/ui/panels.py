@@ -18,6 +18,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
 
     rows = [
         f"robots: {telemetry.get('robot_count', 0)}",
+        f"tracked: {telemetry.get('tracked_count', telemetry.get('robot_count', 0))}",
         f"paused: {telemetry.get('paused', False)}",
         f"show trails: {telemetry.get('show_trails', False)}",
         f"show pheromone: {telemetry.get('show_pheromone', False)}",

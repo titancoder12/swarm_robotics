@@ -121,14 +121,15 @@ class WorldState:
                 for control_id, until in self._control_flash_until.items()
                 if until > now
             }
+            stale_ids = self.robot_registry.stale_ids(self.cfg.robot_stale_after_s)
             telemetry = {
-                **self.robot_registry.telemetry(),
+                **self.robot_registry.telemetry(self.cfg.robot_stale_after_s),
                 **self.pheromone.telemetry(),
                 "paused": self._paused,
                 "show_trails": self._show_trails,
                 "show_pheromone": self._show_pheromone,
                 "show_targets": self._show_targets,
-                "stale_ids": self.robot_registry.stale_ids(self.cfg.robot_stale_after_s),
+                "stale_ids": stale_ids,
                 "flashed_controls": flashed_controls,
             }
             return WorldSnapshot(
