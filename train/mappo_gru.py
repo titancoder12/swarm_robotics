@@ -197,6 +197,20 @@ def _build_env(args, stage):
         cfg.agent_spawn_near_target_radius = float(stage.agent_spawn_near_target_radius)
     if stage.target_nest_corridor_clearance is not None:
         cfg.target_nest_corridor_clearance = float(stage.target_nest_corridor_clearance)
+    if stage.obstacle_layout is not None:
+        cfg.obstacle_layout = str(stage.obstacle_layout)
+    if stage.obstacle_layout_gap_size is not None:
+        cfg.obstacle_layout_gap_size = float(stage.obstacle_layout_gap_size)
+    if stage.obstacle_layout_wall_thickness is not None:
+        cfg.obstacle_layout_wall_thickness = int(stage.obstacle_layout_wall_thickness)
+    if stage.obstacle_layout_gap_jitter is not None:
+        cfg.obstacle_layout_gap_jitter = float(stage.obstacle_layout_gap_jitter)
+    if stage.obstacle_layout_agent_spawn_radius is not None:
+        cfg.obstacle_layout_agent_spawn_radius = float(stage.obstacle_layout_agent_spawn_radius)
+    if stage.obstacle_layout_target_offset_radius is not None:
+        cfg.obstacle_layout_target_offset_radius = float(stage.obstacle_layout_target_offset_radius)
+    if stage.food_source_capacity is not None:
+        cfg.food_source_capacity = max(1, int(stage.food_source_capacity))
     cfg.start_carrying_food = bool(stage.start_carrying_food)
 
     # Respect an explicit top-level no-pheromone override even when later
@@ -251,6 +265,10 @@ def _stage_promotion_target(stage) -> StagePromotionTarget:
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.25)
     if stage.name == "stage2c_small_swarm_medium":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
+    if stage.name == "stage2c1_small_swarm_single_gap_bridge":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.05)
+    if stage.name == "stage2c2_small_swarm_single_gap_route_reuse":
+        return StagePromotionTarget(min_pickups=1.0, min_deliveries=1.0, min_conversion=0.10)
     if stage.name == "stage2d_small_swarm_large":
         return StagePromotionTarget(min_pickups=1.0, min_deliveries=0.5, min_conversion=0.03)
     if stage.name == "stage3a_full_swarm_large":

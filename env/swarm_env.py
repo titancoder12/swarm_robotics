@@ -123,6 +123,10 @@ class SwarmEnv(ParallelEnv):
         self.target_remaining_uses: List[int] = []
         self.obstacles: List[pygame.Rect] = []
         self.nest_position: Tuple[float, float] = (self.width * 0.5, self.height * 0.5)
+        self._layout_gap_center_y: float | None = None
+        self._layout_gap_top: float | None = None
+        self._layout_gap_bottom: float | None = None
+        self._layout_wall_x: float | None = None
         self.food_delivered = 0
         self.episode_food_source_respawns = 0
         self.coverage_grid = None
@@ -1022,6 +1026,14 @@ class SwarmEnv(ParallelEnv):
         """Randomly place agents in non-colliding free space."""
         # Randomly place agents in free space.
         self.agent_states = []
+        if getattr(self.cfg, "obstacle_layout", "random") == "single_gap_vertical" and self.cfg.obstacle_layout_agent_spawn_radius > 0.0:
+            anchor = (float(self.nest_position[0] + max(24.0, self.cfg.nest_radius + 18.0)), float(self.nest_position[1]))
+            near_anchor_radius = float(max(self.cfg.agent_radius, self.cfg.obstacle_layout_agent_spawn_radius))
+            for _ in range(self.cfg.n_agents):
+                pos = self._sample_free_position_near_anchor(self.cfg.agent_radius, anchor, near_anchor_radius)
+                theta = self.rng.uniform(-math.pi * 0.15, math.pi * 0.15)
+                self.agent_states.append(AgentState(pos[0], pos[1], theta, carrying_food=bool(self.cfg.start_carrying_food)))
+            return
         anchor = self.targets[0] if self.targets else None
         near_target_radius = float(max(0.0, self.cfg.agent_spawn_near_target_radius))
         for _ in range(self.cfg.n_agents):
@@ -1053,6 +1065,13 @@ class SwarmEnv(ParallelEnv):
         if not self.cfg.nest_enabled:
             self.nest_position = (self.width * 0.5, self.height * 0.5)
             return
+        if getattr(self.cfg, "obstacle_layout", "random") == "single_gap_vertical" and self._layout_gap_center_y is not None:
+            radius = float(self.cfg.nest_radius)
+            jitter = min(float(self.cfg.obstacle_layout_gap_jitter), max(8.0, float(self.cfg.obstacle_layout_gap_size) * 0.2))
+            y = float(np.clip(float(self._layout_gap_center_y) + self.rng.uniform(-jitter, jitter), radius, self.height - radius))
+            x = float(max(radius + 24.0, self.width * 0.18))
+            self.nest_position = (x, y)
+            return
         self.nest_position = self._sample_free_position(self.cfg.nest_radius)
 
     def _assign_failed_agents(self):
@@ -1066,7 +1085,27 @@ class SwarmEnv(ParallelEnv):
 
     def _spawn_obstacles(self):
         """Create random obstacle rectangles with simple overlap avoidance."""
+        layout = getattr(self.cfg, "obstacle_layout", "random")
+        if layout == "single_gap_vertical":
+            self.obstacles = []
+            wall_width = int(max(12, getattr(self.cfg, "obstacle_layout_wall_thickness", 80)))
+            gap_size = float(max(40.0, getattr(self.cfg, "obstacle_layout_gap_size", 0.0) or 180.0))
+            gap_jitter = float(max(0.0, getattr(self.cfg, "obstacle_layout_gap_jitter", 0.0)))
+            self._layout_wall_x = float(self.width * 0.5)
+            self._layout_gap_center_y = float(self.height * 0.5 + self.rng.uniform(-gap_jitter, gap_jitter))
+            self._layout_gap_top = max(40.0, self._layout_gap_center_y - gap_size * 0.5)
+            self._layout_gap_bottom = min(float(self.height - 40), self._layout_gap_center_y + gap_size * 0.5)
+            wall_x = int(self._layout_wall_x)
+            gap_top = int(self._layout_gap_top)
+            gap_bottom = int(self._layout_gap_bottom)
+            self.obstacles.append(pygame.Rect(wall_x, 0, wall_width, max(0, gap_top)))
+            self.obstacles.append(pygame.Rect(wall_x, gap_bottom, wall_width, max(0, self.height - gap_bottom)))
+            return
         # Randomly generate rectangular obstacles without overlaps.
+        self._layout_gap_center_y = None
+        self._layout_gap_top = None
+        self._layout_gap_bottom = None
+        self._layout_wall_x = None
         self.obstacles = []
         attempts = 0
         min_size = int(max(20, getattr(self.cfg, "obstacle_min_size", 40)))
@@ -1147,6 +1186,27 @@ class SwarmEnv(ParallelEnv):
 
     def _sample_target_position(self):
         """Sample a target position, optionally constrained by distance from the nest."""
+        if getattr(self.cfg, "obstacle_layout", "random") == "single_gap_vertical" and self._layout_gap_center_y is not None:
+            radius = float(self.cfg.target_radius)
+            offset_radius = float(max(0.0, getattr(self.cfg, "obstacle_layout_target_offset_radius", 0.0)))
+            for _ in range(200):
+                x = float(self.width * 0.82 + self.rng.uniform(-24.0, 24.0))
+                y = float(self._layout_gap_center_y + self.rng.uniform(-offset_radius, offset_radius))
+                x = float(np.clip(x, radius, self.width - radius))
+                y = float(np.clip(y, radius, self.height - radius))
+                circle = pygame.Rect(int(x - radius), int(y - radius), int(radius * 2), int(radius * 2))
+                if any(circle.colliderect(o) for o in self.obstacles):
+                    continue
+                if self.cfg.nest_enabled:
+                    nx, ny = self.nest_position
+                    nest_clearance = radius + self.cfg.nest_radius
+                    if (nx - x) ** 2 + (ny - y) ** 2 < nest_clearance ** 2:
+                        continue
+                if any((tx - x) ** 2 + (ty - y) ** 2 < (radius * 2) ** 2 for tx, ty in self.targets):
+                    continue
+                if any((agent.x - x) ** 2 + (agent.y - y) ** 2 < (radius * 2) ** 2 for agent in self.agent_states):
+                    continue
+                return x, y
         min_dist = float(max(0.0, self.cfg.target_nest_distance_min))
         max_dist = float(max(0.0, self.cfg.target_nest_distance_max))
         corridor_clearance = float(max(0.0, getattr(self.cfg, "target_nest_corridor_clearance", 0.0)))

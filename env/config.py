@@ -55,6 +55,12 @@ class SwarmConfig:
     start_carrying_food: bool = False
     obstacle_min_size: int = 40
     obstacle_max_size: int = 120
+    obstacle_layout: str = "random"
+    obstacle_layout_gap_size: float = 0.0
+    obstacle_layout_wall_thickness: int = 80
+    obstacle_layout_gap_jitter: float = 0.0
+    obstacle_layout_agent_spawn_radius: float = 0.0
+    obstacle_layout_target_offset_radius: float = 0.0
 
     # Pheromone grid
     pheromone_enabled: bool = True

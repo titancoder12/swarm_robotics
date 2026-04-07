@@ -213,6 +213,12 @@ def add_env_config_args(parser) -> None:
     parser.add_argument("--target-nest-distance-max", type=float, default=0.0)
     parser.add_argument("--agent-spawn-near-target-radius", type=float, default=0.0)
     parser.add_argument("--target-nest-corridor-clearance", type=float, default=0.0)
+    parser.add_argument("--obstacle-layout", type=str, default="random")
+    parser.add_argument("--obstacle-layout-gap-size", type=float, default=0.0)
+    parser.add_argument("--obstacle-layout-wall-thickness", type=int, default=80)
+    parser.add_argument("--obstacle-layout-gap-jitter", type=float, default=0.0)
+    parser.add_argument("--obstacle-layout-agent-spawn-radius", type=float, default=0.0)
+    parser.add_argument("--obstacle-layout-target-offset-radius", type=float, default=0.0)
     parser.add_argument("--reward-food-approach", type=float, default=0.03)
     parser.add_argument("--reward-food-detected", type=float, default=0.15)
     parser.add_argument("--reward-pheromone-follow", type=float, default=0.02)
@@ -279,6 +285,12 @@ def make_swarm_config(args) -> SwarmConfig:
         target_nest_distance_max=getattr(args, "target_nest_distance_max", 0.0),
         agent_spawn_near_target_radius=getattr(args, "agent_spawn_near_target_radius", 0.0),
         target_nest_corridor_clearance=getattr(args, "target_nest_corridor_clearance", 0.0),
+        obstacle_layout=getattr(args, "obstacle_layout", "random"),
+        obstacle_layout_gap_size=getattr(args, "obstacle_layout_gap_size", 0.0),
+        obstacle_layout_wall_thickness=max(1, int(getattr(args, "obstacle_layout_wall_thickness", 80))),
+        obstacle_layout_gap_jitter=max(0.0, float(getattr(args, "obstacle_layout_gap_jitter", 0.0))),
+        obstacle_layout_agent_spawn_radius=max(0.0, float(getattr(args, "obstacle_layout_agent_spawn_radius", 0.0))),
+        obstacle_layout_target_offset_radius=max(0.0, float(getattr(args, "obstacle_layout_target_offset_radius", 0.0))),
         pheromone_requires_food=bool(getattr(args, "pheromone_requires_food", True)),
         pheromone_deposit_requires_nest_progress=bool(getattr(args, "pheromone_deposit_requires_nest_progress", True)),
         non_carrying_nest_pheromone_suppression_radius=getattr(args, "non_carrying_nest_pheromone_suppression_radius", 0.0),
