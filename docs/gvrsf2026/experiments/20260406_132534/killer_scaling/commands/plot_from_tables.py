@@ -15,7 +15,7 @@ import numpy as np
 
 
 ROOT = Path(__file__).resolve().parents[6]
-BASE_DIR = ROOT / "docs" / "gvrsf2026" / "experiments" / "20260406_132534" / "killer_scaling"
+BASE_DIR = ROOT / "docs" / "gvrsf2026" / "experiments" / "20260407_020816" / "killer_scaling"
 FIGURES_DIR = BASE_DIR / "figures"
 SUMMARY_CSV = BASE_DIR / "tables" / "condition_summary.csv"
 
