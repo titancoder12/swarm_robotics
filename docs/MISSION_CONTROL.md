@@ -102,6 +102,10 @@ All other observation channels remain robot-local and are outside this subsystem
 - food presence
 - carrying-food state
 
+The current robot runtime can now optionally fill part of the target / food
+slots from an onboard camera, but this is still robot-local perception rather
+than a Mission Control feature.
+
 `PHER_RESP` is designed to match `_pheromone_samples()` in [env/swarm_env.py](../env/swarm_env.py):
 
 - sample count: 3
@@ -138,6 +142,123 @@ Recommended runtime behavior:
 - use a per-robot direct link such as serial or a dedicated TCP connection
 
 The transport should remain line-oriented and compatible with `serial.readline()`.
+
+## Optional Camera Target Detection
+
+The robot runtime now supports an optional OpenCV-based target detector that
+estimates:
+
+- whether a visually marked target is visible
+- approximate target distance
+- approximate target angle
+- binary food-presence cue
+
+This integration is backward compatible:
+
+- if `--camera-enable` is not used, the runtime behaves exactly as before
+- if `--camera-enable` is used but `cv2` is missing, the camera is unavailable,
+  or no target is detected, the runtime falls back to the current placeholder
+  behavior and continues running
+- Mission Control itself does not depend on the camera path
+
+Current semantics:
+
+- target feature slots are filled from camera distance / angle when detection succeeds
+- `food_presence` becomes `1.0` when a target is detected
+- all other observation channels continue to use the existing sources
+
+The default first version assumes a visually distinctive colored marker on the
+target. The launcher defaults are tuned for a yellow-ish marker in HSV:
+
+- lower: `20,120,120`
+- upper: `40,255,255`
+
+### Direct Runtime Flags
+
+`firmware/run.py` accepts:
+
+- `--camera-enable`
+- `--camera-index`
+- `--camera-width`
+- `--camera-height`
+- `--camera-horizontal-fov-deg`
+- `--camera-target-width-cm`
+- `--camera-min-area-px`
+- `--camera-hsv-lower`
+- `--camera-hsv-upper`
+
+Example:
+
+```bash
+python firmware/run.py \
+  --checkpoint-dir checkpoints \
+  --port /dev/ttyUSB0 \
+  --cc-relay-url https://relay.christopherlin.ca \
+  --cc-relay-session robot_0 \
+  --camera-enable \
+  --camera-index 0 \
+  --camera-hsv-lower 20,120,120 \
+  --camera-hsv-upper 40,255,255 \
+  --debug
+```
+
+### Relay Launcher With Camera
+
+The relay launcher now accepts the same common camera options:
+
+- `--camera-enable`
+- `--camera-index`
+- `--camera-width`
+- `--camera-height`
+- `--camera-horizontal-fov-deg`
+- `--camera-target-width-cm`
+- `--camera-min-area-px`
+- `--camera-hsv-lower`
+- `--camera-hsv-upper`
+
+Examples:
+
+```bash
+bash firmware/run_relay.sh --camera-enable
+```
+
+```bash
+bash firmware/run_relay.sh \
+  --robot-id robot_0 \
+  --camera-enable \
+  --camera-hsv-lower 20,120,120 \
+  --camera-hsv-upper 40,255,255
+```
+
+### Bluetooth Launcher With Camera
+
+The BLE launcher accepts the same camera options.
+
+Examples:
+
+```bash
+bash firmware/run_bluetooth.sh --camera-enable
+```
+
+```bash
+bash firmware/run_bluetooth.sh \
+  --robot-id robot_0 \
+  --camera-enable \
+  --camera-hsv-lower 20,120,120 \
+  --camera-hsv-upper 40,255,255
+```
+
+### Debug Output
+
+When both `--camera-enable` and `--debug` are active, the runtime prints a
+camera summary each control step, including:
+
+- `found`
+- estimated `distance_m`
+- estimated `angle_deg`
+
+This makes it easy to verify that camera perception is helping without making
+Mission Control depend on the camera path.
 
 ## TCP Transport
 
