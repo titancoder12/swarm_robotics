@@ -15,14 +15,6 @@ except ImportError:  # pragma: no cover - depends on local runtime env
     serial = None
 
 try:
-    from bless import BlessServer
-    from bless.backends.characteristic import GATTCharacteristicProperties, GATTAttributePermissions
-except ImportError:  # pragma: no cover - depends on local runtime env
-    BlessServer = None
-    GATTCharacteristicProperties = None
-    GATTAttributePermissions = None
-
-try:
     from bleak import BleakClient, BleakScanner
 except ImportError:  # pragma: no cover - depends on local runtime env
     BleakClient = None
@@ -200,122 +192,6 @@ class SerialWorker(_Worker):
                 pass
 
 
-class BLEPeripheralWorker(_Worker):
-    def __init__(
-        self,
-        device_name: str,
-        service_uuid: str,
-        write_char_uuid: str,
-        notify_char_uuid: str,
-        on_line: ResponseCallback,
-    ) -> None:
-        super().__init__(name=f"ble-{device_name}")
-        self.device_name = device_name
-        self.service_uuid = service_uuid
-        self.write_char_uuid = write_char_uuid
-        self.notify_char_uuid = notify_char_uuid
-        self.on_line = on_line
-        self.stop_event = threading.Event()
-        self._server = None
-        # BLE writes do not currently expose a stable per-central identifier in
-        # this transport layer, so multi-robot BLE is multiplexed over one
-        # shared text channel and separated by robot_id in each message.
-        self._rx_buffer = ""
-
-    @property
-    def label(self) -> str:
-        return f"ble:{self.device_name}"
-
-    def _line_label(self, line: str) -> str:
-        parts = [part.strip() for part in line.split(",")]
-        if len(parts) >= 2 and parts[1]:
-            return f"{self.label}:{parts[1]}"
-        return self.label
-
-    def _handle_write(self, value) -> None:
-        if value is None:
-            return
-        if isinstance(value, bytearray):
-            raw = bytes(value)
-        elif isinstance(value, bytes):
-            raw = value
-        else:
-            raw = str(value).encode("utf-8")
-        self._rx_buffer += raw.decode("utf-8", errors="ignore")
-        while "\n" in self._rx_buffer:
-            line, self._rx_buffer = self._rx_buffer.split("\n", 1)
-            line = line.strip()
-            if not line:
-                continue
-            # All BLE robots share the same characteristic pair, so Mission
-            # Control
-            # relies on robot_id in the protocol line to derive a logical
-            # per-robot connection label. Responses still include robot_id and
-            # may be observed by all centrals, with clients ignoring replies
-            # that do not match their own robot_id.
-            for response in self.on_line(self._line_label(line), line):
-                self._notify_line(response)
-
-    def _notify_line(self, line: str) -> None:
-        if self._server is None:
-            return
-        payload = (line.strip() + "\n").encode("utf-8")
-        try:
-            characteristic = self._server.get_characteristic(self.notify_char_uuid)
-            characteristic.value = bytearray(payload)
-            delivered = self._server.update_value(self.service_uuid, self.notify_char_uuid)
-            if not delivered:
-                logger.warning("BLE notify dropped on %s: no subscribed centrals", self.device_name)
-        except Exception as exc:  # pragma: no cover - depends on local BLE backend
-            logger.error("BLE notify failed on %s: %s", self.device_name, exc)
-
-    def run(self) -> None:
-        if BlessServer is None or GATTCharacteristicProperties is None or GATTAttributePermissions is None:
-            logger.error("BLE backend is unavailable; install bless to use BLE transport")
-            return
-
-        import asyncio
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        async def _serve() -> None:
-            self._server = BlessServer(name=self.device_name, loop=loop)
-            await self._server.add_new_service(self.service_uuid)
-            await self._server.add_new_characteristic(
-                self.service_uuid,
-                self.write_char_uuid,
-                GATTCharacteristicProperties.write | GATTCharacteristicProperties.write_without_response,
-                None,
-                GATTAttributePermissions.writeable,
-            )
-            await self._server.add_new_characteristic(
-                self.service_uuid,
-                self.notify_char_uuid,
-                GATTCharacteristicProperties.notify | GATTCharacteristicProperties.read,
-                None,
-                GATTAttributePermissions.readable,
-            )
-            self._server.get_characteristic(self.write_char_uuid).write_callback = self._handle_write
-            await self._server.start()
-            logger.info("command-center BLE peripheral %s started", self.device_name)
-            try:
-                while not self.stop_event.is_set():
-                    await asyncio.sleep(0.1)
-            finally:
-                await self._server.stop()
-
-        try:
-            loop.run_until_complete(_serve())
-        except Exception as exc:  # pragma: no cover - depends on local BLE backend
-            logger.error("BLE peripheral failed on %s: %s", self.device_name, exc)
-        finally:
-            loop.close()
-
-    def stop(self) -> None:
-        self.stop_event.set()
-
-
 class BLEClientWorker(_Worker):
     def __init__(
         self,
@@ -442,23 +318,6 @@ class ReceiverManager:
 
     def add_serial_port(self, port: str, baudrate: int, timeout_s: float) -> SerialWorker:
         worker = SerialWorker(port, baudrate, timeout_s, self.on_line)
-        self._workers.append(worker)
-        return worker
-
-    def add_ble_peripheral(
-        self,
-        device_name: str,
-        service_uuid: str = DEFAULT_BLE_SERVICE_UUID,
-        write_char_uuid: str = DEFAULT_BLE_WRITE_CHAR_UUID,
-        notify_char_uuid: str = DEFAULT_BLE_NOTIFY_CHAR_UUID,
-    ) -> BLEPeripheralWorker:
-        worker = BLEPeripheralWorker(
-            device_name=device_name,
-            service_uuid=service_uuid,
-            write_char_uuid=write_char_uuid,
-            notify_char_uuid=notify_char_uuid,
-            on_line=self.on_line,
-        )
         self._workers.append(worker)
         return worker
 
