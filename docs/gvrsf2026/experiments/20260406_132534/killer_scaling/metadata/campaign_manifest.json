@@ -6,16 +6,16 @@
   ],
   "design": "extended repeated-source pheromone ablation up to 30 agents",
   "primary_seed_range": [
-    2,
-    41
+    100,
+    119
   ],
   "primary_swarm_sizes": [
     6,
     30
   ],
   "supporting_seed_range": [
-    2,
-    41
+    100,
+    119
   ],
   "swarm_sizes": [
     1,

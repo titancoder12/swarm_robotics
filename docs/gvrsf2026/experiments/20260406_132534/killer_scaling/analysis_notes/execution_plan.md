@@ -13,17 +13,13 @@ Design:
   - trained with pheromone, evaluated without pheromone
   - trained without pheromone, evaluated without pheromone
 - task:
-  - one active food source
-  - source capacity `12`
-  - horizon `1200`
+  - full final-stage arena from `checkpoints/mappo_g/latest`
+  - `3` active targets
+  - `18` obstacles
+  - horizon `800`
 - swarm sizes:
   - `1`, `3`, `6`, `10`, `15`, `20`, `30`
 
-Primary paired tests:
+Repetitions:
 
-- `6` agents with `50` paired seeds for continuity with prior evidence
-- `30` agents with `50` paired seeds as the new upper-bound confirmation test
-
-Supporting sizes:
-
-- `1`, `3`, `10`, `15`, and `20` agents with `20` paired seeds each
+- `20` paired seeds for every swarm size and condition

@@ -198,6 +198,16 @@ def _build_env(args, stage):
     if stage.target_nest_corridor_clearance is not None:
         cfg.target_nest_corridor_clearance = float(stage.target_nest_corridor_clearance)
     cfg.start_carrying_food = bool(stage.start_carrying_food)
+
+    # Respect an explicit top-level no-pheromone override even when later
+    # curriculum stages would normally re-enable pheromones.
+    if (hasattr(args_copy, "use_pheromone") and args_copy.use_pheromone is False) or getattr(
+        args_copy, "pheromone_disabled", False
+    ):
+        cfg.pheromone_enabled = False
+        cfg.render_pheromone = False
+        cfg.reward_pheromone_follow = 0.0
+
     env = SwarmEnv(cfg, headless=bool(args.headless))
     return cfg, env
 

@@ -39,27 +39,36 @@ def grouped_metric_plot(rows, metric, filename, title):
     swarm_sizes = sorted({int(r["n_agents"]) for r in rows})
     fig, ax = plt.subplots(figsize=(10, 5.4))
     colors = ["#2F5597", "#70AD47", "#C0504D"]
-    markers = ["o", "s", "^"]
+    x = np.arange(len(swarm_sizes), dtype=np.float64)
+    width = 0.24
     for idx, condition in enumerate(order):
         subset = [r for r in rows if r["condition"] == condition]
         subset.sort(key=lambda r: int(r["n_agents"]))
         means = [float(r[f"{metric}_mean"]) for r in subset]
         cis = [float(r[f"{metric}_ci95"]) for r in subset]
+        ax.bar(
+            x + (idx - 1) * width,
+            means,
+            width=width,
+            color=colors[idx],
+            label=labels[condition],
+            edgecolor="white",
+            linewidth=0.8,
+        )
         ax.errorbar(
-            swarm_sizes,
+            x + (idx - 1) * width,
             means,
             yerr=cis,
-            marker=markers[idx],
-            linewidth=2.2,
-            markersize=6,
             capsize=4,
-            label=labels[condition],
-            color=colors[idx],
+            color="#333333",
+            linestyle="none",
+            linewidth=1.0,
         )
     ax.set_xlabel("Number of Agents")
     ax.set_ylabel(metric.replace("_", " ").title())
     ax.set_title(title)
-    ax.set_xticks(swarm_sizes)
+    ax.set_xticks(x)
+    ax.set_xticklabels(swarm_sizes)
     ax.legend(fontsize=8)
     ax.grid(True, alpha=0.25)
     fig.tight_layout()

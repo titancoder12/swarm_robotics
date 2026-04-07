@@ -30,9 +30,8 @@ RAW_DIR = BASE_DIR / "raw_exports"
 META_DIR = BASE_DIR / "metadata"
 NOTES_DIR = BASE_DIR / "analysis_notes"
 
-SEED_START = 2
-EPISODES_PER_CONDITION = 8
-EXPLICIT_SEEDS = [2, 4, 6, 25, 32, 33, 36, 41]
+SEED_START = 100
+EPISODES_PER_CONDITION = 20
 LEAKED_ENVS: list[SwarmEnv] = []
 
 
@@ -345,11 +344,11 @@ Why this design:
 
 Primary current checkpoint:
 
-- `checkpoints/mappo_g/stage3b_full_swarm_final`
+- `checkpoints/mappo_g/latest`
 
 Weaker curriculum checkpoint:
 
-- `checkpoints/mappo_full_600k_33/stage3b_full_swarm_final`
+- `checkpoints/mappo_full_600k_33/latest`
 
 Environment matching rule:
 
@@ -363,12 +362,12 @@ Environment matching rule:
 def main() -> None:
     ensure_dirs()
 
-    strong_ckpt = ROOT / "checkpoints" / "mappo_g" / "stage3b_full_swarm_final"
-    weak_ckpt = ROOT / "checkpoints" / "mappo_full_600k_33" / "stage3b_full_swarm_final"
+    strong_ckpt = ROOT / "checkpoints" / "mappo_g" / "latest"
+    weak_ckpt = ROOT / "checkpoints" / "mappo_full_600k_33" / "latest"
     base_meta = strong_ckpt / "metadata.json"
     weak_meta = weak_ckpt / "metadata.json"
 
-    seeds = list(EXPLICIT_SEEDS)
+    seeds = list(range(SEED_START, SEED_START + EPISODES_PER_CONDITION))
     campaign = {
         "timestamp": TIMESTAMP,
         "episodes_per_condition": EPISODES_PER_CONDITION,

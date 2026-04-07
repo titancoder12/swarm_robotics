@@ -27,8 +27,8 @@ TABLES_DIR = BASE_DIR / "tables"
 META_DIR = BASE_DIR / "metadata"
 NOTES_DIR = BASE_DIR / "analysis_notes"
 
-PRIMARY_SEEDS = [2, 4, 6, 25, 32, 33, 36, 41]
-SUPPORTING_SEEDS = [2, 4, 6, 25, 32, 33, 36, 41]
+PRIMARY_SEEDS = list(range(100, 120))
+SUPPORTING_SEEDS = list(range(100, 120))
 PRIMARY_SWARM_SIZES = [6, 30]
 SWARM_SIZES = [1, 3, 6, 10, 15, 20, 30]
 
@@ -88,6 +88,19 @@ def paired_stats(a: list[float], b: list[float]) -> dict[str, float | None]:
     except Exception:
         pass
     return result
+
+
+def cfg_from_metadata(metadata_path: str | Path, **overrides: Any) -> SwarmConfig:
+    meta = json.loads(Path(metadata_path).read_text())
+    cfg = SwarmConfig()
+    field_names = {f.name for f in fields(SwarmConfig)}
+    for key, value in meta.items():
+        if key in field_names:
+            setattr(cfg, key, value)
+    for key, value in overrides.items():
+        if key in field_names:
+            setattr(cfg, key, value)
+    return cfg
 
 
 def cfg_from_default(**overrides: Any) -> SwarmConfig:
@@ -225,20 +238,16 @@ Design:
   - trained with pheromone, evaluated without pheromone
   - trained without pheromone, evaluated without pheromone
 - task:
-  - one active food source
-  - source capacity `12`
-  - horizon `1200`
+  - full final-stage arena from `checkpoints/mappo_g/latest`
+  - `3` active targets
+  - `18` obstacles
+  - horizon `800`
 - swarm sizes:
   - `1`, `3`, `6`, `10`, `15`, `20`, `30`
 
-Primary paired tests:
+Repetitions:
 
-- `6` agents with `50` paired seeds for continuity with prior evidence
-- `30` agents with `50` paired seeds as the new upper-bound confirmation test
-
-Supporting sizes:
-
-- `1`, `3`, `10`, `15`, and `20` agents with `20` paired seeds each
+- `20` paired seeds for every swarm size and condition
 """
     (NOTES_DIR / "execution_plan.md").write_text(text, encoding="utf-8")
 
@@ -246,21 +255,22 @@ Supporting sizes:
 def main() -> None:
     ensure_dirs()
     write_notes()
+    base_meta = ROOT / "checkpoints" / "mappo_g" / "latest" / "metadata.json"
 
     conditions = [
         {
             "condition": "trained_with_pheromone__eval_with_pheromone",
-            "checkpoint_dir": ROOT / "checkpoints" / "mappo_gru_pheromone" / "stage3_full_marl",
+            "checkpoint_dir": ROOT / "checkpoints" / "mappo_g" / "latest",
             "pheromone_enabled": True,
         },
         {
             "condition": "trained_with_pheromone__eval_without_pheromone",
-            "checkpoint_dir": ROOT / "checkpoints" / "mappo_gru_pheromone" / "stage3_full_marl",
+            "checkpoint_dir": ROOT / "checkpoints" / "mappo_g" / "latest",
             "pheromone_enabled": False,
         },
         {
             "condition": "trained_without_pheromone__eval_without_pheromone",
-            "checkpoint_dir": ROOT / "checkpoints" / "mappo_gru_no_pheromone" / "stage3_full_marl",
+            "checkpoint_dir": ROOT / "checkpoints" / "mappo_g_no_pher_same_budget" / "latest",
             "pheromone_enabled": False,
         },
     ]
@@ -271,13 +281,9 @@ def main() -> None:
         seeds = PRIMARY_SEEDS if n_agents in PRIMARY_SWARM_SIZES else SUPPORTING_SEEDS
         for seed in seeds:
             for condition in conditions:
-                cfg = cfg_from_default(
+                cfg = cfg_from_metadata(
+                    base_meta,
                     n_agents=n_agents,
-                    n_targets=1,
-                    active_targets=1,
-                    food_source_capacity=12,
-                    target_respawn=True,
-                    max_steps=1200,
                     pheromone_enabled=bool(condition["pheromone_enabled"]),
                 )
                 metrics = run_episode(seed, condition["checkpoint_dir"], cfg)
