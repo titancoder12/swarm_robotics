@@ -5,7 +5,8 @@ robot runtime.
 
 It is separate from [CAMERA_PROPOSAL.md](./CAMERA_PROPOSAL.md), which discusses
 the broader design direction. This file is for practical setup, debugging, and
-known-good launch commands.
+known-good launch commands. For the exact model-input feature mapping, see
+[OBSERVATION_SPEC.md](./OBSERVATION_SPEC.md).
 
 ## Purpose
 

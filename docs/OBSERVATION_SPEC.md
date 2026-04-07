@@ -183,6 +183,40 @@ Unavailable case:
 
 - both target features are `0.0` when no target is detectable
 
+#### Hardware Camera Mapping
+
+On the physical robot runtime, these same two slots can be filled by the
+optional camera detector in [firmware/camera.py](../firmware/camera.py) and
+[firmware/run.py](../firmware/run.py) instead of simulator target geometry.
+
+What counts as a target on hardware:
+
+- the largest visible image blob inside the configured HSV color range
+- after morphological cleanup and contour extraction
+- if its contour area is at least `--camera-min-area-px`
+
+Current detector pipeline:
+
+1. capture a frame
+2. convert to HSV
+3. threshold with `cv2.inRange(hsv_lower, hsv_upper)`
+4. run morphological open / close
+5. find contours
+6. choose the largest contour
+7. reject it if area is below `min_area_px`
+8. estimate angle from horizontal image offset
+9. estimate distance from apparent blob width and `--camera-target-width-cm`
+
+Hardware slot mapping:
+
+- index `9`: `target_distance_norm`
+  - `clip(distance_m / cfg.lidar_max_range_m, 0, 1)`
+- index `10`: `target_angle_norm`
+  - `clip(angle_rad / pi, -1, 1)`
+
+This is a feature-level approximation of the simulator target signal, not a
+class-based learned detector.
+
 ### Nest Vector
 
 Source: `_nest_direction()`
@@ -236,6 +270,22 @@ Representation:
 
 - binary
 - `1.0` if any remaining target is within `cfg.lidar_max_range`, inside the front-facing 180 degrees, and not blocked by obstacles
+
+#### Hardware Camera Mapping
+
+On the physical robot runtime, index `18` is set from the camera detector:
+
+- `1.0` when the camera target detector reports `found=True`
+- `0.0` when no valid target blob is detected
+
+So on hardware the camera currently influences exactly these three per-frame
+features:
+
+- index `9`: target distance
+- index `10`: target angle
+- index `18`: food presence
+
+When no camera detection is available, all three fall back to zero.
 
 ### Carrying Food
 
