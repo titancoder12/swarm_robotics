@@ -213,6 +213,7 @@ class BLEClientWorker(_Worker):
         self._rx_buffer = ""
         self._tx_queue: asyncio.Queue[str] | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._last_rx_monotonic = time.monotonic()
 
     @property
     def label(self) -> str:
@@ -240,6 +241,7 @@ class BLEClientWorker(_Worker):
         await client.write_gatt_char(self.write_char_uuid, (line.strip() + "\n").encode("utf-8"))
 
     def _notify_callback(self, client: BleakClient, _sender, data: bytearray) -> None:
+        self._last_rx_monotonic = time.monotonic()
         self._rx_buffer += bytes(data).decode("utf-8", errors="ignore")
         while "\n" in self._rx_buffer:
             line, self._rx_buffer = self._rx_buffer.split("\n", 1)
@@ -266,12 +268,26 @@ class BLEClientWorker(_Worker):
         address = await self._resolve_address()
         async with BleakClient(address, timeout=self.timeout_s) as client:
             self._rx_buffer = ""
+            self._last_rx_monotonic = time.monotonic()
             self._tx_queue = asyncio.Queue()
             await client.start_notify(self.notify_char_uuid, lambda sender, data: self._notify_callback(client, sender, data))
             logger.info("command-center BLE client connected to %s", address)
             writer_task = asyncio.create_task(self._drain_writes(client))
             try:
                 while not self.stop_event.is_set() and client.is_connected:
+                    idle_s = time.monotonic() - self._last_rx_monotonic
+                    idle_limit_s = max(5.0, self.timeout_s * 4.0)
+                    if idle_s > idle_limit_s:
+                        logger.warning(
+                            "command-center BLE client idle for %.1fs on %s; forcing reconnect",
+                            idle_s,
+                            address,
+                        )
+                        try:
+                            await client.disconnect()
+                        except Exception:
+                            pass
+                        break
                     await asyncio.sleep(0.1)
             finally:
                 logger.info("command-center BLE client disconnected from %s", address)
