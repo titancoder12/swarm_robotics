@@ -12,15 +12,15 @@ BLE_SERVICE_UUID="6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_WRITE_CHAR_UUID="6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_NOTIFY_CHAR_UUID="6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_TIMEOUT="1.0"
-CAMERA_ENABLE=0
+CAMERA_ENABLE=1
 CAMERA_INDEX="0"
 CAMERA_WIDTH="640"
 CAMERA_HEIGHT="480"
 CAMERA_HORIZONTAL_FOV_DEG="62.0"
 CAMERA_TARGET_WIDTH_CM="6.0"
-CAMERA_MIN_AREA_PX="400"
-CAMERA_HSV_LOWER="20,120,120"
-CAMERA_HSV_UPPER="40,255,255"
+CAMERA_MIN_AREA_PX="50"
+CAMERA_HSV_LOWER="10,60,60"
+CAMERA_HSV_UPPER="60,255,255"
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -59,6 +59,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --camera-enable)
       CAMERA_ENABLE=1
+      shift
+      ;;
+    --no-camera)
+      CAMERA_ENABLE=0
       shift
       ;;
     --camera-index)
@@ -106,6 +110,7 @@ Launcher flags:
   --ble-notify-char-uuid UUID
   --ble-timeout SECONDS
   --checkpoint-dir DIR
+  --no-camera
   --camera-enable
   --camera-index INDEX
   --camera-width PIXELS
@@ -118,11 +123,12 @@ Launcher flags:
 
 Examples:
   bash firmware/run_bluetooth.sh
+  bash firmware/run_bluetooth.sh --no-camera
   bash firmware/run_bluetooth.sh --robot-id robot_1
   bash firmware/run_bluetooth.sh --robot-id robot_1 --port /dev/ttyUSB1
   bash firmware/run_bluetooth.sh --robot-id robot_1 --ble-device-name robot_1_ble
   bash firmware/run_bluetooth.sh --camera-enable
-  bash firmware/run_bluetooth.sh --camera-enable --camera-hsv-lower 20,120,120 --camera-hsv-upper 40,255,255
+  bash firmware/run_bluetooth.sh --camera-enable --camera-hsv-lower 10,60,60 --camera-hsv-upper 60,255,255
   bash firmware/run_bluetooth.sh --robot-id robot_1 -- --max-steps 20
 EOF
       exit 0
