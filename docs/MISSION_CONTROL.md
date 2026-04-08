@@ -554,14 +554,17 @@ bash firmware/run_relay.sh --robot-id robot_1 -- --max-steps 20
 
 ### Simulator Relay Telemetry Mode
 
-The simulator demo now also supports a write-only Mission Control relay mode.
+The simulator demo now also supports Mission Control publishing in two write-only modes:
 
-This mode is intended for visualization only:
+- direct TCP to a local or LAN Mission Control listener
+- relay mode through the HTTP relay bridge
+
+These modes are intended for visualization only:
 
 - the simulator keeps using its own internal pheromone field
 - the simulator does not send `SENSE`
 - the simulator does not consume `PHER_RESP`
-- it only publishes telemetry outward to Mission Control through the relay
+- it only publishes telemetry outward to Mission Control
 
 The simulator currently publishes:
 
@@ -571,7 +574,35 @@ The simulator currently publishes:
 This is enough for Mission Control to visualize simulated agent motion and
 simulated pheromone deposit events without changing simulator behavior.
 
-#### Mac Setup
+#### Direct TCP Setup
+
+Start Mission Control locally or on a reachable machine:
+
+```bash
+python -m mission_control.main --tcp-host 127.0.0.1 --tcp-port 8765 --log-level INFO
+```
+
+Then start the simulator demo with direct TCP:
+
+```bash
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --mc-tcp-host 127.0.0.1 \
+  --mc-tcp-port 8765
+```
+
+Useful optional flags:
+
+- `--mc-tcp-timeout 1.0`
+- `--mc-tcp-debug`
+- `--seed 0`
+- `--max-steps 1000`
+
+If both direct TCP and relay flags are provided, the simulator prefers direct
+TCP.
+
+#### Relay Setup
 
 Start Mission Control locally:
 

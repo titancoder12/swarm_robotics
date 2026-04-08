@@ -18,6 +18,7 @@ if ROOT not in sys.path:
 from env.config import SwarmConfig
 from env.swarm_env import SwarmEnv
 from algorithms.mappo.inference import load_actor
+from firmware.command_center_client import CommandCenterTCPClient
 from firmware.relay_client import CommandCenterRelayClient
 from models.q_network import QNetwork
 from policy_debug import make_policy_debug_config, print_policy_debug, should_debug_policy
@@ -61,6 +62,10 @@ def parse_args(argv=None):
     parser.add_argument("--mc-relay-session", type=str, default="sim_demo")
     parser.add_argument("--mc-relay-timeout", type=float, default=1.0)
     parser.add_argument("--mc-relay-debug", action="store_true")
+    parser.add_argument("--mc-tcp-host", type=str, default="")
+    parser.add_argument("--mc-tcp-port", type=int, default=8765)
+    parser.add_argument("--mc-tcp-timeout", type=float, default=1.0)
+    parser.add_argument("--mc-tcp-debug", action="store_true")
     add_env_config_args(parser)
     parser.set_defaults(n_obstacles=18)
     return parser.parse_args(argv)
@@ -73,6 +78,62 @@ class SimulatorMissionControlRelayPublisher:
         self.client = CommandCenterRelayClient(
             relay_url=relay_url,
             session=session,
+            timeout_s=timeout_s,
+            debug=debug,
+        )
+
+    @staticmethod
+    def _to_command_center_pose(env: SwarmEnv, agent_state) -> tuple[float, float, float]:
+        nest_x, nest_y = env.nest_position
+        x_cm = float(agent_state.x) - float(nest_x)
+        y_cm = float(nest_y) - float(agent_state.y)
+        heading_deg = -math.degrees(float(agent_state.theta))
+        return x_cm, y_cm, heading_deg
+
+    def publish_positions(self, env: SwarmEnv, agent_ids: list[str]) -> None:
+        for i, agent_id in enumerate(agent_ids):
+            if i >= len(env.agent_states) or i in env.failed_agent_indices:
+                continue
+            x_cm, y_cm, heading_deg = self._to_command_center_pose(env, env.agent_states[i])
+            self.client.send_position(agent_id, x_cm, y_cm, heading_deg)
+
+    def publish_step(self, env: SwarmEnv, agent_ids: list[str], chosen_actions: np.ndarray, prev_nest_distances: np.ndarray) -> None:
+        self.publish_positions(env, agent_ids)
+        if not bool(getattr(env.cfg, "pheromone_enabled", False)):
+            return
+
+        current_nest_distances = env._compute_nest_distance_state()
+        for i, agent_id in enumerate(agent_ids):
+            if i >= len(env.agent_states) or i in env.failed_agent_indices:
+                continue
+            _, _, deposit_requested = env.action_table[int(chosen_actions[i])]
+            if not deposit_requested:
+                continue
+            agent = env.agent_states[i]
+            if env.cfg.pheromone_requires_food and not agent.carrying_food:
+                continue
+            if env.cfg.pheromone_deposit_requires_nest_progress:
+                prev_dist = float(prev_nest_distances[i])
+                curr_dist = float(current_nest_distances[i])
+                if not (np.isfinite(prev_dist) and np.isfinite(curr_dist)) or curr_dist >= prev_dist:
+                    continue
+            amount = float(env.cfg.pheromone_deposit)
+            if agent.carrying_food:
+                amount *= float(env.cfg.pheromone_deposit_carrying_scale)
+            x_cm, y_cm, _heading_deg = self._to_command_center_pose(env, agent)
+            self.client.deposit_pheromone(agent_id, x_cm, y_cm, amount)
+
+    def close(self) -> None:
+        self.client.close()
+
+
+class SimulatorMissionControlTCPPublisher:
+    """Write-only simulator telemetry publisher for direct Mission Control TCP mode."""
+
+    def __init__(self, host: str, port: int, timeout_s: float = 1.0, debug: bool = False) -> None:
+        self.client = CommandCenterTCPClient(
+            host=host,
+            port=port,
             timeout_s=timeout_s,
             debug=debug,
         )
@@ -432,7 +493,7 @@ def _build_demo_env(args):
     return args_copy, cfg, env, metadata
 
 
-def _custom_demo(env, obs, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
+def _custom_demo(env, obs, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | SimulatorMissionControlTCPPublisher | None = None):
     # Infer model dimensions and device.
     obs_dim = obs.shape[1]
     action_dim = env.cfg.num_actions
@@ -532,7 +593,7 @@ def _custom_demo(env, obs, agent_ids, args, relay_publisher: SimulatorMissionCon
     return obs
 
 
-def _sb3_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
+def _sb3_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | SimulatorMissionControlTCPPublisher | None = None):
     from stable_baselines3 import DQN
 
     model = DQN.load(args.sb3_model, device="cpu")
@@ -630,7 +691,7 @@ def _sb3_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionC
     return obs_dict
 
 
-def _rllib_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
+def _rllib_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | SimulatorMissionControlTCPPublisher | None = None):
     import os
 
     os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
@@ -764,7 +825,7 @@ def _rllib_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissio
     return obs_dict
 
 
-def _mappo_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
+def _mappo_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | SimulatorMissionControlTCPPublisher | None = None):
     obs_dim = env.observation_space(agent_ids[0]).shape[0]
     action_dim = env.cfg.num_actions
     actor, device = load_actor(args.checkpoint_dir, obs_dim, action_dim, device="cpu")
@@ -865,7 +926,7 @@ def _mappo_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissio
     return obs_dict
 
 
-def _random_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | None = None):
+def _random_demo(env, obs_dict, agent_ids, args, relay_publisher: SimulatorMissionControlRelayPublisher | SimulatorMissionControlTCPPublisher | None = None):
     random.seed(args.seed)
     np.random.seed(args.seed)
     _, next_reset_seed = _make_reset_seed_provider(args)
@@ -936,7 +997,15 @@ def main():
     agent_ids = env.possible_agents
     obs = np.stack([obs_dict[agent] for agent in agent_ids], axis=0)
     relay_publisher = None
-    if demo_args.mc_relay_url:
+    if demo_args.mc_tcp_host:
+        relay_publisher = SimulatorMissionControlTCPPublisher(
+            host=demo_args.mc_tcp_host,
+            port=demo_args.mc_tcp_port,
+            timeout_s=demo_args.mc_tcp_timeout,
+            debug=demo_args.mc_tcp_debug,
+        )
+        relay_publisher.publish_positions(env, agent_ids)
+    elif demo_args.mc_relay_url:
         relay_publisher = SimulatorMissionControlRelayPublisher(
             relay_url=demo_args.mc_relay_url,
             session=demo_args.mc_relay_session,
