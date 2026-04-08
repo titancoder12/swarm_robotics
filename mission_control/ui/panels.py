@@ -81,6 +81,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
     flashed_controls = set(telemetry.get("flashed_controls", []))
     controls = [
         ("space", "Space", ": pause"),
+        ("f", "F / F11", ": toggle fullscreen"),
         ("t", "T", ": toggle trails"),
         ("p", "P", ": toggle pheromone"),
         ("y", "Y", ": toggle targets"),

@@ -55,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fps", type=int, default=30)
     parser.add_argument("--max-seconds", type=float, default=0.0)
     parser.add_argument("--headless", action="store_true")
+    parser.add_argument("--fullscreen", action="store_true")
     parser.add_argument("--log-level", default="INFO")
     return parser
 
@@ -155,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         # PyGame still needs a display surface even when the window is not
         # intended for interactive use.
         pygame.display.set_mode((1, 1))
-    renderer = Renderer(cfg, render_scale=args.render_scale)
+    renderer = Renderer(cfg, render_scale=args.render_scale, fullscreen=args.fullscreen)
     manager.start()
     start = time.time()
 
@@ -186,6 +187,9 @@ def main(argv: list[str] | None = None) -> int:
                     elif event.key == pygame.K_y:
                         world.flash_control("y")
                         world.toggle_targets()
+                    elif event.key in (pygame.K_f, pygame.K_F11):
+                        world.flash_control("f")
+                        renderer.toggle_fullscreen()
 
             world.tick()
             renderer.draw(world.snapshot())

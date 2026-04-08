@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+python train/demo.py \
+  --backend mappo \
+  --checkpoint-dir checkpoints/mappo_g/latest \
+  --mc-tcp-host 127.0.0.1 \
+  --mc-tcp-port 8765
