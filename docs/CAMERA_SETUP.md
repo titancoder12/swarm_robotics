@@ -25,6 +25,155 @@ old behavior and keeps running.
 That means the camera path is backward compatible with the existing Mission
 Control, relay, TCP, and BLE workflows.
 
+## Future YOLO Option
+
+It is possible to add something like YOLO to recognize specific targets.
+
+The right integration is not to feed raw images directly into the current
+policy. The right integration is:
+
+1. run a detector on the camera frame
+2. select the relevant target detection
+3. convert that detection into the same compact target features the runtime
+   already uses
+
+That preserves backward compatibility with the current policy and with the
+existing Mission Control, BLE, TCP, and relay workflows.
+
+### When YOLO Makes Sense
+
+YOLO or another learned detector is useful when:
+
+- the target is visually complex
+- color thresholding is too fragile
+- lighting changes a lot
+- the background contains similar colors
+- the robot needs to distinguish between multiple object types
+
+YOLO is less necessary when:
+
+- the target can be made visually distinctive
+- a simple colored marker is acceptable
+- Pi compute budget is tight
+- the current HSV detector is already good enough for demos
+
+### Current Interface To Preserve
+
+The current camera path does not pass raw images into the policy.
+
+It produces compact target-related features:
+
+- target visible or not
+- relative angle to target
+- approximate distance to target
+- food-presence flag
+
+That is the contract to preserve.
+
+Any YOLO-based detector should therefore output the same semantic fields:
+
+- `found`
+- `angle_rad`
+- `distance_m`
+- `confidence`
+
+If detection fails, the runtime should still fall back safely to:
+
+- HSV detection
+- or zeros, depending on the configured mode
+
+### Proposed Architecture
+
+The clean design is to make detector backend a pluggable choice inside
+[firmware/camera.py](../firmware/camera.py).
+
+Example structure:
+
+- `HSVTargetDetector`
+- `YOLOTargetDetector`
+
+Then add a runtime selector such as:
+
+- `--camera-detector hsv`
+- `--camera-detector yolo`
+
+Possible future flags:
+
+- `--camera-yolo-model PATH`
+- `--camera-yolo-class target`
+- `--camera-yolo-confidence-threshold 0.25`
+
+This keeps the rest of the robot runtime unchanged.
+
+### How YOLO Would Feed The Model
+
+Once YOLO returns a detection box for the target:
+
+1. use the box center to compute horizontal offset from image center
+2. convert that offset into `angle_rad`
+3. estimate distance from box size and known object size, or from a calibrated
+   lookup
+4. set `found = True`
+5. set `food_presence = 1.0`
+
+So the model still receives the same kind of observation slots it already
+expects.
+
+In plain terms:
+
+- YOLO decides what the target is
+- the runtime converts that detection into direction and distance
+- the policy continues consuming the same compact observation vector as before
+
+### Why Raw Image Input Is Not The Right First Step
+
+The current policy was trained on structured observations, not pixels.
+
+So replacing the observation vector with raw camera frames would require:
+
+- a new observation space
+- a new model architecture
+- a new training pipeline
+- significant retraining
+
+That is a different project.
+
+For the current system, YOLO should be treated as a feature extractor, not as a
+replacement for the policy.
+
+### Recommended Runtime Strategy
+
+Recommended behavior:
+
+1. try YOLO if configured
+2. if YOLO succeeds, use its detection
+3. if YOLO is unavailable, too slow, or finds nothing:
+   - optionally fall back to HSV
+   - otherwise fall back to zeros
+
+That keeps the robot operational even if the learned detector is unavailable.
+
+### Main Risks
+
+- inference latency on the Pi
+- packaging and dependency complexity
+- collecting enough images for the real target classes
+- detector instability in poor lighting
+- distance estimate noise from bounding-box size alone
+
+### Recommended First Version
+
+If YOLO is added, the first version should:
+
+- detect one target class only
+- choose the highest-confidence detection
+- convert that box into angle and distance
+- preserve the current observation mapping
+- keep safe fallback behavior
+
+That gives the project a class-aware detector without requiring a new policy
+architecture.
+
 ## Recommended Fresh Setup For The Next Robot
 
 If you are setting up a new Raspberry Pi robot from scratch, use this order.
