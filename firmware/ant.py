@@ -13,11 +13,13 @@ class ESP32Robot:
         baudrate: int = 115200,
         timeout: float = 1.0,
         startup_delay: float = 2.0,
+        debug: bool = False,
     ) -> None:
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.startup_delay = startup_delay
+        self.debug = debug
         self.ser: Optional[serial.Serial] = None
         self._rx_buffer = bytearray()
 
@@ -66,6 +68,8 @@ class ESP32Robot:
     def send_raw(self, cmd: str) -> None:
         ser = self._require_serial()
         line = cmd.strip() + "\n"
+        if self.debug:
+            print(f"[debug] serial -> {line.strip()}", flush=True)
         ser.write(line.encode("utf-8"))
         ser.flush()
 
@@ -152,7 +156,10 @@ class ESP32Robot:
     
     def command(self, cmd: str, timeout: float = 5.0) -> Dict[str, Any]:
         self.send_raw(cmd)
-        return self.wait_response(timeout=timeout)
+        response = self.wait_response(timeout=timeout)
+        if self.debug:
+            print(f"[debug] serial <- {response.get('raw')}", flush=True)
+        return response
 
     # ===== ESP32-matching high-level functions =====
 

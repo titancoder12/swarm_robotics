@@ -661,7 +661,7 @@ def main(argv=None):
             debug=args.debug,
         )
 
-    robot = ESP32Robot(port=args.port, baudrate=args.baudrate)
+    robot = ESP32Robot(port=args.port, baudrate=args.baudrate, debug=args.debug)
     policy = load_policy(
         checkpoint_dir=args.checkpoint_dir,
         shared_policy=args.shared_policy,
