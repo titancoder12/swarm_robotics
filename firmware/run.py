@@ -466,15 +466,13 @@ def choose_heuristic_action(
     left_min = min(lidar_ranges_mm[index] for index in left_indices)
     right_min = min(lidar_ranges_mm[index] for index in right_indices)
 
-    obstacle_close_mm = 180.0
-    obstacle_caution_mm = 320.0
+    obstacle_emergency_mm = 120.0
+    obstacle_close_mm = 220.0
+    obstacle_caution_mm = 420.0
     obstacle_clear_mm = 650.0
     camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
     camera_found = bool(camera_detection and camera_detection.found)
-    strong_camera_lock = has_strong_camera_lock(camera_detection)
-    strong_camera_lock = bool(
-        camera_found and strong_camera_lock
-    )
+    strong_camera_lock = bool(camera_found and has_strong_camera_lock(camera_detection))
     random_turn_prob = float(np.clip(random_turn_prob, 0.0, 1.0))
 
     def choose_turn_sign() -> float:
@@ -486,33 +484,31 @@ def choose_heuristic_action(
     throttle = 0.0
     turn = 0.0
 
-    if front_min <= obstacle_close_mm:
+    if front_min <= obstacle_emergency_mm:
         throttle = -1.0
         turn = choose_turn_sign()
-    elif camera_found:
-        if not strong_camera_lock and front_min >= obstacle_caution_mm:
+    elif strong_camera_lock:
+        if front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 20.0:
             throttle = 1.0
             turn = 0.0
-        elif front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 18.0:
+        elif front_min >= obstacle_caution_mm and abs(camera_angle_deg) <= 10.0:
             throttle = 1.0
             turn = 0.0
-        elif camera_angle_deg > 12.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg > 20.0:
             turn = 1.0
-        elif camera_angle_deg < -12.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg < -20.0:
             turn = -1.0
         else:
             turn = 0.0
         if front_min >= obstacle_caution_mm:
             throttle = 1.0
-        elif strong_camera_lock:
-            throttle = 0.0
         else:
             throttle = 0.0
     else:
         if front_min >= obstacle_clear_mm:
             throttle = 1.0
             turn = 0.0
-        elif front_min < obstacle_caution_mm:
+        elif front_min <= obstacle_close_mm:
             throttle = 0.0
             turn = choose_turn_sign()
         else:
