@@ -135,6 +135,7 @@ def parse_args(argv=None):
     parser.add_argument("--camera-min-area-px", type=int, default=100)
     parser.add_argument("--camera-hsv-lower", type=str, default="35,70,70")
     parser.add_argument("--camera-hsv-upper", type=str, default="100,255,255")
+    parser.add_argument("--camera-hold-time-s", type=float, default=0.75)
     parser.add_argument("--debug", action="store_true")
     parser.add_argument("--debug-policy", action="store_true")
     parser.add_argument("--debug-policy-agents", type=str, default="")
@@ -524,6 +525,7 @@ def main(argv=None):
                 min_area_px=args.camera_min_area_px,
                 hsv_lower=lower,
                 hsv_upper=upper,
+                hold_time_s=args.camera_hold_time_s,
                 debug=args.debug,
             )
         except Exception as exc:

@@ -38,6 +38,7 @@ class CameraTargetDetector:
         min_area_px: int = 400,
         hsv_lower: tuple[int, int, int] = (20, 120, 120),
         hsv_upper: tuple[int, int, int] = (40, 255, 255),
+        hold_time_s: float = 0.75,
         debug: bool = False,
     ) -> None:
         self.camera_index = camera_index
@@ -48,6 +49,7 @@ class CameraTargetDetector:
         self.min_area_px = min_area_px
         self.hsv_lower = hsv_lower
         self.hsv_upper = hsv_upper
+        self.hold_time_s = max(0.0, hold_time_s)
         self.debug = debug
         self._cap = None
         self._picam2 = None
@@ -55,11 +57,33 @@ class CameraTargetDetector:
         self._reported_backend = False
         self._next_open_retry_at = 0.0
         self._open_retry_backoff_s = 2.0
+        self._last_detection = CameraDetection()
+        self._last_detection_at = 0.0
         # Simple pinhole estimate. Good enough for a first feature-level integration.
         self._focal_px = (self.width * 0.5) / max(math.tan(math.radians(self.horizontal_fov_deg) * 0.5), 1e-6)
 
     def _schedule_open_retry(self) -> None:
         self._next_open_retry_at = time.monotonic() + self._open_retry_backoff_s
+
+    def _remember_detection(self, detection: CameraDetection) -> CameraDetection:
+        self._last_detection = detection
+        self._last_detection_at = time.monotonic()
+        return detection
+
+    def _held_detection(self) -> CameraDetection:
+        if not self._last_detection.found or self.hold_time_s <= 0.0:
+            return CameraDetection()
+        age_s = time.monotonic() - self._last_detection_at
+        if age_s > self.hold_time_s:
+            return CameraDetection()
+        if self.debug:
+            print(
+                f"[debug] camera holding last target age_s={age_s:.2f} "
+                f"distance_m={self._last_detection.distance_m:.3f} "
+                f"angle_deg={math.degrees(self._last_detection.angle_rad):.1f}",
+                flush=True,
+            )
+        return self._last_detection
 
     def _ensure_picamera_open(self) -> bool:
         if Picamera2 is None:
@@ -128,12 +152,12 @@ class CameraTargetDetector:
 
     def detect(self) -> CameraDetection:
         if not self._ensure_open():
-            return CameraDetection()
+            return self._held_detection()
         if cv2 is None:
             if self.debug and not self._warned_unavailable:
                 print("[debug] camera disabled: cv2 is required for HSV target detection", flush=True)
                 self._warned_unavailable = True
-            return CameraDetection()
+            return self._held_detection()
 
         frame = None
         if self._picam2 is not None:
@@ -162,10 +186,10 @@ class CameraTargetDetector:
                 self._cap.release()
                 self._cap = None
                 self._schedule_open_retry()
-                return CameraDetection()
+                return self._held_detection()
 
         if frame is None:
-            return CameraDetection()
+            return self._held_detection()
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         mask = cv2.inRange(
@@ -178,16 +202,16 @@ class CameraTargetDetector:
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if not contours:
-            return CameraDetection()
+            return self._held_detection()
 
         contour = max(contours, key=cv2.contourArea)
         area = float(cv2.contourArea(contour))
         if area < float(self.min_area_px):
-            return CameraDetection()
+            return self._held_detection()
 
         x, y, w, h = cv2.boundingRect(contour)
         if w <= 0 or h <= 0:
-            return CameraDetection()
+            return self._held_detection()
 
         center_x = float(x + w * 0.5)
         pixel_offset = center_x - (self.width * 0.5)
@@ -202,12 +226,12 @@ class CameraTargetDetector:
                 flush=True,
             )
 
-        return CameraDetection(
+        return self._remember_detection(CameraDetection(
             found=True,
             distance_m=max(distance_m, 0.0),
             angle_rad=angle_rad,
             confidence=confidence,
-        )
+        ))
 
     def warmup(self, timeout_s: float = 4.0) -> bool:
         start = time.monotonic()
