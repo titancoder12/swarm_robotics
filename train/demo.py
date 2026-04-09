@@ -71,6 +71,43 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
+def _to_command_center_pose(env: SwarmEnv, x: float, y: float, theta: float) -> tuple[float, float, float]:
+    nest_x, nest_y = env.nest_position
+    x_cm = float(x) - float(nest_x)
+    y_cm = float(nest_y) - float(y)
+    heading_deg = -math.degrees(float(theta))
+    return x_cm, y_cm, heading_deg
+
+
+def _detectable_target_pose(env: SwarmEnv, agent_state) -> tuple[float, float, float] | None:
+    if not env.targets:
+        return None
+
+    nearest_target: tuple[float, float, float, float] | None = None
+    max_range = float(env.cfg.lidar_max_range)
+    agent_x = float(agent_state.x)
+    agent_y = float(agent_state.y)
+
+    for target_x, target_y in env.targets:
+        dx = float(target_x) - agent_x
+        dy = float(target_y) - agent_y
+        dist = float(math.hypot(dx, dy))
+        if dist > max_range:
+            continue
+        world_angle = math.atan2(dy, dx)
+        if not env._target_visible(agent_state, dist, world_angle):
+            continue
+        target_x_cm, target_y_cm, _ = _to_command_center_pose(env, float(target_x), float(target_y), 0.0)
+        if nearest_target is None or dist < nearest_target[0]:
+            nearest_target = (dist, target_x_cm, target_y_cm, 1.0)
+
+    if nearest_target is None:
+        return None
+
+    _dist, x_cm, y_cm, confidence = nearest_target
+    return x_cm, y_cm, confidence
+
+
 class SimulatorMissionControlRelayPublisher:
     """Write-only simulator telemetry publisher for Mission Control relay mode."""
 
@@ -82,20 +119,17 @@ class SimulatorMissionControlRelayPublisher:
             debug=debug,
         )
 
-    @staticmethod
-    def _to_command_center_pose(env: SwarmEnv, agent_state) -> tuple[float, float, float]:
-        nest_x, nest_y = env.nest_position
-        x_cm = float(agent_state.x) - float(nest_x)
-        y_cm = float(nest_y) - float(agent_state.y)
-        heading_deg = -math.degrees(float(agent_state.theta))
-        return x_cm, y_cm, heading_deg
-
     def publish_positions(self, env: SwarmEnv, agent_ids: list[str]) -> None:
         for i, agent_id in enumerate(agent_ids):
             if i >= len(env.agent_states) or i in env.failed_agent_indices:
                 continue
-            x_cm, y_cm, heading_deg = self._to_command_center_pose(env, env.agent_states[i])
+            agent = env.agent_states[i]
+            x_cm, y_cm, heading_deg = _to_command_center_pose(env, agent.x, agent.y, agent.theta)
             self.client.send_position(agent_id, x_cm, y_cm, heading_deg)
+            target_pose = _detectable_target_pose(env, agent)
+            if target_pose is not None:
+                target_x_cm, target_y_cm, confidence = target_pose
+                self.client.send_target(agent_id, target_x_cm, target_y_cm, confidence)
 
     def publish_step(self, env: SwarmEnv, agent_ids: list[str], chosen_actions: np.ndarray, prev_nest_distances: np.ndarray) -> None:
         self.publish_positions(env, agent_ids)
@@ -120,7 +154,7 @@ class SimulatorMissionControlRelayPublisher:
             amount = float(env.cfg.pheromone_deposit)
             if agent.carrying_food:
                 amount *= float(env.cfg.pheromone_deposit_carrying_scale)
-            x_cm, y_cm, _heading_deg = self._to_command_center_pose(env, agent)
+            x_cm, y_cm, _heading_deg = _to_command_center_pose(env, agent.x, agent.y, agent.theta)
             self.client.deposit_pheromone(agent_id, x_cm, y_cm, amount)
 
     def close(self) -> None:
@@ -138,20 +172,17 @@ class SimulatorMissionControlTCPPublisher:
             debug=debug,
         )
 
-    @staticmethod
-    def _to_command_center_pose(env: SwarmEnv, agent_state) -> tuple[float, float, float]:
-        nest_x, nest_y = env.nest_position
-        x_cm = float(agent_state.x) - float(nest_x)
-        y_cm = float(nest_y) - float(agent_state.y)
-        heading_deg = -math.degrees(float(agent_state.theta))
-        return x_cm, y_cm, heading_deg
-
     def publish_positions(self, env: SwarmEnv, agent_ids: list[str]) -> None:
         for i, agent_id in enumerate(agent_ids):
             if i >= len(env.agent_states) or i in env.failed_agent_indices:
                 continue
-            x_cm, y_cm, heading_deg = self._to_command_center_pose(env, env.agent_states[i])
+            agent = env.agent_states[i]
+            x_cm, y_cm, heading_deg = _to_command_center_pose(env, agent.x, agent.y, agent.theta)
             self.client.send_position(agent_id, x_cm, y_cm, heading_deg)
+            target_pose = _detectable_target_pose(env, agent)
+            if target_pose is not None:
+                target_x_cm, target_y_cm, confidence = target_pose
+                self.client.send_target(agent_id, target_x_cm, target_y_cm, confidence)
 
     def publish_step(self, env: SwarmEnv, agent_ids: list[str], chosen_actions: np.ndarray, prev_nest_distances: np.ndarray) -> None:
         self.publish_positions(env, agent_ids)
@@ -176,7 +207,7 @@ class SimulatorMissionControlTCPPublisher:
             amount = float(env.cfg.pheromone_deposit)
             if agent.carrying_food:
                 amount *= float(env.cfg.pheromone_deposit_carrying_scale)
-            x_cm, y_cm, _heading_deg = self._to_command_center_pose(env, agent)
+            x_cm, y_cm, _heading_deg = _to_command_center_pose(env, agent.x, agent.y, agent.theta)
             self.client.deposit_pheromone(agent_id, x_cm, y_cm, amount)
 
     def close(self) -> None:
