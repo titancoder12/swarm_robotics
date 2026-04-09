@@ -466,11 +466,11 @@ def choose_heuristic_action(
     left_min = min(lidar_ranges_mm[index] for index in left_indices)
     right_min = min(lidar_ranges_mm[index] for index in right_indices)
 
-    obstacle_emergency_mm = 120.0
-    obstacle_close_mm = 220.0
+    obstacle_emergency_mm = 100.0
+    obstacle_close_mm = 200.0
     obstacle_caution_mm = 420.0
     obstacle_clear_mm = 650.0
-    forward_wiggle_prob = 0.18
+    forward_wiggle_prob = 0.32
     camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
     camera_found = bool(camera_detection and camera_detection.found)
     strong_camera_lock = bool(camera_found and has_strong_camera_lock(camera_detection))
@@ -479,8 +479,8 @@ def choose_heuristic_action(
     def choose_turn_sign() -> float:
         clearance_diff = abs(left_min - right_min)
         if rng is not None and (clearance_diff < 160.0 or rng.random() < random_turn_prob):
-            # Bias ambiguous recovery turns counter-clockwise to break repeated clockwise loops.
-            return 1.0 if rng.random() < 0.7 else -1.0
+            # Bias ambiguous recovery turns left / counter-clockwise.
+            return 1.0 if rng.random() < 0.85 else -1.0
         return 1.0 if right_min >= left_min else -1.0
 
     throttle = 0.0
@@ -490,15 +490,15 @@ def choose_heuristic_action(
         throttle = -1.0
         turn = choose_turn_sign()
     elif strong_camera_lock:
-        if front_min >= obstacle_close_mm and abs(camera_angle_deg) <= 28.0:
+        if front_min >= obstacle_close_mm and abs(camera_angle_deg) <= 32.0:
             throttle = 1.0
             turn = 0.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg > 28.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg > 32.0:
             turn = 1.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg < -28.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg < -32.0:
             turn = -1.0
         else:
-            turn = choose_turn_sign() if front_min < obstacle_close_mm else 0.0
+            turn = choose_turn_sign() if front_min < obstacle_caution_mm else 0.0
         throttle = 1.0 if front_min >= obstacle_close_mm else 0.0
     else:
         if front_min >= obstacle_close_mm:
@@ -508,7 +508,7 @@ def choose_heuristic_action(
             else:
                 turn = 0.0
         else:
-            throttle = 0.0
+            throttle = 1.0
             turn = choose_turn_sign()
 
     action_id = action_id_from_controls(throttle, turn, deposit_default)
@@ -521,14 +521,9 @@ def should_use_heuristic_override(
     lidar_ranges_mm: list[float],
     camera_detection: CameraDetection | None,
 ) -> bool:
-    front_min = min(lidar_ranges_mm[index] for index in (3, 4, 5))
-    if front_min <= 180.0:
-        return True
-    if front_min >= 220.0:
-        return True
-    if has_strong_camera_lock(camera_detection):
-        return True
-    return False
+    # In hybrid mode, prefer the forward-biased heuristic over the learned
+    # policy. The policy still remains available via --policy-control.
+    return True
 
 
 def has_strong_camera_lock(camera_detection: CameraDetection | None) -> bool:
