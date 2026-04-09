@@ -62,6 +62,10 @@ while [[ $# -gt 0 ]]; do
       CONTROL_MODE="heuristic"
       shift
       ;;
+    --hybrid-control)
+      CONTROL_MODE="hybrid"
+      shift
+      ;;
     --policy-control)
       CONTROL_MODE="policy"
       shift
@@ -120,6 +124,7 @@ Launcher flags:
   --ble-timeout SECONDS
   --checkpoint-dir DIR
   --heuristic-control
+  --hybrid-control
   --policy-control
   --no-camera
   --camera-enable
@@ -135,6 +140,7 @@ Launcher flags:
 Examples:
   bash firmware/run_bluetooth.sh
   bash firmware/run_bluetooth.sh --heuristic-control
+  bash firmware/run_bluetooth.sh --hybrid-control
   bash firmware/run_bluetooth.sh --no-camera
   bash firmware/run_bluetooth.sh --robot-id robot_1
   bash firmware/run_bluetooth.sh --robot-id robot_1 --port /dev/ttyUSB1

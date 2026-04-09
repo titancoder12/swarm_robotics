@@ -126,7 +126,7 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
-    parser.add_argument("--control-mode", choices=("policy", "heuristic"), default="policy")
+    parser.add_argument("--control-mode", choices=("policy", "heuristic", "hybrid"), default="policy")
     parser.add_argument("--camera-enable", action="store_true")
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--camera-width", type=int, default=640)
@@ -494,6 +494,21 @@ def choose_heuristic_action(
     return action_id, score_vector
 
 
+def should_use_heuristic_override(
+    lidar_ranges_mm: list[float],
+    camera_detection: CameraDetection | None,
+) -> bool:
+    front_min = min(lidar_ranges_mm[index] for index in (3, 4, 5))
+    if front_min <= 220.0:
+        return True
+    if camera_detection is None or not camera_detection.found:
+        return False
+    angle_deg = abs(math.degrees(camera_detection.angle_rad))
+    if camera_detection.confidence >= 0.01 and angle_deg <= 20.0:
+        return True
+    return False
+
+
 def execute_action(
     robot: ESP32Robot,
     action_id: int,
@@ -740,8 +755,20 @@ def main(argv=None):
                     deposit_default=args.cc_deposit_enable,
                 )
             else:
-                action_id, q_values = predict_action(policy, observation)
-            if args.control_mode == "policy" and should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
+                policy_action_id, policy_q_values = predict_action(policy, observation)
+                if args.control_mode == "hybrid" and should_use_heuristic_override(
+                    lidar_ranges_mm=lidar_ranges_mm,
+                    camera_detection=camera_detection,
+                ):
+                    action_id, q_values = choose_heuristic_action(
+                        cfg,
+                        lidar_ranges_mm=lidar_ranges_mm,
+                        camera_detection=camera_detection,
+                        deposit_default=args.cc_deposit_enable,
+                    )
+                else:
+                    action_id, q_values = policy_action_id, policy_q_values
+            if args.control_mode in ("policy", "hybrid") and should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
                 print_policy_debug(
                     step=step,
                     agent_index=0,
