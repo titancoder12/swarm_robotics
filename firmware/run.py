@@ -616,6 +616,11 @@ def main(argv=None):
         if args.debug:
             print(f"[debug] robot stream_ready_after_retry={stream_ready}", flush=True)
 
+    if camera_detector is not None:
+        camera_ready = camera_detector.warmup(timeout_s=4.0)
+        if args.debug:
+            print(f"[debug] camera_ready={camera_ready}", flush=True)
+
     if mission_control_link is not None:
         # Publish the origin/nest pose immediately so Mission Control has a
         # consistent starting point before the first SENSE request arrives.

@@ -53,14 +53,21 @@ class CameraTargetDetector:
         self._picam2 = None
         self._warned_unavailable = False
         self._reported_backend = False
+        self._next_open_retry_at = 0.0
+        self._open_retry_backoff_s = 2.0
         # Simple pinhole estimate. Good enough for a first feature-level integration.
         self._focal_px = (self.width * 0.5) / max(math.tan(math.radians(self.horizontal_fov_deg) * 0.5), 1e-6)
+
+    def _schedule_open_retry(self) -> None:
+        self._next_open_retry_at = time.monotonic() + self._open_retry_backoff_s
 
     def _ensure_picamera_open(self) -> bool:
         if Picamera2 is None:
             return False
         if self._picam2 is not None:
             return True
+        if time.monotonic() < self._next_open_retry_at:
+            return False
         try:
             picam2 = Picamera2(camera_num=self.camera_index)
             config = picam2.create_still_configuration(
@@ -84,6 +91,7 @@ class CameraTargetDetector:
                 except Exception:
                     pass
             self._picam2 = None
+            self._schedule_open_retry()
             return False
 
     def _ensure_open(self) -> bool:
@@ -99,6 +107,8 @@ class CameraTargetDetector:
             return False
         if self._cap is not None and self._cap.isOpened():
             return True
+        if time.monotonic() < self._next_open_retry_at:
+            return False
         cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
         if not cap or not cap.isOpened():
             if self.debug and not self._warned_unavailable:
@@ -106,6 +116,7 @@ class CameraTargetDetector:
                 self._warned_unavailable = True
             if cap is not None:
                 cap.release()
+            self._schedule_open_retry()
             return False
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
@@ -136,12 +147,21 @@ class CameraTargetDetector:
             except Exception as exc:  # pragma: no cover - depends on runtime environment
                 if self.debug:
                     print(f"[debug] Picamera2 frame read failed: {type(exc).__name__}: {exc!r}", flush=True)
+                try:
+                    self._picam2.stop()
+                except Exception:
+                    pass
+                self._picam2 = None
+                self._schedule_open_retry()
                 frame = None
         elif self._cap is not None:
             ok, frame = self._cap.read()
             if not ok or frame is None:
                 if self.debug:
                     print("[debug] camera frame read failed", flush=True)
+                self._cap.release()
+                self._cap = None
+                self._schedule_open_retry()
                 return CameraDetection()
 
         if frame is None:
@@ -188,6 +208,18 @@ class CameraTargetDetector:
             angle_rad=angle_rad,
             confidence=confidence,
         )
+
+    def warmup(self, timeout_s: float = 4.0) -> bool:
+        start = time.monotonic()
+        while time.monotonic() - start < timeout_s:
+            if not self._ensure_open():
+                time.sleep(0.1)
+                continue
+            detection = self.detect()
+            if self._picam2 is not None or (self._cap is not None and self._cap.isOpened()):
+                return True
+            time.sleep(0.1)
+        return False
 
     def close(self) -> None:
         if self._picam2 is not None:
