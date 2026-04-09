@@ -52,50 +52,81 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def capture_frame(camera_index: int, width: int, height: int) -> tuple[np.ndarray, str]:
-    if Picamera2 is not None:
-        picam2 = None
-        try:
-            picam2 = Picamera2(camera_num=camera_index)
-            config = picam2.create_still_configuration(
-                main={"size": (width, height), "format": "RGB888"},
-                buffer_count=2,
-            )
-            picam2.configure(config)
-            picam2.start(show_preview=False)
-            time.sleep(0.5)
-            frame = picam2.capture_array("main")
+class CameraSession:
+    def __init__(self, camera_index: int, width: int, height: int) -> None:
+        self.camera_index = camera_index
+        self.width = width
+        self.height = height
+        self.backend = ""
+        self._picam2 = None
+        self._cap = None
+
+    def open(self) -> str:
+        if Picamera2 is not None:
+            try:
+                picam2 = Picamera2(camera_num=self.camera_index)
+                config = picam2.create_still_configuration(
+                    main={"size": (self.width, self.height), "format": "RGB888"},
+                    buffer_count=2,
+                )
+                picam2.configure(config)
+                picam2.start(show_preview=False)
+                time.sleep(0.5)
+                self._picam2 = picam2
+                self.backend = "Picamera2"
+                return self.backend
+            except Exception:
+                if self._picam2 is not None:
+                    try:
+                        self._picam2.stop()
+                    except Exception:
+                        pass
+                self._picam2 = None
+
+        if cv2 is None:
+            raise RuntimeError("Neither Picamera2 nor OpenCV/V4L2 capture is available in this environment")
+
+        cap = cv2.VideoCapture(self.camera_index, cv2.CAP_V4L2)
+        if not cap or not cap.isOpened():
+            if cap is not None:
+                cap.release()
+            raise RuntimeError(f"Could not open camera index {self.camera_index}")
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
+        self._cap = cap
+        self.backend = "OpenCV/V4L2"
+        return self.backend
+
+    def read(self) -> np.ndarray:
+        if self._picam2 is not None:
+            frame = self._picam2.capture_array("main")
             if frame is None:
                 raise RuntimeError("Picamera2 returned no frame")
             if cv2 is None:
                 raise RuntimeError("OpenCV is required to process the frame")
             if len(frame.shape) == 3 and frame.shape[2] == 3:
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-            elif len(frame.shape) == 3 and frame.shape[2] == 4:
-                frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
-            return frame, "Picamera2"
-        finally:
-            if picam2 is not None:
-                try:
-                    picam2.stop()
-                except Exception:
-                    pass
+                return cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            if len(frame.shape) == 3 and frame.shape[2] == 4:
+                return cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
+            return frame
 
-    if cv2 is None:
-        raise RuntimeError("Neither Picamera2 nor OpenCV/V4L2 capture is available in this environment")
-
-    cap = cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
-    try:
-        if not cap or not cap.isOpened():
-            raise RuntimeError(f"Could not open camera index {camera_index}")
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-        ok, frame = cap.read()
+        if self._cap is None:
+            raise RuntimeError("Camera session is not open")
+        ok, frame = self._cap.read()
         if not ok or frame is None:
             raise RuntimeError("OpenCV/V4L2 frame read failed")
-        return frame, "OpenCV/V4L2"
-    finally:
-        cap.release()
+        return frame
+
+    def close(self) -> None:
+        if self._picam2 is not None:
+            try:
+                self._picam2.stop()
+            except Exception:
+                pass
+            self._picam2 = None
+        if self._cap is not None:
+            self._cap.release()
+            self._cap = None
 
 
 def run_hsv_detection(
@@ -165,16 +196,23 @@ def main(argv: list[str] | None = None) -> int:
         print("error: cv2 is not installed in this environment", file=sys.stderr)
         return 1
 
+    session = CameraSession(args.camera_index, args.camera_width, args.camera_height)
     capture_period_s = 1.0 / max(args.fps, 0.1)
     iteration = 0
     announced_settings = False
 
     try:
+        try:
+            backend = session.open()
+        except Exception as exc:
+            print(f"error: camera capture failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 1
+
         while True:
             iteration += 1
             started = time.time()
             try:
-                frame, backend = capture_frame(args.camera_index, args.camera_width, args.camera_height)
+                frame = session.read()
             except Exception as exc:
                 print(f"error: camera capture failed: {type(exc).__name__}: {exc}", file=sys.stderr)
                 return 1
@@ -257,6 +295,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("\nstopped camera test", flush=True)
     finally:
+        session.close()
         if args.show:
             cv2.destroyAllWindows()
 
