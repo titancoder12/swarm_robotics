@@ -466,10 +466,9 @@ def choose_heuristic_action(
     obstacle_clear_mm = 650.0
     camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
     camera_found = bool(camera_detection and camera_detection.found)
+    strong_camera_lock = has_strong_camera_lock(camera_detection)
     strong_camera_lock = bool(
-        camera_found
-        and camera_detection is not None
-        and camera_detection.confidence >= 0.01
+        camera_found and strong_camera_lock
     )
 
     throttle = 0.0
@@ -520,12 +519,25 @@ def should_use_heuristic_override(
         return True
     if front_min >= 650.0:
         return True
-    if camera_detection is None or not camera_detection.found:
+    if not has_strong_camera_lock(camera_detection):
         return False
     angle_deg = abs(math.degrees(camera_detection.angle_rad))
-    if camera_detection.confidence >= 0.01 and angle_deg <= 18.0:
+    if angle_deg <= 18.0:
         return True
     return False
+
+
+def has_strong_camera_lock(camera_detection: CameraDetection | None) -> bool:
+    if camera_detection is None or not camera_detection.found:
+        return False
+    if camera_detection.confidence < 0.003:
+        return False
+    if camera_detection.bbox_w < 24 or camera_detection.bbox_h < 24:
+        return False
+    center_x = camera_detection.bbox_x + (camera_detection.bbox_w * 0.5)
+    if center_x < 64.0 or center_x > (640.0 - 64.0):
+        return False
+    return True
 
 
 def execute_action(

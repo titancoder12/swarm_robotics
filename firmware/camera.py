@@ -23,6 +23,10 @@ class CameraDetection:
     distance_m: float = 0.0
     angle_rad: float = 0.0
     confidence: float = 0.0
+    bbox_x: int = 0
+    bbox_y: int = 0
+    bbox_w: int = 0
+    bbox_h: int = 0
 
 
 class CameraTargetDetector:
@@ -231,6 +235,10 @@ class CameraTargetDetector:
             distance_m=max(distance_m, 0.0),
             angle_rad=angle_rad,
             confidence=confidence,
+            bbox_x=int(x),
+            bbox_y=int(y),
+            bbox_w=int(w),
+            bbox_h=int(h),
         ))
 
     def warmup(self, timeout_s: float = 4.0) -> bool:
