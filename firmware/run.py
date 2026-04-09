@@ -126,6 +126,7 @@ def parse_args(argv=None):
     parser.add_argument("--cc-ble-timeout", type=float, default=0.5)
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
+    parser.add_argument("--control-mode", choices=("policy", "heuristic"), default="policy")
     parser.add_argument("--camera-enable", action="store_true")
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--camera-width", type=int, default=640)
@@ -431,6 +432,68 @@ def predict_action(policy: LoadedPolicy, observation: np.ndarray) -> tuple[int, 
         return action_id, q_values.squeeze(0).cpu().numpy()
 
 
+def action_id_from_controls(throttle: float, turn: float, deposit: bool) -> int:
+    throttle_vals = (-1.0, 0.0, 1.0)
+    turn_vals = (-1.0, 0.0, 1.0)
+    action_table = [
+        (candidate_throttle, candidate_turn, bool(candidate_deposit))
+        for candidate_throttle in throttle_vals
+        for candidate_turn in turn_vals
+        for candidate_deposit in (0, 1)
+    ]
+    target = (float(throttle), float(turn), bool(deposit))
+    for index, candidate in enumerate(action_table):
+        if candidate == target:
+            return index
+    raise ValueError(f"Unsupported control triple {target}.")
+
+
+def choose_heuristic_action(
+    cfg: PolicyConfig,
+    lidar_ranges_mm: list[float],
+    camera_detection: CameraDetection | None,
+    deposit_default: bool = True,
+) -> tuple[int, np.ndarray]:
+    front_indices = (3, 4, 5)
+    left_indices = (0, 1, 2)
+    right_indices = (6, 7, 8)
+    front_min = min(lidar_ranges_mm[index] for index in front_indices)
+    left_min = min(lidar_ranges_mm[index] for index in left_indices)
+    right_min = min(lidar_ranges_mm[index] for index in right_indices)
+
+    obstacle_close_mm = 220.0
+    obstacle_caution_mm = 420.0
+    camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
+    camera_found = bool(camera_detection and camera_detection.found)
+
+    throttle = 0.0
+    turn = 0.0
+
+    if front_min <= obstacle_close_mm:
+        throttle = -1.0
+        turn = -1.0 if left_min >= right_min else 1.0
+    elif camera_found:
+        if camera_angle_deg > 8.0:
+            turn = 1.0
+        elif camera_angle_deg < -8.0:
+            turn = -1.0
+        else:
+            turn = 0.0
+        throttle = 1.0 if front_min >= obstacle_caution_mm else 0.0
+    else:
+        if front_min < obstacle_caution_mm:
+            throttle = 0.0
+            turn = -1.0 if left_min >= right_min else 1.0
+        else:
+            throttle = 1.0
+            turn = 0.0
+
+    action_id = action_id_from_controls(throttle, turn, deposit_default)
+    score_vector = np.full((cfg.num_actions,), -1.0, dtype=np.float32)
+    score_vector[action_id] = 1.0
+    return action_id, score_vector
+
+
 def execute_action(
     robot: ESP32Robot,
     action_id: int,
@@ -669,8 +732,16 @@ def main(argv=None):
             obs_history.append(current_frame)
             obs_history = obs_history[-cfg.observation_history_steps :]
             observation = build_observation_history(cfg, obs_history)
-            action_id, q_values = predict_action(policy, observation)
-            if should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
+            if args.control_mode == "heuristic":
+                action_id, q_values = choose_heuristic_action(
+                    cfg,
+                    lidar_ranges_mm=lidar_ranges_mm,
+                    camera_detection=camera_detection,
+                    deposit_default=args.cc_deposit_enable,
+                )
+            else:
+                action_id, q_values = predict_action(policy, observation)
+            if args.control_mode == "policy" and should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
                 print_policy_debug(
                     step=step,
                     agent_index=0,
@@ -736,6 +807,7 @@ def main(argv=None):
                 q_values_preview = np.round(q_values, 3).tolist()
                 print(
                     f"[debug] step={step} scans={len(scan_points)} valid_scans={valid_scan_count} "
+                    f"control_mode={args.control_mode} "
                     f"action={action_id} throttle={throttle:+.1f} turn={turn:+.1f} deposit={int(deposit)} "
                     f"heading_deg={pose.heading_deg:.1f} commanded_distance_mm={commanded_distance_mm:.1f} "
                     f"x_mm={pose.x_mm:.1f} y_mm={pose.y_mm:.1f} "

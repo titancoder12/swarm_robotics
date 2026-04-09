@@ -12,6 +12,7 @@ BLE_SERVICE_UUID="6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_WRITE_CHAR_UUID="6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_NOTIFY_CHAR_UUID="6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 BLE_TIMEOUT="1.0"
+CONTROL_MODE="policy"
 CAMERA_ENABLE=1
 CAMERA_INDEX="0"
 CAMERA_WIDTH="640"
@@ -56,6 +57,14 @@ while [[ $# -gt 0 ]]; do
     --checkpoint-dir)
       CHECKPOINT_DIR="$2"
       shift 2
+      ;;
+    --heuristic-control)
+      CONTROL_MODE="heuristic"
+      shift
+      ;;
+    --policy-control)
+      CONTROL_MODE="policy"
+      shift
       ;;
     --camera-enable)
       CAMERA_ENABLE=1
@@ -110,6 +119,8 @@ Launcher flags:
   --ble-notify-char-uuid UUID
   --ble-timeout SECONDS
   --checkpoint-dir DIR
+  --heuristic-control
+  --policy-control
   --no-camera
   --camera-enable
   --camera-index INDEX
@@ -123,6 +134,7 @@ Launcher flags:
 
 Examples:
   bash firmware/run_bluetooth.sh
+  bash firmware/run_bluetooth.sh --heuristic-control
   bash firmware/run_bluetooth.sh --no-camera
   bash firmware/run_bluetooth.sh --robot-id robot_1
   bash firmware/run_bluetooth.sh --robot-id robot_1 --port /dev/ttyUSB1
@@ -176,6 +188,7 @@ python firmware/run.py \
   --cc-ble-write-char-uuid "$BLE_WRITE_CHAR_UUID" \
   --cc-ble-notify-char-uuid "$BLE_NOTIFY_CHAR_UUID" \
   --cc-ble-timeout "$BLE_TIMEOUT" \
+  --control-mode "$CONTROL_MODE" \
   "${CAMERA_ARGS[@]}" \
   --debug \
   "${EXTRA_ARGS[@]}"
