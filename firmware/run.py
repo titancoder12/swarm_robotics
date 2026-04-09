@@ -488,15 +488,12 @@ def choose_heuristic_action(
         throttle = -1.0
         turn = choose_turn_sign()
     elif strong_camera_lock:
-        if front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 20.0:
+        if front_min >= obstacle_caution_mm and abs(camera_angle_deg) <= 24.0:
             throttle = 1.0
             turn = 0.0
-        elif front_min >= obstacle_caution_mm and abs(camera_angle_deg) <= 10.0:
-            throttle = 1.0
-            turn = 0.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg > 20.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg > 24.0:
             turn = 1.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg < -20.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg < -24.0:
             turn = -1.0
         else:
             turn = 0.0
@@ -505,15 +502,12 @@ def choose_heuristic_action(
         else:
             throttle = 0.0
     else:
-        if front_min >= obstacle_clear_mm:
+        if front_min >= obstacle_close_mm:
             throttle = 1.0
             turn = 0.0
-        elif front_min <= obstacle_close_mm:
+        else:
             throttle = 0.0
             turn = choose_turn_sign()
-        else:
-            throttle = 1.0
-            turn = 0.0
 
     action_id = action_id_from_controls(throttle, turn, deposit_default)
     score_vector = np.full((cfg.num_actions,), -1.0, dtype=np.float32)
@@ -528,12 +522,9 @@ def should_use_heuristic_override(
     front_min = min(lidar_ranges_mm[index] for index in (3, 4, 5))
     if front_min <= 180.0:
         return True
-    if front_min >= 650.0:
+    if front_min >= 220.0:
         return True
-    if not has_strong_camera_lock(camera_detection):
-        return False
-    angle_deg = abs(math.degrees(camera_detection.angle_rad))
-    if angle_deg <= 18.0:
+    if has_strong_camera_lock(camera_detection):
         return True
     return False
 
