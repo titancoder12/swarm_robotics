@@ -19,8 +19,8 @@ CAMERA_HEIGHT="480"
 CAMERA_HORIZONTAL_FOV_DEG="62.0"
 CAMERA_TARGET_WIDTH_CM="6.0"
 CAMERA_MIN_AREA_PX="100"
-CAMERA_HSV_LOWER="40,90,90"
-CAMERA_HSV_UPPER="90,255,255"
+CAMERA_HSV_LOWER="35,70,70"
+CAMERA_HSV_UPPER="100,255,255"
 EXTRA_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -128,7 +128,7 @@ Examples:
   bash firmware/run_bluetooth.sh --robot-id robot_1 --port /dev/ttyUSB1
   bash firmware/run_bluetooth.sh --robot-id robot_1 --ble-device-name robot_1_ble
   bash firmware/run_bluetooth.sh --camera-enable
-  bash firmware/run_bluetooth.sh --camera-enable --camera-hsv-lower 40,90,90 --camera-hsv-upper 90,255,255
+  bash firmware/run_bluetooth.sh --camera-enable --camera-hsv-lower 35,70,70 --camera-hsv-upper 100,255,255
   bash firmware/run_bluetooth.sh --robot-id robot_1 -- --max-steps 20
 EOF
       exit 0
