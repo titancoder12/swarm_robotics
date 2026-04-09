@@ -46,6 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--annotated-output", type=Path, default=Path("camera_annotated.jpg"))
     parser.add_argument("--mask-output", type=Path, default=Path("camera_mask.png"))
     parser.add_argument("--show", action="store_true", help="Open preview windows with the captured frame and mask.")
+    parser.add_argument("--continuous", action="store_true", help="Continuously capture and print detection results until interrupted.")
+    parser.add_argument("--fps", type=float, default=2.0, help="Capture rate for --continuous mode.")
+    parser.add_argument("--no-save", action="store_true", help="Do not write frame, annotated frame, or mask to disk.")
     return parser
 
 
@@ -162,57 +165,100 @@ def main(argv: list[str] | None = None) -> int:
         print("error: cv2 is not installed in this environment", file=sys.stderr)
         return 1
 
+    capture_period_s = 1.0 / max(args.fps, 0.1)
+    iteration = 0
+    announced_settings = False
+
     try:
-        frame, backend = capture_frame(args.camera_index, args.camera_width, args.camera_height)
-    except Exception as exc:
-        print(f"error: camera capture failed: {type(exc).__name__}: {exc}", file=sys.stderr)
-        return 1
+        while True:
+            iteration += 1
+            started = time.time()
+            try:
+                frame, backend = capture_frame(args.camera_index, args.camera_width, args.camera_height)
+            except Exception as exc:
+                print(f"error: camera capture failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+                return 1
 
-    annotated, mask, result = run_hsv_detection(
-        frame,
-        width=args.camera_width,
-        height=args.camera_height,
-        horizontal_fov_deg=args.camera_horizontal_fov_deg,
-        target_width_cm=args.camera_target_width_cm,
-        min_area_px=args.camera_min_area_px,
-        hsv_lower=args.camera_hsv_lower,
-        hsv_upper=args.camera_hsv_upper,
-    )
+            annotated, mask, result = run_hsv_detection(
+                frame,
+                width=args.camera_width,
+                height=args.camera_height,
+                horizontal_fov_deg=args.camera_horizontal_fov_deg,
+                target_width_cm=args.camera_target_width_cm,
+                min_area_px=args.camera_min_area_px,
+                hsv_lower=args.camera_hsv_lower,
+                hsv_upper=args.camera_hsv_upper,
+            )
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.annotated_output.parent.mkdir(parents=True, exist_ok=True)
-    args.mask_output.parent.mkdir(parents=True, exist_ok=True)
-    cv2.imwrite(str(args.output), frame)
-    cv2.imwrite(str(args.annotated_output), annotated)
-    cv2.imwrite(str(args.mask_output), mask)
+            if not args.no_save:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.annotated_output.parent.mkdir(parents=True, exist_ok=True)
+                args.mask_output.parent.mkdir(parents=True, exist_ok=True)
+                cv2.imwrite(str(args.output), frame)
+                cv2.imwrite(str(args.annotated_output), annotated)
+                cv2.imwrite(str(args.mask_output), mask)
 
-    print(f"backend: {backend}")
-    print(f"saved raw frame: {args.output}")
-    print(f"saved annotated frame: {args.annotated_output}")
-    print(f"saved mask: {args.mask_output}")
-    print(f"hsv lower: {args.camera_hsv_lower}")
-    print(f"hsv upper: {args.camera_hsv_upper}")
-    print(f"min area px: {args.camera_min_area_px}")
-    if result.get("found"):
-        print(
-            "detection: "
-            f"found=True area={result['area']:.1f} bbox={result['bbox']} "
-            f"distance_m={result['distance_m']:.3f} angle_deg={result['angle_deg']:.1f} "
-            f"confidence={result['confidence']:.3f}"
-        )
-    else:
-        if "area" in result:
-            print(f"detection: found=False largest_area={result['area']:.1f}")
-        else:
-            print("detection: found=False")
+            if not announced_settings:
+                print(f"backend: {backend}")
+                print(f"hsv lower: {args.camera_hsv_lower}")
+                print(f"hsv upper: {args.camera_hsv_upper}")
+                print(f"min area px: {args.camera_min_area_px}")
+                if not args.no_save:
+                    print(f"saved raw frame: {args.output}")
+                    print(f"saved annotated frame: {args.annotated_output}")
+                    print(f"saved mask: {args.mask_output}")
+                announced_settings = True
 
-    if args.show:
-        cv2.imshow("camera_frame", frame)
-        cv2.imshow("camera_mask", mask)
-        cv2.imshow("camera_annotated", annotated)
-        print("Press any key in the image window to exit.")
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+            if args.continuous:
+                prefix = f"[frame {iteration:04d}] "
+                if result.get("found"):
+                    print(
+                        prefix
+                        + "found=True "
+                        + f"area={result['area']:.1f} bbox={result['bbox']} "
+                        + f"distance_m={result['distance_m']:.3f} angle_deg={result['angle_deg']:.1f} "
+                        + f"confidence={result['confidence']:.3f}",
+                        flush=True,
+                    )
+                else:
+                    if "area" in result:
+                        print(prefix + f"found=False largest_area={result['area']:.1f}", flush=True)
+                    else:
+                        print(prefix + "found=False", flush=True)
+            else:
+                if result.get("found"):
+                    print(
+                        "detection: "
+                        f"found=True area={result['area']:.1f} bbox={result['bbox']} "
+                        f"distance_m={result['distance_m']:.3f} angle_deg={result['angle_deg']:.1f} "
+                        f"confidence={result['confidence']:.3f}"
+                    )
+                else:
+                    if "area" in result:
+                        print(f"detection: found=False largest_area={result['area']:.1f}")
+                    else:
+                        print("detection: found=False")
+
+            if args.show:
+                cv2.imshow("camera_frame", frame)
+                cv2.imshow("camera_mask", mask)
+                cv2.imshow("camera_annotated", annotated)
+                key = cv2.waitKey(1 if args.continuous else 0) & 0xFF
+                if key in (27, ord("q")):
+                    break
+
+            if not args.continuous:
+                break
+
+            elapsed = time.time() - started
+            sleep_s = max(0.0, capture_period_s - elapsed)
+            if sleep_s > 0:
+                time.sleep(sleep_s)
+    except KeyboardInterrupt:
+        print("\nstopped camera test", flush=True)
+    finally:
+        if args.show:
+            cv2.destroyAllWindows()
 
     return 0
 
