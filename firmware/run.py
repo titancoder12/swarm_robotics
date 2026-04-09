@@ -477,7 +477,7 @@ def choose_heuristic_action(
     random_turn_prob = float(np.clip(random_turn_prob, 0.0, 1.0))
 
     def choose_turn_sign() -> float:
-        return 1.0
+        return -1.0
 
     throttle = 0.0
     turn = 0.0
@@ -490,22 +490,22 @@ def choose_heuristic_action(
             throttle = 1.0
             turn = 0.0
         elif front_min >= obstacle_caution_mm and camera_angle_deg > 36.0:
-            turn = 1.0
+            turn = -1.0
         elif front_min >= obstacle_caution_mm and camera_angle_deg < -36.0:
-            turn = 1.0
+            turn = -1.0
         else:
-            turn = 1.0 if front_min < obstacle_caution_mm else 0.0
+            turn = -1.0 if front_min < obstacle_caution_mm else 0.0
         throttle = 1.0 if front_min >= obstacle_close_mm else 0.0
     else:
         if front_min >= obstacle_caution_mm:
             throttle = 1.0
             if rng is not None and front_min >= obstacle_clear_mm and rng.random() < forward_wiggle_prob:
-                turn = 1.0
+                turn = -1.0
             else:
                 turn = 0.0
         elif front_min >= obstacle_close_mm:
             throttle = 1.0
-            turn = 1.0
+            turn = -1.0
         else:
             throttle = 1.0
             turn = choose_turn_sign()
