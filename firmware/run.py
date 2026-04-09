@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import random
 import sys
 import time
 from dataclasses import dataclass
@@ -127,6 +128,8 @@ def parse_args(argv=None):
     parser.add_argument("--cc-deposit-enable", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--cc-pheromone-deposit-amount", type=float, default=1.0)
     parser.add_argument("--control-mode", choices=("policy", "heuristic", "hybrid"), default="policy")
+    parser.add_argument("--heuristic-random-turn-prob", type=float, default=0.35)
+    parser.add_argument("--heuristic-rng-seed", type=int, default=0)
     parser.add_argument("--camera-enable", action="store_true")
     parser.add_argument("--camera-index", type=int, default=0)
     parser.add_argument("--camera-width", type=int, default=640)
@@ -453,6 +456,8 @@ def choose_heuristic_action(
     lidar_ranges_mm: list[float],
     camera_detection: CameraDetection | None,
     deposit_default: bool = True,
+    rng: random.Random | None = None,
+    random_turn_prob: float = 0.35,
 ) -> tuple[int, np.ndarray]:
     front_indices = (3, 4, 5)
     left_indices = (0, 1, 2)
@@ -470,15 +475,25 @@ def choose_heuristic_action(
     strong_camera_lock = bool(
         camera_found and strong_camera_lock
     )
+    random_turn_prob = float(np.clip(random_turn_prob, 0.0, 1.0))
+
+    def choose_turn_sign() -> float:
+        clearance_diff = abs(left_min - right_min)
+        if rng is not None and (clearance_diff < 160.0 or rng.random() < random_turn_prob):
+            return rng.choice((-1.0, 1.0))
+        return -1.0 if left_min >= right_min else 1.0
 
     throttle = 0.0
     turn = 0.0
 
     if front_min <= obstacle_close_mm:
         throttle = -1.0
-        turn = -1.0 if left_min >= right_min else 1.0
+        turn = choose_turn_sign()
     elif camera_found:
-        if front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 18.0:
+        if not strong_camera_lock and front_min >= obstacle_caution_mm:
+            throttle = 1.0
+            turn = 0.0
+        elif front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 18.0:
             throttle = 1.0
             turn = 0.0
         elif camera_angle_deg > 12.0:
@@ -499,7 +514,7 @@ def choose_heuristic_action(
             turn = 0.0
         elif front_min < obstacle_caution_mm:
             throttle = 0.0
-            turn = -1.0 if left_min >= right_min else 1.0
+            turn = choose_turn_sign()
         else:
             throttle = 1.0
             turn = 0.0
@@ -691,6 +706,7 @@ def main(argv=None):
     speed_mps = 0.0
     obs_history: list[np.ndarray] = []
     debug_policy_cfg = make_policy_debug_config(args.debug_policy, args.debug_policy_agents, args.debug_policy_max_steps)
+    heuristic_rng = random.Random(args.heuristic_rng_seed if args.heuristic_rng_seed != 0 else time.time_ns())
 
     if args.debug:
         print(
@@ -784,6 +800,8 @@ def main(argv=None):
                     lidar_ranges_mm=lidar_ranges_mm,
                     camera_detection=camera_detection,
                     deposit_default=args.cc_deposit_enable,
+                    rng=heuristic_rng,
+                    random_turn_prob=args.heuristic_random_turn_prob,
                 )
             else:
                 policy_action_id, policy_q_values = predict_action(policy, observation)
@@ -796,6 +814,8 @@ def main(argv=None):
                         lidar_ranges_mm=lidar_ranges_mm,
                         camera_detection=camera_detection,
                         deposit_default=args.cc_deposit_enable,
+                        rng=heuristic_rng,
+                        random_turn_prob=args.heuristic_random_turn_prob,
                     )
                 else:
                     action_id, q_values = policy_action_id, policy_q_values
