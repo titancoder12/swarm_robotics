@@ -461,10 +461,16 @@ def choose_heuristic_action(
     left_min = min(lidar_ranges_mm[index] for index in left_indices)
     right_min = min(lidar_ranges_mm[index] for index in right_indices)
 
-    obstacle_close_mm = 220.0
-    obstacle_caution_mm = 420.0
+    obstacle_close_mm = 180.0
+    obstacle_caution_mm = 320.0
+    obstacle_clear_mm = 650.0
     camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
     camera_found = bool(camera_detection and camera_detection.found)
+    strong_camera_lock = bool(
+        camera_found
+        and camera_detection is not None
+        and camera_detection.confidence >= 0.01
+    )
 
     throttle = 0.0
     turn = 0.0
@@ -473,15 +479,26 @@ def choose_heuristic_action(
         throttle = -1.0
         turn = -1.0 if left_min >= right_min else 1.0
     elif camera_found:
-        if camera_angle_deg > 8.0:
+        if front_min >= obstacle_clear_mm and abs(camera_angle_deg) <= 18.0:
+            throttle = 1.0
+            turn = 0.0
+        elif camera_angle_deg > 12.0:
             turn = 1.0
-        elif camera_angle_deg < -8.0:
+        elif camera_angle_deg < -12.0:
             turn = -1.0
         else:
             turn = 0.0
-        throttle = 1.0 if front_min >= obstacle_caution_mm else 0.0
+        if front_min >= obstacle_caution_mm:
+            throttle = 1.0
+        elif strong_camera_lock:
+            throttle = 0.0
+        else:
+            throttle = 0.0
     else:
-        if front_min < obstacle_caution_mm:
+        if front_min >= obstacle_clear_mm:
+            throttle = 1.0
+            turn = 0.0
+        elif front_min < obstacle_caution_mm:
             throttle = 0.0
             turn = -1.0 if left_min >= right_min else 1.0
         else:
@@ -499,12 +516,14 @@ def should_use_heuristic_override(
     camera_detection: CameraDetection | None,
 ) -> bool:
     front_min = min(lidar_ranges_mm[index] for index in (3, 4, 5))
-    if front_min <= 220.0:
+    if front_min <= 180.0:
+        return True
+    if front_min >= 650.0:
         return True
     if camera_detection is None or not camera_detection.found:
         return False
     angle_deg = abs(math.degrees(camera_detection.angle_rad))
-    if camera_detection.confidence >= 0.01 and angle_deg <= 20.0:
+    if camera_detection.confidence >= 0.01 and angle_deg <= 18.0:
         return True
     return False
 
