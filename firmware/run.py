@@ -470,6 +470,7 @@ def choose_heuristic_action(
     obstacle_close_mm = 220.0
     obstacle_caution_mm = 420.0
     obstacle_clear_mm = 650.0
+    forward_wiggle_prob = 0.18
     camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
     camera_found = bool(camera_detection and camera_detection.found)
     strong_camera_lock = bool(camera_found and has_strong_camera_lock(camera_detection))
@@ -478,8 +479,9 @@ def choose_heuristic_action(
     def choose_turn_sign() -> float:
         clearance_diff = abs(left_min - right_min)
         if rng is not None and (clearance_diff < 160.0 or rng.random() < random_turn_prob):
-            return rng.choice((-1.0, 1.0))
-        return -1.0 if left_min >= right_min else 1.0
+            # Bias ambiguous recovery turns counter-clockwise to break repeated clockwise loops.
+            return 1.0 if rng.random() < 0.7 else -1.0
+        return 1.0 if right_min >= left_min else -1.0
 
     throttle = 0.0
     turn = 0.0
@@ -488,23 +490,23 @@ def choose_heuristic_action(
         throttle = -1.0
         turn = choose_turn_sign()
     elif strong_camera_lock:
-        if front_min >= obstacle_caution_mm and abs(camera_angle_deg) <= 24.0:
+        if front_min >= obstacle_close_mm and abs(camera_angle_deg) <= 28.0:
             throttle = 1.0
             turn = 0.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg > 24.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg > 28.0:
             turn = 1.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg < -24.0:
+        elif front_min >= obstacle_caution_mm and camera_angle_deg < -28.0:
             turn = -1.0
         else:
-            turn = 0.0
-        if front_min >= obstacle_caution_mm:
-            throttle = 1.0
-        else:
-            throttle = 0.0
+            turn = choose_turn_sign() if front_min < obstacle_close_mm else 0.0
+        throttle = 1.0 if front_min >= obstacle_close_mm else 0.0
     else:
         if front_min >= obstacle_close_mm:
             throttle = 1.0
-            turn = 0.0
+            if rng is not None and front_min >= obstacle_clear_mm and rng.random() < forward_wiggle_prob:
+                turn = 1.0 if rng.random() < 0.7 else -1.0
+            else:
+                turn = 0.0
         else:
             throttle = 0.0
             turn = choose_turn_sign()
