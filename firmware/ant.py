@@ -19,6 +19,7 @@ class ESP32Robot:
         self.timeout = timeout
         self.startup_delay = startup_delay
         self.ser: Optional[serial.Serial] = None
+        self._rx_buffer = bytearray()
 
     @staticmethod
     def _require_pyserial() -> None:
@@ -43,11 +44,13 @@ class ESP32Robot:
         time.sleep(self.startup_delay)
         self.ser.reset_input_buffer()
         self.ser.reset_output_buffer()
+        self._rx_buffer.clear()
 
     def reset_buffers(self) -> None:
         ser = self._require_serial()
         ser.reset_input_buffer()
         ser.reset_output_buffer()
+        self._rx_buffer.clear()
 
     def close(self) -> None:
         if self.ser is not None:
@@ -84,6 +87,23 @@ class ESP32Robot:
         #print(line)
         return line if line else None
 
+    def poll_line(self) -> Optional[str]:
+        ser = self._require_serial()
+        waiting = ser.in_waiting
+        if waiting:
+            chunk = ser.read(waiting)
+            if chunk:
+                self._rx_buffer.extend(chunk)
+
+        newline_index = self._rx_buffer.find(b"\n")
+        if newline_index < 0:
+            return None
+
+        raw = bytes(self._rx_buffer[: newline_index + 1])
+        del self._rx_buffer[: newline_index + 1]
+        line = raw.decode("utf-8", errors="ignore").strip()
+        return line if line else None
+
     def wait_for_stream_ready(self, timeout: float = 3.0, line_timeout: float = 0.1) -> bool:
         ser = self._require_serial()
         start = time.time()
@@ -92,10 +112,8 @@ class ESP32Robot:
         while time.time() - start < timeout:
             if ser.in_waiting:
                 saw_any_bytes = True
-                line = self.read_line(timeout_override=line_timeout)
-                if not line:
-                    time.sleep(0.01)
-                    continue
+            line = self.poll_line()
+            if line:
                 parsed = self.parse_line(line)
                 if parsed.get("type") == "scan":
                     return True
@@ -159,8 +177,10 @@ class ESP32Robot:
 
         while time.time() - start < duration:
             if ser.in_waiting:
-                line = self.read_line(timeout_override=0.05)
-                if line:
+                while True:
+                    line = self.poll_line()
+                    if not line:
+                        break
                     results.append(self.parse_line(line))
             time.sleep(0.005)
 
@@ -173,14 +193,13 @@ class ESP32Robot:
         while time.time() - start < timeout:
 
             if ser.in_waiting:
-                line = self.read_line(timeout_override=0.05)
-                if not line:
-                    continue
-
-                data = self.parse_line(line)
-
-                if data.get("type") == "scan":
-                    return data
+                while True:
+                    line = self.poll_line()
+                    if not line:
+                        break
+                    data = self.parse_line(line)
+                    if data.get("type") == "scan":
+                        return data
 
             time.sleep(0.005)
 
@@ -206,23 +225,24 @@ class ESP32Robot:
 
         while time.time() - start < timeout:
             if self._require_serial().in_waiting:
-                line = self.read_line(timeout_override=0.05)
-                if not line:
-                    continue
+                while True:
+                    line = self.poll_line()
+                    if not line:
+                        break
 
-                item = self.parse_line(line)
-                if item.get("type") != "scan":
-                    continue
+                    item = self.parse_line(line)
+                    if item.get("type") != "scan":
+                        continue
 
-                angle = item.get("angle")
-                if angle is None:
-                    continue
+                    angle = item.get("angle")
+                    if angle is None:
+                        continue
 
-                if points and angle in seen_angles:
-                    break
+                    if points and angle in seen_angles:
+                        return points
 
-                points.append(item)
-                seen_angles.add(angle)
+                    points.append(item)
+                    seen_angles.add(angle)
 
             time.sleep(0.005)
 
