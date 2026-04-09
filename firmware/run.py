@@ -484,31 +484,20 @@ def choose_heuristic_action(
 
     if front_min <= obstacle_emergency_mm:
         throttle = -1.0
-        turn = choose_turn_sign()
+        turn = 0.0
     elif strong_camera_lock:
-        if front_min >= obstacle_close_mm and abs(camera_angle_deg) <= 36.0:
-            throttle = 1.0
-            turn = 0.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg > 36.0:
-            turn = 1.0
-        elif front_min >= obstacle_caution_mm and camera_angle_deg < -36.0:
-            turn = 1.0
-        else:
-            turn = 1.0 if front_min < obstacle_caution_mm else 0.0
         throttle = 1.0 if front_min >= obstacle_close_mm else 0.0
+        turn = 0.0
     else:
         if front_min >= obstacle_caution_mm:
             throttle = 1.0
-            if rng is not None and front_min >= obstacle_clear_mm and rng.random() < forward_wiggle_prob:
-                turn = 1.0
-            else:
-                turn = 0.0
+            turn = 0.0
         elif front_min >= obstacle_close_mm:
             throttle = 1.0
-            turn = 1.0
+            turn = 0.0
         else:
             throttle = 1.0
-            turn = choose_turn_sign()
+            turn = 0.0
 
     action_id = action_id_from_controls(throttle, turn, deposit_default)
     score_vector = np.full((cfg.num_actions,), -1.0, dtype=np.float32)
