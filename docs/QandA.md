@@ -1120,3 +1120,6 @@ A: Yes. The relevant existing `102744` baseline figures were copied, and additio
 
 ## Q: Can line graphs also be generated for the `102744` baseline-performance board materials?
 A: Yes. Additional line-style baseline figures were generated from the saved `20260406_102744` raw baseline-comparison data and added to `docs/cwsf2026/opb/what/baseline_performance`. These include `baseline_food_delivered_line_ci.png`, `baseline_delivery_conversion_line_ci.png`, `baseline_exploration_coverage_line_ci.png`, and `baseline_food_delivered_by_episode_line.png`.
+
+## Q: Can the `102744` killer experiment be visualized as a line graph with number of agents on the x-axis and performance on the y-axis for multiple pheromone conditions?
+A: Yes. Line graphs were generated from `docs/gvrsf2026/experiments/20260406_102744/killer_scaling/raw_exports/all_episode_results.csv` and saved under `docs/cwsf2026/opb/what/stigmergy_scaling`. The main requested plot is `killer_food_delivered_line_by_condition.png`, which shows mean food delivered versus swarm size for the three killer conditions on the same graph. A companion `killer_late_deliveries_line_by_condition.png` was also generated.
