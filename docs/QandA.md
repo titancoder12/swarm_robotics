@@ -1123,3 +1123,9 @@ A: Yes. Additional line-style baseline figures were generated from the saved `20
 
 ## Q: Can the `102744` killer experiment be visualized as a line graph with number of agents on the x-axis and performance on the y-axis for multiple pheromone conditions?
 A: Yes. Line graphs were generated from `docs/gvrsf2026/experiments/20260406_102744/killer_scaling/raw_exports/all_episode_results.csv` and saved under `docs/cwsf2026/opb/what/stigmergy_scaling`. The main requested plot is `killer_food_delivered_line_by_condition.png`, which shows mean food delivered versus swarm size for the three killer conditions on the same graph. A companion `killer_late_deliveries_line_by_condition.png` was also generated.
+
+## Q: What are the vertical bars at each data point on the generated line graphs?
+A: They are error bars showing the 95% confidence interval around the mean at that data point. For each condition and swarm size, the plotted point is the sample mean across the saved episodes/seeds, and the vertical bar shows an estimate of uncertainty in that mean. Narrower bars mean the estimate was more stable across seeds; wider bars mean more variability.
+
+## Q: Can the generated killer line graphs be shown without confidence-interval bars?
+A: Yes. The `docs/cwsf2026/opb/what/stigmergy_scaling` line graphs were regenerated without confidence-interval error bars, so the current `killer_food_delivered_line_by_condition.png` and `killer_late_deliveries_line_by_condition.png` are plain multi-condition line plots.
