@@ -1117,3 +1117,6 @@ A: Yes. The `20260406_102744` broad campaign explicitly reports a baseline compa
 
 ## Q: Can the existing and newly generated baseline-performance graphs for the `102744` statement be collected under the CWSF board folder?
 A: Yes. The relevant existing `102744` baseline figures were copied, and additional raw-data-based baseline plots were generated, under `docs/cwsf2026/opb/what/baseline_performance`. The folder now contains the existing archive figures `baseline_food_delivered.png` and `broad_baseline_food_delivered.png`, plus generated presentation-friendly plots `baseline_food_delivered_boxplot.png`, `baseline_food_delivered_ci.png`, and `baseline_delivery_conversion_boxplot.png`, along with a short `README.txt` describing their provenance.
+
+## Q: Can line graphs also be generated for the `102744` baseline-performance board materials?
+A: Yes. Additional line-style baseline figures were generated from the saved `20260406_102744` raw baseline-comparison data and added to `docs/cwsf2026/opb/what/baseline_performance`. These include `baseline_food_delivered_line_ci.png`, `baseline_delivery_conversion_line_ci.png`, `baseline_exploration_coverage_line_ci.png`, and `baseline_food_delivered_by_episode_line.png`.
