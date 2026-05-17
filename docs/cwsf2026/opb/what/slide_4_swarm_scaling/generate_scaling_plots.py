@@ -208,6 +208,106 @@ def plot_broad_scaling_food_delivered_final(rows_by_cond: dict[str, list[dict[st
     return out
 
 
+def plot_broad_scaling_food_delivered_final_2(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    sizes = SIZE_LABELS
+    mean_food_delivered = [mean([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+    errors = []
+    for cond in ORDER:
+        vals = [float(r["food_delivered"]) for r in rows_by_cond[cond]]
+        if len(vals) <= 1:
+            errors.append(0.0)
+        else:
+            m = mean(vals)
+            variance = sum((v - m) ** 2 for v in vals) / (len(vals) - 1)
+            se = (variance ** 0.5) / (len(vals) ** 0.5)
+            errors.append(se)
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14}
+    )
+    fig, ax = plt.subplots(figsize=(8, 5))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.errorbar(
+        sizes,
+        mean_food_delivered,
+        yerr=errors,
+        color="#2563EB",
+        linewidth=3.2,
+        marker="o",
+        markersize=9,
+        markerfacecolor="#2563EB",
+        markeredgecolor="black",
+        markeredgewidth=0.8,
+        capsize=5,
+        elinewidth=1.4,
+        capthick=1.4,
+        zorder=3,
+    )
+
+    ax.set_xlabel("Number of agents")
+    ax.set_ylabel("Mean food delivered per episode")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0.5, 31.5)
+    ymax = max(mean_food_delivered) * 1.2
+    if ymax <= 0:
+        ymax = 1.0
+    ax.set_ylim(0, ymax)
+
+    plt.tight_layout()
+    out = OUT_DIR / "1-broad_scaling_food_delivered_final_fixed_2.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def plot_broad_scaling_food_delivered_final_3(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    sizes = SIZE_LABELS
+    mean_food_delivered = [mean([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14}
+    )
+    fig, ax = plt.subplots(figsize=(8, 5))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.plot(
+        sizes,
+        mean_food_delivered,
+        color="#2563EB",
+        linewidth=3.2,
+        marker="o",
+        markersize=9,
+        markerfacecolor="#2563EB",
+        markeredgecolor="black",
+        markeredgewidth=0.8,
+        zorder=3,
+    )
+
+    ax.set_xlabel("Number of agents")
+    ax.set_ylabel("Mean food delivered per episode")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0.5, 31.5)
+    ymax = max(mean_food_delivered) * 1.2
+    if ymax <= 0:
+        ymax = 1.0
+    ax.set_ylim(0, ymax)
+
+    plt.tight_layout()
+    out = OUT_DIR / "1-broad_scaling_food_delivered_final_fixed_3.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def plot_broad_scaling_exploration_final(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
     sizes = SIZE_LABELS
     mean_exploration = [mean([float(r["exploration_coverage"]) for r in rows_by_cond[cond]]) for cond in ORDER]
@@ -267,6 +367,63 @@ def plot_broad_scaling_exploration_final(rows_by_cond: dict[str, list[dict[str, 
 
     plt.tight_layout()
     out = OUT_DIR / "5-scaling_exploration_coverage_final.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def plot_broad_scaling_exploration_final_2(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    sizes = SIZE_LABELS
+    mean_exploration = [mean([float(r["exploration_coverage"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+    errors = []
+    for cond in ORDER:
+        vals = [float(r["exploration_coverage"]) for r in rows_by_cond[cond]]
+        if len(vals) <= 1:
+            errors.append(0.0)
+        else:
+            m = mean(vals)
+            variance = sum((v - m) ** 2 for v in vals) / (len(vals) - 1)
+            se = (variance ** 0.5) / (len(vals) ** 0.5)
+            errors.append(se)
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14}
+    )
+    fig, ax = plt.subplots(figsize=(8, 5))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.errorbar(
+        sizes,
+        mean_exploration,
+        yerr=errors,
+        color="#D97706",
+        linewidth=3.2,
+        marker="o",
+        markersize=9,
+        markerfacecolor="#D97706",
+        markeredgecolor="black",
+        markeredgewidth=0.8,
+        capsize=5,
+        elinewidth=1.4,
+        capthick=1.4,
+        zorder=3,
+    )
+
+    ax.set_xlabel("Number of agents")
+    ax.set_ylabel("Mean exploration coverage")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0.5, 31.5)
+    ymax = max(mean_exploration) * 1.2
+    if ymax <= 0:
+        ymax = 1.0
+    ax.set_ylim(0, ymax)
+
+    plt.tight_layout()
+    out = OUT_DIR / "5-scaling_exploration_coverage_final_2.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
     return out
@@ -333,6 +490,46 @@ def plot_broad_scaling_delivery_conversion_final(rows_by_cond: dict[str, list[di
     return out
 
 
+def plot_broad_scaling_delivery_conversion_final_2(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    sizes = SIZE_LABELS
+    mean_conversion = [mean([float(r["delivery_conversion"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14}
+    )
+    fig, ax = plt.subplots(figsize=(8, 5))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.plot(
+        sizes,
+        mean_conversion,
+        color="#059669",
+        linewidth=3.2,
+        marker="o",
+        markersize=9,
+        markerfacecolor="#059669",
+        markeredgecolor="black",
+        markeredgewidth=0.8,
+        zorder=3,
+    )
+
+    ax.set_xlabel("Number of agents")
+    ax.set_ylabel("Delivery conversion rate")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_xlim(0.5, 31.5)
+    ax.set_ylim(0, 1.0)
+
+    plt.tight_layout()
+    out = OUT_DIR / "3-scaling_delivery_conversion_final_2.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     rows = load_rows()
     grouped = rows_by_condition(rows)
@@ -341,8 +538,12 @@ def main() -> None:
     plot_paired_points(grouped)
     plot_combined_scaling(grouped)
     plot_broad_scaling_food_delivered_final(grouped)
+    plot_broad_scaling_food_delivered_final_2(grouped)
+    plot_broad_scaling_food_delivered_final_3(grouped)
     plot_broad_scaling_exploration_final(grouped)
+    plot_broad_scaling_exploration_final_2(grouped)
     plot_broad_scaling_delivery_conversion_final(grouped)
+    plot_broad_scaling_delivery_conversion_final_2(grouped)
 
 
 if __name__ == "__main__":

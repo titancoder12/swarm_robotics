@@ -239,6 +239,50 @@ def plot_main_final_30_agents(rows: list[dict[str, str]]) -> Path:
     return out
 
 
+def plot_main_final_30_agents_2(rows: list[dict[str, str]]) -> Path:
+    subset = rows_for_size(rows, 30)
+    with_pheromone = [float(r["food_delivered"]) for r in subset[ORDER[0]]]
+    without_pheromone = [float(r["food_delivered"]) for r in subset[ORDER[2]]]
+    mean_with = mean(with_pheromone)
+    mean_without = mean(without_pheromone)
+
+    x = [0, 1.35]
+    labels = ["With pheromone", "Without pheromone"]
+    colors = ["#1565C0", "#8E8E93"]
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14}
+    )
+    fig, ax = plt.subplots(figsize=(10.5, 6.8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.bar(
+        x,
+        [mean_with, mean_without],
+        width=0.72,
+        color=colors,
+        edgecolor="black",
+        linewidth=0.9,
+        zorder=3,
+    )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean Food Delivered per Episode")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65, zorder=0)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.set_ylim(0, 3.05)
+
+    fig.tight_layout()
+    out = OUT_DIR / "stigmergy_main_final_2.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def plot_scaling_final(rows: list[dict[str, str]]) -> Path:
     sizes = sorted({int(r["n_agents"]) for r in rows})
     with_cond = ORDER[0]
@@ -313,6 +357,71 @@ def plot_scaling_final(rows: list[dict[str, str]]) -> Path:
 
     fig.tight_layout()
     out = OUT_DIR / "stigmergy_scaling_final.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def plot_scaling_final_2(rows: list[dict[str, str]]) -> Path:
+    sizes = sorted({int(r["n_agents"]) for r in rows})
+    with_cond = ORDER[0]
+    without_cond = ORDER[2]
+    with_means = []
+    without_means = []
+    for size in sizes:
+        with_vals = [float(r["food_delivered"]) for r in rows if r["condition"] == with_cond and int(r["n_agents"]) == size]
+        without_vals = [float(r["food_delivered"]) for r in rows if r["condition"] == without_cond and int(r["n_agents"]) == size]
+        with_means.append(mean(with_vals))
+        without_means.append(mean(without_vals))
+
+    plt.rcParams.update(
+        {"font.size": 15, "axes.titlesize": 24, "axes.titleweight": "bold", "axes.labelsize": 17, "xtick.labelsize": 14, "ytick.labelsize": 14, "legend.fontsize": 13}
+    )
+    fig, ax = plt.subplots(figsize=(10.8, 6.8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    ax.plot(
+        sizes,
+        with_means,
+        color="#1565C0",
+        linewidth=3.2,
+        marker="o",
+        markersize=8,
+        markerfacecolor="#1565C0",
+        markeredgecolor="black",
+        label="With Pheromone",
+        zorder=3,
+    )
+    ax.plot(
+        sizes,
+        without_means,
+        color="#C62828",
+        linewidth=3.0,
+        linestyle="--",
+        marker="o",
+        markersize=8,
+        markerfacecolor="#C62828",
+        markeredgecolor="black",
+        label="Without Pheromone",
+        zorder=3,
+    )
+
+    ax.set_xlabel("Number of Agents")
+    ax.set_ylabel("Mean Food Delivered")
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(frameon=False, loc="upper left")
+
+    ymin = min(min(without_means), min(with_means))
+    ymax = max(max(with_means), max(without_means))
+    ax.set_ylim(max(-0.05, ymin - 0.1), ymax + 0.45)
+    ax.set_xlim(min(sizes) - 0.5, max(sizes) + 1.0)
+
+    fig.tight_layout()
+    out = OUT_DIR / "stigmergy_scaling_final_2.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
     return out
@@ -445,7 +554,9 @@ def main() -> None:
         "stigmergy_food_delivered_delta_6_agents.png",
     )
     plot_main_final_30_agents(rows)
+    plot_main_final_30_agents_2(rows)
     plot_scaling_final(rows)
+    plot_scaling_final_2(rows)
     plot_consistency_final(rows, 30)
 
 

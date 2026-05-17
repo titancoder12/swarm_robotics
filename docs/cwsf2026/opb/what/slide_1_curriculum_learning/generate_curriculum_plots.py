@@ -305,6 +305,179 @@ def generate_final_delta_by_trial(trials: list[dict[str, float]], p_value: float
     return out
 
 
+def generate_final_delta_by_trial_2(trials: list[dict[str, float]]) -> Path:
+    trial_ids = [int(t["trial"]) for t in trials]
+    deltas = [float(t["delta"]) for t in trials]
+    mean_delta = sum(deltas) / len(deltas)
+
+    jitter_pattern = (-0.08, -0.04, 0.0, 0.04, 0.08)
+    jittered_x = [trial + jitter_pattern[(idx - 1) % len(jitter_pattern)] for idx, trial in enumerate(trial_ids, start=1)]
+
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 22,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 16,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+        }
+    )
+    fig, ax = plt.subplots(figsize=(11.5, 6.8))
+
+    ax.scatter(
+        jittered_x,
+        deltas,
+        s=160,
+        color="#1565C0",
+        edgecolors="black",
+        linewidths=0.9,
+        zorder=3,
+    )
+    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1.5, zorder=1)
+    ax.axhline(mean_delta, color="black", linewidth=2.0, zorder=2)
+
+    x_min = min(jittered_x) - 0.2
+    x_max = max(jittered_x) + 0.2
+    ax.set_xlim(x_min, x_max)
+    ymin = min(min(deltas), 0.0)
+    ymax = max(max(deltas), mean_delta)
+    pad = max(0.3, 0.12 * (ymax - ymin if ymax > ymin else 1.0))
+    ax.set_ylim(ymin - pad, ymax + pad)
+
+    ax.set_xticks(trial_ids)
+    ax.set_xlabel("Trial")
+    ax.set_ylabel("Food delivered improvement")
+
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.7)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    out = OUT_DIR / "curriculum_food_delivered_delta_by_trial_final_2.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def generate_final_delta_by_trial_3(trials: list[dict[str, float]]) -> Path:
+    trial_ids = [int(t["trial"]) for t in trials]
+    deltas = [float(t["delta"]) for t in trials]
+    mean_delta = sum(deltas) / len(deltas)
+
+    jitter_pattern = (-0.08, -0.04, 0.0, 0.04, 0.08)
+    jittered_x = [trial + jitter_pattern[(idx - 1) % len(jitter_pattern)] for idx, trial in enumerate(trial_ids, start=1)]
+
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 22,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 16,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+        }
+    )
+    fig, ax = plt.subplots(figsize=(11.5, 6.8))
+
+    ax.scatter(
+        jittered_x,
+        deltas,
+        s=160,
+        color="#1565C0",
+        edgecolors="black",
+        linewidths=0.9,
+        zorder=3,
+    )
+    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1.5, zorder=1)
+    ax.axhline(mean_delta, color="black", linewidth=2.0, zorder=2)
+
+    x_min = min(jittered_x) - 0.2
+    x_max = max(jittered_x) + 0.2
+    ax.set_xlim(x_min, x_max)
+    ymin = min(min(deltas), 0.0)
+    ymax = max(max(deltas), mean_delta)
+    pad = max(0.3, 0.12 * (ymax - ymin if ymax > ymin else 1.0))
+    ax.set_ylim(ymin - pad, ymax + pad)
+
+    ax.set_xticks(trial_ids)
+    ax.set_xlabel("Trial")
+    ax.set_ylabel("Food delivered improvement")
+
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.7)
+    ax.grid(False, axis="x")
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.2)
+        spine.set_color("black")
+
+    fig.tight_layout()
+    out = OUT_DIR / "curriculum_food_delivered_delta_by_trial_final_3.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
+def generate_final_delta_by_trial_4(trials: list[dict[str, float]]) -> Path:
+    trial_ids = [int(t["trial"]) for t in trials]
+    deltas = [float(t["delta"]) for t in trials]
+    mean_delta = sum(deltas) / len(deltas)
+
+    jitter_pattern = (-0.08, -0.04, 0.0, 0.04, 0.08)
+    jittered_x = [trial + jitter_pattern[(idx - 1) % len(jitter_pattern)] for idx, trial in enumerate(trial_ids, start=1)]
+
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 22,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 16,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+        }
+    )
+    fig, ax = plt.subplots(figsize=(11.5, 6.8))
+
+    ax.scatter(
+        jittered_x,
+        deltas,
+        s=160,
+        color="#1565C0",
+        edgecolors="black",
+        linewidths=0.9,
+        zorder=3,
+    )
+    ax.axhline(0, color="#C62828", linestyle="--", linewidth=1.5, zorder=1)
+    ax.axhline(mean_delta, color="black", linewidth=2.0, zorder=2)
+
+    x_min = min(jittered_x) - 0.2
+    x_max = max(jittered_x) + 0.2
+    ax.set_xlim(x_min, x_max)
+    ymin = min(min(deltas), 0.0)
+    ymax = max(max(deltas), mean_delta)
+    pad = max(0.3, 0.12 * (ymax - ymin if ymax > ymin else 1.0))
+    ax.set_ylim(ymin - pad, ymax + pad)
+
+    ax.set_xticks(trial_ids)
+    ax.set_xlabel("Trial")
+    ax.set_ylabel("Food delivered improvement")
+    ax.set_title("Consistent Performance Gains Across Matched Trials", pad=20)
+
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.7)
+    ax.grid(False, axis="x")
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.2)
+        spine.set_color("black")
+
+    fig.tight_layout()
+    out = OUT_DIR / "curriculum_food_delivered_delta_by_trial_final_4.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def generate_task_efficiency_funnel(condition_means: dict[str, dict[str, float]]) -> Path:
     labels = {
         CURRENT: "New curriculum",
@@ -725,6 +898,119 @@ def generate_pickups_vs_deliveries_grouped_improved(condition_means: dict[str, d
     return out
 
 
+def generate_pickups_vs_deliveries_grouped_2(condition_means: dict[str, dict[str, float]]) -> Path:
+    labels = ["New curriculum", "Older configuration"]
+    conditions = [CURRENT, OLDER]
+    picked_vals = [condition_means[c]["food_picked_up"] for c in conditions]
+    delivered_vals = [condition_means[c]["food_delivered"] for c in conditions]
+    conversions = [
+        None if picked == 0 else delivered / picked
+        for picked, delivered in zip(picked_vals, delivered_vals)
+    ]
+
+    group_centers = [0.0, 1.8]
+    width = 0.28
+    picked_x = [c - 0.16 for c in group_centers]
+    delivered_x = [c + 0.16 for c in group_centers]
+
+    picked_colors = ["#7FB3D5", "#F2B179"]
+    delivered_colors = ["#1F5A94", "#C96A1B"]
+
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 22,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 16,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+        }
+    )
+    fig, ax = plt.subplots(figsize=(11.5, 6.8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    picked_bars = ax.bar(picked_x, picked_vals, width=width, color=picked_colors, edgecolor="black", linewidth=0.8, zorder=3)
+    delivered_bars = ax.bar(delivered_x, delivered_vals, width=width, color=delivered_colors, edgecolor="black", linewidth=0.8, zorder=3)
+
+    ymax = max(max(picked_vals), max(delivered_vals), 1.0)
+    ax.set_ylim(0, ymax + 1.15)
+    ax.set_xlim(-0.7, 2.6)
+    ax.set_xticks(group_centers)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean per episode")
+
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.7, zorder=0)
+    ax.grid(False, axis="x")
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_linewidth(1.2)
+        spine.set_color("black")
+
+    for bar, val in zip(picked_bars, picked_vals):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.07,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+        )
+    for bar, val in zip(delivered_bars, delivered_vals):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + 0.07,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            fontweight="bold",
+        )
+
+    for i, center in enumerate(group_centers):
+        conv = conversions[i]
+        ax.text(
+            center,
+            max(picked_vals[i], delivered_vals[i]) + 0.42,
+            f"Conversion = {conv * 100:.1f}%" if conv is not None else "Conversion = N/A",
+            ha="center",
+            va="bottom",
+            fontsize=12,
+            fontweight="bold",
+            color="#333333",
+        )
+
+    ax.text(
+        group_centers[0] + 0.42,
+        max(delivered_vals[0], 0.15) + 0.55,
+        "Completes delivery loop",
+        ha="left",
+        va="center",
+        fontsize=12,
+        color="#333333",
+    )
+    ax.text(
+        delivered_x[1] + 0.12,
+        0.28,
+        "0 deliveries\nFails to complete loop",
+        ha="left",
+        va="bottom",
+        fontsize=12,
+        color="#333333",
+    )
+
+    ax.text(-0.58, ymax + 0.78, "Food picked up", fontsize=12, color="#333333", va="center")
+    ax.add_patch(plt.Rectangle((-0.68, ymax + 0.68), 0.07, 0.12, facecolor="#7FB3D5", edgecolor="black", linewidth=0.6, clip_on=False))
+    ax.text(0.22, ymax + 0.78, "Food delivered", fontsize=12, color="#333333", va="center")
+    ax.add_patch(plt.Rectangle((0.08, ymax + 0.68), 0.07, 0.12, facecolor="#1F5A94", edgecolor="black", linewidth=0.6, clip_on=False))
+
+    fig.tight_layout()
+    out = OUT_DIR / "curriculum_pickups_vs_deliveries_grouped_2.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def main() -> None:
     rows = load_curriculum_rows()
     trials = build_matched_trials(rows)
@@ -734,9 +1020,13 @@ def main() -> None:
     generate_original_delta_by_seed(trials)
     generate_improved_delta_by_trial(trials, p_value)
     generate_final_delta_by_trial(trials, paired_p_value)
+    generate_final_delta_by_trial_2(trials)
+    generate_final_delta_by_trial_3(trials)
+    generate_final_delta_by_trial_4(trials)
     generate_task_efficiency_funnel(condition_means)
     generate_pickup_to_delivery_arrows(condition_means)
     generate_pickups_vs_deliveries_grouped_improved(condition_means)
+    generate_pickups_vs_deliveries_grouped_2(condition_means)
 
 
 if __name__ == "__main__":

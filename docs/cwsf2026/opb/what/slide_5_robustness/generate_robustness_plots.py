@@ -337,6 +337,85 @@ def plot_food_delivered_board_ready(rows_by_cond: dict[str, list[dict[str, str]]
     return png_out, pdf_out
 
 
+def plot_food_delivered_board_ready_2(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    labels = [LABELS[c] for c in ORDER]
+    delivered = [mean([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+
+    plt.rcParams.update(
+        {"font.size": 14, "axes.titlesize": 22, "axes.titleweight": "bold", "axes.labelsize": 16, "xtick.labelsize": 13, "ytick.labelsize": 13}
+    )
+    fig, ax = plt.subplots(figsize=(9.6, 5.8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    x = list(range(len(labels)))
+    bar_colors = ["#1565C0", "#5DA5DA", "#2E8B57", "#D97706"]
+    bars = ax.bar(
+        x,
+        delivered,
+        color=bar_colors,
+        edgecolor="black",
+        linewidth=0.9,
+        zorder=3,
+    )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean food delivered per episode")
+    ax.set_ylim(0, max(delivered) * 1.32)
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    png_out = OUT_DIR / "robustness_food_delivered_board_ready_2.png"
+    fig.savefig(png_out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return png_out
+
+
+def plot_food_delivered_board_ready_3(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path:
+    labels = [LABELS[c] for c in ORDER]
+    delivered = [mean([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+
+    plt.rcParams.update(
+        {"font.size": 14, "axes.titlesize": 22, "axes.titleweight": "bold", "axes.labelsize": 16, "xtick.labelsize": 13, "ytick.labelsize": 13}
+    )
+    fig, ax = plt.subplots(figsize=(9.6, 5.8))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    x = list(range(len(labels)))
+    bar_colors = ["#1565C0", "#5DA5DA", "#2E8B57", "#D97706"]
+    ax.bar(
+        x,
+        delivered,
+        color=bar_colors,
+        edgecolor="black",
+        linewidth=0.9,
+        zorder=3,
+    )
+
+    baseline_val = delivered[0]
+    ax.axhline(baseline_val, color="#444444", linestyle="--", linewidth=1.5, zorder=2)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean food delivered per episode")
+    ax.set_ylim(0, max(delivered) * 1.32)
+    ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    png_out = OUT_DIR / "robustness_food_delivered_board_ready_3.png"
+    fig.savefig(png_out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return png_out
+
+
 def plot_food_delivered_distribution_board_ready(rows_by_cond: dict[str, list[dict[str, str]]]) -> tuple[Path, Path]:
     labels = [LABELS[c] for c in ORDER]
     data = [[float(r["food_delivered"]) for r in rows_by_cond[cond]] for cond in ORDER]
@@ -426,6 +505,8 @@ def main() -> None:
     plot_combined_metrics(grouped)
     plot_combined_metrics_board_ready(grouped)
     plot_food_delivered_board_ready(grouped)
+    plot_food_delivered_board_ready_2(grouped)
+    plot_food_delivered_board_ready_3(grouped)
     plot_food_delivered_distribution_board_ready(grouped)
 
 
