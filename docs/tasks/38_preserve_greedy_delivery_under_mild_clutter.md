@@ -111,7 +111,7 @@ Before editing, inspect:
    - repeat handling
 
 4. current verification artifacts
-   - use the existing prompt-37 verification outputs to reason from the actual
+   - use the existing task 37 verification outputs to reason from the actual
      failure mode, not only from code assumptions
 
 --------------------------------------------------
@@ -182,7 +182,7 @@ PART 7 — CONSTRAINTS
 
 Do not:
 - remove the dedicated carry-bootstrap lesson
-- revert the prompt-37 carrying-state bug fix
+- revert the task 37 carrying-state bug fix
 - weaken success criteria back to pickup-only
 - turn this into a generic simulator rewrite
 - add a large new algorithm family

@@ -24,9 +24,9 @@ Do not solve this by simply training longer.
 PART 1 — CURRENT EVIDENCE
 --------------------------------------------------
 
-From the latest prompt-32 verification run:
+From the latest task 32 verification run:
 
-- `runs/mappo_prompt32_verify_20260330_215803/episode_metrics.csv` shows:
+- `runs/mappo_task32_verify_20260330_215803/episode_metrics.csv` shows:
   - `stage1d_single_agent_guaranteed_homing`
     - mean `food_picked_up ~= 2.727`
     - mean `food_retrieved ~= 0.273`
@@ -37,7 +37,7 @@ From the latest prompt-32 verification run:
     - mean `food_picked_up ~= 1.647`
     - mean `food_retrieved ~= 0.0`
 
-- but `runs/mappo_prompt32_verify_20260330_215803/eval_metrics.csv` still shows:
+- but `runs/mappo_task32_verify_20260330_215803/eval_metrics.csv` still shows:
   - greedy `food_picked_up = 0.0`
   - greedy `food_retrieved = 0.0`
   - across the logged stages

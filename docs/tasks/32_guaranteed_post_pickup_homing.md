@@ -20,12 +20,12 @@ Do not invent a new algorithm.
 Do not solve this by simply running longer.
 
 --------------------------------------------------
-PART 1 — WHY PROMPT 31 WAS NOT ENOUGH
+PART 1 — WHY TASK 31 WAS NOT ENOUGH
 --------------------------------------------------
 
-Current evidence from the latest prompt-31 verification runs:
+Current evidence from the latest task 31 verification runs:
 
-- `mappo_prompt31_verify3` completed cleanly
+- `mappo_task31_verify3` completed cleanly
 - `stage1a_single_agent_miniscule` still has strong greedy delivery
 - but:
   - `stage1d_single_agent_return_medium` ended with greedy pickup `0.0`, greedy delivery `0.0`

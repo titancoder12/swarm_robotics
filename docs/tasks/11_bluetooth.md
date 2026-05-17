@@ -200,7 +200,7 @@ But the protocol parser and world-state logic should remain transport-agnostic.
 
 ## Robot-side contract
 
-Do **not** implement firmware changes unless explicitly asked in a later prompt.
+Do **not** implement firmware changes unless explicitly asked in a later task.
 
 However, document the expected robot-side transport behavior:
 

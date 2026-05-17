@@ -140,26 +140,26 @@ Control/reward staging now also changes with difficulty:
 - later stages reduce `reward_new_cell` so delivery and trail reuse compete less with generic wandering
 - stage 1 now disables pheromone entirely so pickup/return/delivery is learned before trail exploitation is introduced
 - stage 1 softens `reward_step` and `reward_collision`, and strengthens pickup/delivery cues, so freezing is less attractive than useful movement
-- prompts 30, 31, and 32 suppress or strongly reduce exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
+- tasks 30, 31, and 32 suppress or strongly reduce exploration reward while carrying in the return-focused stages (`carrying_reward_new_cell_scale = 0.0` there), so after pickup the agent is not still being paid to wander
 - `reward_nest_approach` is now staged explicitly, with stronger values in the return-focused single-agent stages than in the final full-swarm stages
-- prompt 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
-- prompt 32 also adds stage-controlled target-to-nest distance and agent-near-target spawning so the guaranteed-homing stage spends much more of the episode on “pick up, then go home” instead of rediscovering the target
-- prompt 33 then focuses on the sampled-to-greedy gap in those stages: return-critical stages now use more aggressive entropy decay, greedy checkpoint scoring weights completed delivery and delivery conversion much more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
-- prompt 35 adds explicit carrying-phase anti-dithering pressure: while carrying, exploration reward stays suppressed, low nest-progress and low displacement now incur small penalties, and episode/eval logs now expose carrying-stall / low-progress / low-displacement signals directly
-- prompt 36 adds sustained carrying-progress shaping and pushes the return-critical stages to become more deterministic: the guaranteed-homing / bridge / obstacle-return stages now use even lower entropy schedules, slightly larger stage budgets for the bridge and obstacle-return lessons, and stronger delivery/conversion promotion targets
-- prompt 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
-- prompt 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
-- prompt 39 then stabilizes bridge-stage greedy behavior at the trainer level: stage-end evaluation and promotion now restore the best within-stage bridge policy before evaluating it, so the stage no longer has to end on a later drifted policy after it already discovered a better one
-- prompts 42 through 45 then harden the late swarm behavior around the nest: post-delivery outward shaping is held until agents actually leave the nest zone, and non-carrying agents near the nest now receive explicit outward-search shaping plus strong loiter, crowding, idle, and no-outward-progress penalties
-- prompt 46 then adds an explicit env-side non-carrying force-explore mode in the late swarm stages: empty agents inside the nest-adjacent force-explore radius can have orbit-friendly actions overridden with outward-moving actions, so the system is no longer relying only on scalar penalties to break nest orbit
+- task 31 also makes the homing and early clutter-return stages more delivery-sensitive at promotion time, so weak return policies do not silently advance
+- task 32 also adds stage-controlled target-to-nest distance and agent-near-target spawning so the guaranteed-homing stage spends much more of the episode on “pick up, then go home” instead of rediscovering the target
+- task 33 then focuses on the sampled-to-greedy gap in those stages: return-critical stages now use more aggressive entropy decay, greedy checkpoint scoring weights completed delivery and delivery conversion much more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
+- task 35 adds explicit carrying-phase anti-dithering pressure: while carrying, exploration reward stays suppressed, low nest-progress and low displacement now incur small penalties, and episode/eval logs now expose carrying-stall / low-progress / low-displacement signals directly
+- task 36 adds sustained carrying-progress shaping and pushes the return-critical stages to become more deterministic: the guaranteed-homing / bridge / obstacle-return stages now use even lower entropy schedules, slightly larger stage budgets for the bridge and obstacle-return lessons, and stronger delivery/conversion promotion targets
+- task 37 adds a dedicated carrying-start bootstrap lesson, stage-specific repeat-floor overrides for the homing lessons, and `start_carrying_food` support in the env so the first post-pickup behavior can be taught almost in isolation
+- task 38 then focuses specifically on the first mild-clutter bridge stage: it adds bridge-stage continuity geometry, a smaller bridge obstacle than the later obstacle-return stage, and target placement that avoids obviously blocked nest-to-target corridors in that bridge lesson
+- task 39 then stabilizes bridge-stage greedy behavior at the trainer level: stage-end evaluation and promotion now restore the best within-stage bridge policy before evaluating it, so the stage no longer has to end on a later drifted policy after it already discovered a better one
+- tasks 42 through 45 then harden the late swarm behavior around the nest: post-delivery outward shaping is held until agents actually leave the nest zone, and non-carrying agents near the nest now receive explicit outward-search shaping plus strong loiter, crowding, idle, and no-outward-progress penalties
+- task 46 then adds an explicit env-side non-carrying force-explore mode in the late swarm stages: empty agents inside the nest-adjacent force-explore radius can have orbit-friendly actions overridden with outward-moving actions, so the system is no longer relying only on scalar penalties to break nest orbit
 - later stages progressively restore the full pheromone-enabled trail-building setting
 
-Prompt 29 also changes entropy handling:
+Task 29 also changes entropy handling:
 
 - entropy is no longer effectively one fixed pressure throughout a stage
 - each curriculum stage now defines `entropy_start` and `entropy_end`
 - the trainer linearly decays entropy regularization within the stage so early updates explore more and late updates in the same stage become more greedy
-- this is meant to reduce the sampled-success / greedy-failure gap seen after prompt 28
+- this is meant to reduce the sampled-success / greedy-failure gap seen after task 28
 
 Mode semantics:
 
@@ -181,27 +181,27 @@ Stage progression is now greedy-eval-aware:
 - each stage has a minimum pickup/delivery promotion target
 - if the target is not met, the stage can repeat up to `--stage-repeat-limit` times
 - if the limit is exceeded, training advances but records that the stage did not promote cleanly
-- prompt 33 also makes the early return stages more visibly greedy-aligned by emphasizing delivery in greedy checkpoint scoring and by exposing sampled-vs-greedy gaps directly in the runtime summaries
-- prompt 34 then extends that discipline to the later stages: `--total-steps` is treated as a real hard global budget, promotion targets now include minimum delivery conversion, and later-stage greedy scoring penalizes pickup-rich / delivery-zero behavior instead of letting it appear successful
-- prompt 35 extends the visibility side as well: the environment now records carrying-phase stall events, carrying low-progress fraction, carrying low-displacement fraction, and carrying-penalty totals so carrying-to-delivery failure is easier to diagnose than before
-- prompt 36 also adds a short-horizon persistent homing signal: while carrying, repeated meaningful nest-distance reduction now earns a separate sustained-progress bonus instead of relying only on one-step signed nest progress
-- prompt 37 adds a more explicit homing lesson before normal pickup-plus-clutter return. The `stage1d_single_agent_carry_bootstrap` stage can repeat even when the CLI repeat limit is low, and the trainer now carries `start_carrying_food` through stage config and checkpoint metadata
+- task 33 also makes the early return stages more visibly greedy-aligned by emphasizing delivery in greedy checkpoint scoring and by exposing sampled-vs-greedy gaps directly in the runtime summaries
+- task 34 then extends that discipline to the later stages: `--total-steps` is treated as a real hard global budget, promotion targets now include minimum delivery conversion, and later-stage greedy scoring penalizes pickup-rich / delivery-zero behavior instead of letting it appear successful
+- task 35 extends the visibility side as well: the environment now records carrying-phase stall events, carrying low-progress fraction, carrying low-displacement fraction, and carrying-penalty totals so carrying-to-delivery failure is easier to diagnose than before
+- task 36 also adds a short-horizon persistent homing signal: while carrying, repeated meaningful nest-distance reduction now earns a separate sustained-progress bonus instead of relying only on one-step signed nest progress
+- task 37 adds a more explicit homing lesson before normal pickup-plus-clutter return. The `stage1d_single_agent_carry_bootstrap` stage can repeat even when the CLI repeat limit is low, and the trainer now carries `start_carrying_food` through stage config and checkpoint metadata
 
-Prompt 37 verification was the first short smoke run to produce nonzero greedy delivery in the dedicated homing stack:
+Task 37 verification was the first short smoke run to produce nonzero greedy delivery in the dedicated homing stack:
 
-- `stage1d_single_agent_carry_bootstrap` reached nonzero greedy delivery in `runs/mappo_prompt37_verify_fix_20260330_225802/eval_metrics.csv`
+- `stage1d_single_agent_carry_bootstrap` reached nonzero greedy delivery in `runs/mappo_task37_verify_fix_20260330_225802/eval_metrics.csv`
 - `stage1e_single_agent_guaranteed_homing` also reached nonzero greedy pickup and delivery and promoted in that run
 - `stage1f_single_agent_delivery_bridge` still collapsed back to zero greedy delivery, so the next bottleneck is now maintaining greedy delivery once mild clutter is reintroduced
 
-Prompt 38 verification narrowed that bridge-stage failure further:
+Task 38 verification narrowed that bridge-stage failure further:
 
-- in `runs/mappo_prompt38_verify2_20260330_231105/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` produced one clearly nonzero greedy eval row (`pickup = 2.0`, `delivery = 1.5`, `conversion = 0.8333`)
+- in `runs/mappo_task38_verify2_20260330_231105/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` produced one clearly nonzero greedy eval row (`pickup = 2.0`, `delivery = 1.5`, `conversion = 0.8333`)
 - but the later bridge eval at the hard budget boundary still fell back to `pickup = 0.0`, `delivery = 0.0`
-- so prompt 38 improved the bridge stage materially, but it did not yet make greedy delivery stable throughout the whole bridge lesson
+- so task 38 improved the bridge stage materially, but it did not yet make greedy delivery stable throughout the whole bridge lesson
 
-Prompt 39 resolved that specific regression in short verification:
+Task 39 resolved that specific regression in short verification:
 
-- in `runs/mappo_prompt39_verify_20260330_231951/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` kept nonzero greedy delivery across all six logged eval rows
+- in `runs/mappo_task39_verify_20260330_231951/eval_metrics.csv`, `stage1f_single_agent_delivery_bridge` kept nonzero greedy delivery across all six logged eval rows
 - the bridge eval rows averaged pickup `~= 2.083`, delivery `~= 1.75`, and conversion `~= 0.5`
 - the final bridge eval at the hard step cap still remained nonzero (`pickup = 2.0`, `delivery = 2.0`)
 - this is the first stage-1 setup that looks stable enough to justify a real full curriculum training run
@@ -264,29 +264,29 @@ Checkpoint recommendation:
 - `best_greedy_eval/`
   - recommended demo checkpoint because it is selected by greedy evaluation quality rather than recency
 
-What prompt 28 fixed structurally:
+What task 28 fixed structurally:
 
 - fixed padded critic state across the selected curriculum
 - critic/optimizer carryover across stage boundaries
 - stage-end greedy promotion checks
 - `best_greedy_eval/` checkpoint saving
 
-What still remained broken after prompt 28:
+What still remained broken after task 28:
 
 - early stages could still get sampled training-time pickup/delivery without learning a greedy policy that repeated that behavior in evaluation
 
-What prompt 29 changes:
+What task 29 changes:
 
 - stage 1 is intentionally simplified and de-pheromonized
 - reward/control pressure is eased in stage 1 so movement and task completion dominate freezing
 - entropy decays within a stage instead of staying fixed
 - trainer runtime prints now call out sampled-vs-greedy gaps, making it obvious when lucky sampled behavior is not surviving into greedy eval
 
-What still remained broken after prompt 29:
+What still remained broken after task 29:
 
 - pickup became learnable, but carrying-food return-to-nest completion still collapsed in the first obstacle stage and in early swarm stages
 
-What prompt 30 changes:
+What task 30 changes:
 
 - adds a dedicated single-agent return stage before the first obstacle-return stage
 - stages `reward_nest_approach` explicitly
@@ -320,13 +320,13 @@ And a greedy-eval-selected checkpoint:
 The deployment-facing actor loader is in
 [algorithms/mappo/inference.py](../algorithms/mappo/inference.py).
 
-## Prompt 47
+## Task 47
 
-Prompt 47 adds stage-configurable extra action randomness for non-carrying agents while they are exploring. The implementation is env-side, so it affects both training and demo consistently, prefers movement-producing exploration actions, and is enabled in the later pheromone-on swarm stages rather than during carrying-food return behavior.
+Task 47 adds stage-configurable extra action randomness for non-carrying agents while they are exploring. The implementation is env-side, so it affects both training and demo consistently, prefers movement-producing exploration actions, and is enabled in the later pheromone-on swarm stages rather than during carrying-food return behavior.
 
-## Prompt 48
+## Task 48
 
-Prompt 48 fixes large-window clipping properly by separating world rendering from display size. The env now renders into an off-screen world surface at full simulation resolution and scales that surface into the PyGame window using `render_scale`, which is now exposed through the shared CLI config path.
+Task 48 fixes large-window clipping properly by separating world rendering from display size. The env now renders into an off-screen world surface at full simulation resolution and scales that surface into the PyGame window using `render_scale`, which is now exposed through the shared CLI config path.
 
 The current demo path also shows:
 

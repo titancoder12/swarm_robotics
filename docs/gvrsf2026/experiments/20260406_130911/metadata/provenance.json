@@ -2,7 +2,7 @@
   "timestamp": "20260406_130911",
   "bundle_type": "fresh_full_rerun_bundle_lightweight_5reps",
   "standing_plan": "docs/gvrsf2026/experiments/experiments.md",
-  "standing_prompt": "docs/gvrsf2026/experiments/instruction.md",
+  "standing_task": "docs/gvrsf2026/experiments/instruction.md",
   "source_campaigns": [
     {
       "role": "broad_campaign",

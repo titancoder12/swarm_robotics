@@ -6,7 +6,7 @@ GOAL
 
 Upgrade the current training system so the existing codebase supports research-grade RL experiments for stigmergic swarm coordination.
 
-CONTEXT FROM PROMPT 2 (DO NOT IGNORE)
+CONTEXT FROM TASK 2 (DO NOT IGNORE)
 
 The environment has already been upgraded with the following changes:
 

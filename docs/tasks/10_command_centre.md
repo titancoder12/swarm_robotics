@@ -344,7 +344,7 @@ The protocol is **bidirectional** and must be implemented on BOTH sides.
 
 ### Robot-side client (MUST BE SPECIFIED, NOT IMPLEMENTED HERE)
 
-The prompt must define a minimal robot-side protocol client contract that:
+The task must define a minimal robot-side protocol client contract that:
 
 * Sends messages like:
 

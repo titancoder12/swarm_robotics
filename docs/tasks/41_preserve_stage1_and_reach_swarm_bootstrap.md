@@ -6,7 +6,7 @@ Problem after Step 40:
 - The current failure mode is not “single-agent homing is impossible again”; it is “the curriculum is over-investing in already-solved stage-1 lessons before it reaches the new small-swarm stages.”
 
 Goal:
-- Preserve the prompt-39 single-agent return stack.
+- Preserve the task 39 single-agent return stack.
 - Reduce unnecessary budget drain in `stage1d`, `stage1e`, and `stage1f`.
 - Reach the new small-swarm bootstrap stages reliably in `stage1_to_2` verification and in full training.
 

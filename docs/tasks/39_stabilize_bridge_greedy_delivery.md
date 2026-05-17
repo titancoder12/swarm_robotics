@@ -55,7 +55,7 @@ Priority 2:
 - keep `stage1d` and `stage1e` healthy
 
 Priority 3:
-- preserve the prompt-37 and prompt-38 improvements
+- preserve the task 37 and task 38 improvements
 
 Priority 4:
 - improve stage-end checkpoint selection / promotion behavior only if it helps
@@ -124,7 +124,7 @@ Before editing, inspect:
    - whether the trainer can drift away from the best bridge policy later in
      the same stage
 
-3. `runs/mappo_prompt38_verify2_*/eval_metrics.csv`
+3. `runs/mappo_task38_verify2_*/eval_metrics.csv`
    - compare the good bridge eval row with the later failed one
    - reason from that actual pattern, not just from assumptions
 
@@ -195,7 +195,7 @@ PART 8 — CONSTRAINTS
 
 Do not:
 - remove `stage1d_single_agent_carry_bootstrap`
-- remove the prompt-37 carrying-state bug fix
+- remove the task 37 carrying-state bug fix
 - weaken the bridge stage back into a pickup-only success criterion
 - remove clutter from the bridge stage entirely
 - turn this into a generic algorithm rewrite

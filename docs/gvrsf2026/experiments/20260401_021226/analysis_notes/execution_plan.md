@@ -1,6 +1,6 @@
 # Focused Pheromone Experiment Plan
 
-This campaign is a focused rerun of the GVRSF experiment prompt with a stronger pheromone design.
+This campaign is a focused rerun of the GVRSF experiment plan with a stronger pheromone design.
 
 Why the design changed:
 

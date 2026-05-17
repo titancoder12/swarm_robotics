@@ -2,7 +2,7 @@
   "timestamp": "20260406_132534",
   "bundle_type": "full_rerun_bundle_explicit_8_seed_subset",
   "standing_plan": "docs/gvrsf2026/experiments/experiments.md",
-  "standing_prompt": "docs/gvrsf2026/experiments/instruction.md",
+  "standing_task": "docs/gvrsf2026/experiments/instruction.md",
   "seed_policy": {
     "broad_seeds": [2, 4, 6, 25, 32, 33, 36, 41],
     "killer_seeds": [2, 4, 6, 25, 32, 33, 36, 41]

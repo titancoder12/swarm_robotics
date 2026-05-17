@@ -470,7 +470,7 @@ For semi-technical readers, the biggest lesson is this:
   - pick up but never deliver
   - cluster near the nest
 
-The repository’s long prompt and code history improved the model by solving exactly those problems through:
+The repository’s long task history and code history improved the model by solving exactly those problems through:
 
 - better stage design in [algorithms/mappo/curriculum.py](../../../../algorithms/mappo/curriculum.py)
 - better promotion logic and greedy-eval selection in [train/mappo_gru.py](../../../../train/mappo_gru.py)

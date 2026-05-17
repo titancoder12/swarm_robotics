@@ -17,7 +17,7 @@ Requirements:
 - Rename the package directory itself.
 - Update all imports across the repo.
 - Update README and docs so they consistently refer to `mission_control`.
-- Update prompt docs and project-structure docs to match.
+- Update task docs and project-structure docs to match.
 - Do not change the runtime behavior or protocol semantics in this task.
 - Keep the rename mechanically clean and easy to review.
 

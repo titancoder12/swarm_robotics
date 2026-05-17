@@ -6,7 +6,7 @@ GOAL
 
 Add the main experiment that proves swarm performance improves through stigmergic coordination rather than simply increasing the number of robots.
 
-CONTEXT FROM PROMPT 4 (CRITICAL — DO NOT IGNORE)
+CONTEXT FROM TASK 4 (CRITICAL — DO NOT IGNORE)
 
 The experiment framework has already been implemented with the following capabilities:
 

@@ -6,7 +6,7 @@ GOAL
 
 Evaluate whether stigmergic swarm coordination works across multiple control strategies using the existing experiment framework and training pipeline.
 
-CONTEXT FROM PROMPT 5 (CRITICAL — DO NOT IGNORE)
+CONTEXT FROM TASK 5 (CRITICAL — DO NOT IGNORE)
 
 The system already includes a fully working experiment pipeline and one completed flagship experiment.
 

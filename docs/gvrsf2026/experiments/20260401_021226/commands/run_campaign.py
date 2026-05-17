@@ -198,7 +198,7 @@ def summarize_rows(rows: list[dict[str, Any]], group_keys: list[str]) -> list[di
 def write_notes() -> None:
     text = """# Focused Pheromone Experiment Plan
 
-This campaign is a focused rerun of the GVRSF experiment prompt with a stronger pheromone design.
+This campaign is a focused rerun of the GVRSF experiment plan with a stronger pheromone design.
 
 Why the design changed:
 

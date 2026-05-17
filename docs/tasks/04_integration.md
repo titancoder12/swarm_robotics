@@ -6,7 +6,7 @@ GOAL
 
 Add a reusable experiment framework to the existing project so experiments can be run consistently and produce research-quality results.
 
-CONTEXT FROM PROMPT 3 (CRITICAL — DO NOT IGNORE)
+CONTEXT FROM TASK 3 (CRITICAL — DO NOT IGNORE)
 
 The training pipeline and environment have already been upgraded with the following:
 

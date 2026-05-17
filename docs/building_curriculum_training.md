@@ -1,6 +1,6 @@
 # Building Curriculum Training
 
-This document explains how the MAPPO curriculum-training path was improved over a long sequence of iterations, starting from commit `83954933b517e17baf64681231ec1d3424165fab` and focusing especially on prompts 27 through 47. It is meant to be readable by someone who is comfortable with code, but not necessarily a reinforcement learning specialist.
+This document explains how the MAPPO curriculum-training path was improved over a long sequence of iterations, starting from commit `83954933b517e17baf64681231ec1d3424165fab` and focusing especially on tasks 27 through 47. It is meant to be readable by someone who is comfortable with code, but not necessarily a reinforcement learning specialist.
 
 The short version is:
 
@@ -54,7 +54,7 @@ The early version of this MAPPO path had a common RL failure pattern:
 - but greedy evaluation was near zero
 - demos therefore looked frozen, timid, or obviously wrong
 
-The best summary of the early diagnosis came right after prompt 27:
+The best summary of the early diagnosis came right after task 27:
 
 - eval stages from `stage1a` through `stage3b` showed:
   - `food_picked_up = 0`
@@ -77,7 +77,7 @@ The improvements followed one simple rule:
 
 > Do not ask the model to solve the whole task at once. Teach one missing subskill at a time, verify it in greedy evaluation, then move on.
 
-That is why the history matters. The training pipeline got better because each prompt isolated one concrete failure mode:
+That is why the history matters. The training pipeline got better because each task isolated one concrete failure mode:
 
 - stage budgets were wrong
 - the critic was resetting across stages
@@ -91,7 +91,7 @@ The result is a training system that is much easier to reason about and much clo
 
 ## Phase 1: Fix the Curriculum Budget and Reward Pressure
 
-The first major improvement was prompt 27.
+The first major improvement was task 27.
 
 ### What was wrong
 
@@ -131,7 +131,7 @@ This was not flashy, but it was foundational. Curriculum learning fails quickly 
 
 ## Phase 2: Fix Structural MAPPO Instability
 
-The second major improvement was prompt 28.
+The second major improvement was task 28.
 
 ### What was wrong
 
@@ -147,7 +147,7 @@ This logic lived in [train/mappo_gru.py](../train/mappo_gru.py). The trainer was
 
 ### What changed
 
-Prompt 28 introduced a fixed padded critic-state path:
+Task 28 introduced a fixed padded critic-state path:
 
 - [`_estimate_stage_state_dim(...)`](../train/mappo_gru.py)
 - [`_critic_state_dim(...)`](../train/mappo_gru.py)
@@ -161,7 +161,7 @@ This allowed:
 - optimizer continuity across stages
 - much less destabilization during handoff
 
-Prompt 28 also made stage advancement and checkpointing smarter:
+Task 28 also made stage advancement and checkpointing smarter:
 
 - stage-end greedy evaluation became mandatory
 - promotion targets were introduced through [`StagePromotionTarget`](../train/mappo_gru.py) and [`_stage_promotion_target(...)`](../train/mappo_gru.py)
@@ -179,16 +179,16 @@ That is an important lesson in RL engineering:
 
 ## Phase 3: Make Greedy Behavior Real, Not Just Sampled
 
-After prompt 28, a clearer problem emerged:
+After task 28, a clearer problem emerged:
 
 - sampled training behavior improved a little
 - greedy evaluation still failed badly
 
-That led to prompts 29 through 39.
+That led to tasks 29 through 39.
 
-### Prompt 29: teach greedy pickup and return first
+### Task 29: teach greedy pickup and return first
 
-Prompt 29 changed the earliest stages so the model could learn the basic loop more deterministically.
+Task 29 changed the earliest stages so the model could learn the basic loop more deterministically.
 
 In [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py):
 
@@ -208,14 +208,14 @@ This produced one of the first clearly positive results:
 
 That was the first real proof that the pipeline could produce stable greedy behavior in at least the easiest lesson.
 
-### Prompt 30: focus on return-to-nest, not just pickup
+### Task 30: focus on return-to-nest, not just pickup
 
 Once pickup became reliable in the easiest stage, the next failure mode became obvious:
 
 - the policy could find food
 - but it still often failed to carry it home
 
-Prompt 30 addressed that by making the carrying phase more important than generic exploration.
+Task 30 addressed that by making the carrying phase more important than generic exploration.
 
 In [env/config.py](../env/config.py):
 
@@ -237,9 +237,9 @@ The central idea was simple:
 
 That is a very common RL design principle: reward the subskill that matters now, not the subskill that mattered one minute ago.
 
-### Prompts 31–38: build the return stack lesson by lesson
+### Tasks 31–38: build the return stack lesson by lesson
 
-Prompts 31 through 38 were the most educational part of the whole training story.
+Tasks 31 through 38 were the most educational part of the whole training story.
 
 They show what curriculum learning looks like when a single subskill is still too hard and has to be split into smaller lessons.
 
@@ -252,7 +252,7 @@ The return stack gradually became:
 
 These stages live in [algorithms/mappo/curriculum.py](../algorithms/mappo/curriculum.py).
 
-The new lessons used several environment controls added during prompts 32, 36, 37, and 38:
+The new lessons used several environment controls added during tasks 32, 36, 37, and 38:
 
 - `target_nest_distance_min`
 - `target_nest_distance_max`
@@ -279,7 +279,7 @@ That is a textbook example of shaping the task, not just the reward.
 
 ### The most important bug fix in the whole sequence
 
-Prompt 37 exposed a real environment bug:
+Task 37 exposed a real environment bug:
 
 - in [env/swarm_env.py](../env/swarm_env.py), the tank and hover movement drivers were dropping `carrying_food` during normal motion updates
 
@@ -292,16 +292,16 @@ This is worth calling out because it shows a major truth about RL debugging:
 - sometimes the model is not failing because the reward is wrong
 - sometimes the environment is silently erasing the state the policy depends on
 
-After that bug was fixed, prompt 37 produced the first short verification run with nonzero greedy delivery in the dedicated homing stack.
+After that bug was fixed, task 37 produced the first short verification run with nonzero greedy delivery in the dedicated homing stack.
 
-### Prompt 39: stabilize the bridge stage
+### Task 39: stabilize the bridge stage
 
-Even after prompts 37 and 38, another subtle problem remained:
+Even after tasks 37 and 38, another subtle problem remained:
 
 - the bridge stage could produce a good greedy evaluation mid-run
 - then drift away from it before the final stage-end evaluation
 
-Prompt 39 fixed that in [train/mappo_gru.py](../train/mappo_gru.py):
+Task 39 fixed that in [train/mappo_gru.py](../train/mappo_gru.py):
 
 - stage-end evaluation now restores the best within-stage actor, critic, and optimizer state before the final promotion check
 
@@ -317,7 +317,7 @@ At that point, stage 1 finally looked stable enough for full training.
 
 Once single-agent delivery was stable, the next collapse happened when the curriculum first introduced multiple agents.
 
-That led to prompts 40 and 41.
+That led to tasks 40 and 41.
 
 ### What was wrong
 
@@ -346,13 +346,13 @@ These stages let the curriculum teach:
 3. medium clutter
 4. larger clutter plus pheromone
 
-Prompt 41 then reduced unnecessary repeat pressure and budget drain in already-solved stage-1 lessons so the trainer could actually reach the new swarm stack consistently.
+Task 41 then reduced unnecessary repeat pressure and budget drain in already-solved stage-1 lessons so the trainer could actually reach the new swarm stack consistently.
 
 ### Why it helped
 
 This made the jump from one agent to many agents a curriculum step, not a cliff.
 
-The full-run result after prompt 41 was a major milestone:
+The full-run result after task 41 was a major milestone:
 
 - `stage2c_small_swarm_medium` stayed strong with repeated `4/4` deliveries
 - `stage2d_small_swarm_large` kept nonzero greedy delivery
@@ -368,7 +368,7 @@ After full training became viable, a new behavioral problem showed up in demos:
 - non-carrying agents could cluster around the nest
 - they could orbit the nest instead of fanning out to explore
 
-This led to prompts 42 through 47.
+This led to tasks 42 through 47.
 
 ### Why this mattered
 
@@ -379,9 +379,9 @@ For the intended swarm behavior, the policy should have two distinct modes:
 
 If empty agents stay near the nest, the swarm wastes time and coverage.
 
-### Prompts 42–44: soft penalties and post-delivery handoff
+### Tasks 42–44: soft penalties and post-delivery handoff
 
-These prompts introduced:
+These tasks introduced:
 
 - non-carrying nest loiter penalties
 - non-carrying nest crowding penalties
@@ -394,11 +394,11 @@ These are configured in [env/config.py](../env/config.py) and applied in [env/sw
 - [`_apply_non_carrying_nest_penalties(...)`](../env/swarm_env.py)
 - [`_apply_post_delivery_outward_shaping(...)`](../env/swarm_env.py)
 
-These prompts improved late-stage delivery while reducing nest crowding, but they did not eliminate the local optimum completely.
+These tasks improved late-stage delivery while reducing nest crowding, but they did not eliminate the local optimum completely.
 
-### Prompt 45: make empty agents fan out
+### Task 45: make empty agents fan out
 
-Prompt 45 added a more explicit outward-search path for empty agents.
+Task 45 added a more explicit outward-search path for empty agents.
 
 In [env/config.py](../env/config.py), new controls were added for:
 
@@ -417,9 +417,9 @@ This was an important conceptual step:
 - instead of only saying “do not stay near the nest”
 - the environment also started saying “go outward and explore”
 
-### Prompt 46: explicit force-explore mode
+### Task 46: explicit force-explore mode
 
-Even stronger penalties were still not always enough, so prompt 46 moved from reward shaping to explicit behavior intervention.
+Even stronger penalties were still not always enough, so task 46 moved from reward shaping to explicit behavior intervention.
 
 In [env/config.py](../env/config.py):
 
@@ -441,9 +441,9 @@ to:
 
 That is sometimes the right choice in RL systems when a local optimum is too strong.
 
-### Prompt 47: more randomness while exploring, but only then
+### Task 47: more randomness while exploring, but only then
 
-Prompt 47 added controlled exploratory randomness for empty agents only.
+Task 47 added controlled exploratory randomness for empty agents only.
 
 In [env/config.py](../env/config.py):
 
@@ -485,7 +485,7 @@ This matters because raw reward alone can hide bad behavior. A policy that picks
 
 ### Hard global step cap
 
-Prompt 34 fixed another trainer discipline issue:
+Task 34 fixed another trainer discipline issue:
 
 - before the fix, a run with `--total-steps 600000` could still overshoot badly while finishing stages and repeats
 - after the fix, the hard cap is respected
@@ -555,7 +555,7 @@ The training story is convincing because the changes produced concrete behaviora
 
 Some of the clearest examples were:
 
-### Prompt 29
+### Task 29
 
 - `stage1a_single_agent_miniscule` reached greedy pickup and delivery of `4.0 / 4.0`
 
@@ -563,7 +563,7 @@ Meaning:
 
 - the earliest curriculum stage finally produced real greedy behavior instead of sampled-only success
 
-### Prompt 37
+### Task 37
 
 - the first short smoke run with nonzero greedy delivery in the dedicated homing stack
 
@@ -571,7 +571,7 @@ Meaning:
 
 - the model could finally return food under greedy evaluation once the carrying-state bug and the homing lesson design were fixed
 
-### Prompt 39
+### Task 39
 
 - `stage1f_single_agent_delivery_bridge` stayed nonzero on all logged eval rows
 - final bridge eval included `pickup = 2.0`, `delivery = 2.0`, `conversion = 0.5`
@@ -580,7 +580,7 @@ Meaning:
 
 - mild clutter no longer erased greedy delivery by the end of the stage
 
-### Prompt 41
+### Task 41
 
 - `stage2c_small_swarm_medium` stayed strong with repeated `4/4` deliveries
 - `stage3b_full_swarm_final` completed with greedy pickup `1.20`, delivery `0.80`
@@ -589,7 +589,7 @@ Meaning:
 
 - the full curriculum finally made it through to the hard late stages without collapsing
 
-### Prompts 42–44
+### Tasks 42–44
 
 - `stage3a` improved from greedy `1.0 / 1.0` to `2.0 / 2.0`
 - `stage3b` improved from `1.0 / 0.8` to `1.2 / 1.0`
