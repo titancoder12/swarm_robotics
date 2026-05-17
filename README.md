@@ -203,20 +203,20 @@ Current single-agent return stack:
 - `stage1g_single_agent_delivery_obstacles`
   - the first true single-agent obstacle-return stage
 
-Prompt 38 makes the bridge stage more continuity-preserving instead of letting it become an abrupt collapse point:
+Task 38 makes the bridge stage more continuity-preserving instead of letting it become an abrupt collapse point:
 
 - `stage1f_single_agent_delivery_bridge` now uses a smaller arena jump from `stage1e`
 - its single obstacle is intentionally smaller than the later obstacle-return stage
 - target placement now tries to preserve a clear return corridor from nest to target in the bridge stage
 - the bridge still contains clutter, but it is meant to keep greedy homing alive rather than replace it with a new task
 
-Prompt 39 then stabilizes bridge-stage greedy delivery at the trainer level:
+Task 39 then stabilizes bridge-stage greedy delivery at the trainer level:
 
 - stage-end evaluation now restores and evaluates the best within-stage policy instead of the last drifted one
 - that keeps `stage1f_single_agent_delivery_bridge` from ending on a worse policy than the one it already discovered earlier in the stage
 - this is the first configuration that looks credible for a real full training run rather than only more stage-1 debugging
 
-Prompt 40 then adds an explicit small-swarm bootstrap stack so the first scale-up does not wipe out the learned delivery loop:
+Task 40 then adds an explicit small-swarm bootstrap stack so the first scale-up does not wipe out the learned delivery loop:
 
 - `stage2a_small_swarm_carry_bootstrap`
   - small swarm, already carrying, pure homing
@@ -227,21 +227,21 @@ Prompt 40 then adds an explicit small-swarm bootstrap stack so the first scale-u
 - `stage2d_small_swarm_large`
   - larger small-swarm stage where trail behavior can return
 
-Prompt 41 then reduces repeat and budget pressure in the already-solved single-agent carry/bootstrap stages so `stage1_to_2` and full runs reach the new swarm bootstrap stages instead of spending too much budget re-proving stage-1 lessons.
+Task 41 then reduces repeat and budget pressure in the already-solved single-agent carry/bootstrap stages so `stage1_to_2` and full runs reach the new swarm bootstrap stages instead of spending too much budget re-proving stage-1 lessons.
 
-Prompt 44 and prompt 45 then strengthen the late swarm behavior around the nest:
+Task 44 and task 45 then strengthen the late swarm behavior around the nest:
 
 - post-delivery outward pressure stays active until agents actually leave the nest zone
 - non-carrying agents are pushed to fan out and explore instead of orbiting the nest
 - late swarm stages now use strong non-carrying loiter, crowding, idle, and no-outward-progress penalties near the nest
 
-Prompt 46 then goes beyond reward shaping and adds an explicit env-side “leave the nest zone” mode for empty agents in the late swarm stages:
+Task 46 then goes beyond reward shaping and adds an explicit env-side “leave the nest zone” mode for empty agents in the late swarm stages:
 
 - if a non-carrying agent remains inside the configured nest-adjacent force-explore radius, the env can override its chosen action with an outward-moving action
 - this is meant to break the specific orbiting / turn-in-place / local-circling failure mode that larger scalar penalties alone did not eliminate
 - carrying-food return behavior is unchanged; this mode is only for empty agents near the nest
 
-Prompt 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
+Task 37 also fixed a real environment bug in [env/swarm_env.py](/Users/christopherlin/dev/cwsf2026/sim/env/swarm_env.py): the tank and hover movement drivers were dropping `carrying_food` during normal movement updates, which could silently break return-to-nest lessons immediately after the first move.
 
 What the main arguments mean:
 
@@ -299,11 +299,11 @@ Why this is the recommended starting point:
 - the current curriculum spreads learning across many stages
 - the early stages now use more responsive `action_repeat_steps = 1`, while later stages keep smoother `action_repeat_steps = 2`
 - the early stages now deliberately simplify the task: pheromone is disabled in stage 1, movement penalties are softened, and pickup/delivery cues are stronger so greedy `pickup -> return -> deliver` behavior can form first
-- prompts 30, 31, and 32 now suppress exploration reward while carrying in the return-focused stages, add a dedicated guaranteed-homing stage with controlled target/agent placement, and then reintroduce clutter through a bridge stage before the true obstacle-return stage
-- prompt 33 now tightens trainer pressure on those early return stages: entropy decays faster there, greedy checkpoint scoring weights completed delivery and conversion more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
-- prompt 34 makes `--total-steps` a real hard global cap in the trainer and tightens later-stage scoring/promotion so pickup-without-delivery is treated as failure rather than progress
-- prompt 35 now adds carrying-phase stall penalties and metrics, so once an agent is carrying food the trainer can measure and penalize no-progress / low-displacement return behavior instead of only noticing pickup and delivery endpoints
-- prompt 36 now pushes the homing stages further toward deterministic return behavior by adding sustained carrying-progress shaping, lowering return-stage entropy more aggressively, and tightening early return-stage delivery/conversion promotion targets
+- tasks 30, 31, and 32 now suppress exploration reward while carrying in the return-focused stages, add a dedicated guaranteed-homing stage with controlled target/agent placement, and then reintroduce clutter through a bridge stage before the true obstacle-return stage
+- task 33 now tightens trainer pressure on those early return stages: entropy decays faster there, greedy checkpoint scoring weights completed delivery and conversion more heavily, and stage summaries explicitly print sampled-vs-greedy pickup/delivery gaps
+- task 34 makes `--total-steps` a real hard global cap in the trainer and tightens later-stage scoring/promotion so pickup-without-delivery is treated as failure rather than progress
+- task 35 now adds carrying-phase stall penalties and metrics, so once an agent is carrying food the trainer can measure and penalize no-progress / low-displacement return behavior instead of only noticing pickup and delivery endpoints
+- task 36 now pushes the homing stages further toward deterministic return behavior by adding sustained carrying-progress shaping, lowering return-stage entropy more aggressively, and tightening early return-stage delivery/conversion promotion targets
 - the trainer now decays entropy within each stage instead of keeping one fixed exploration pressure forever, so early rollouts can explore while later updates in the same stage become more deterministic
 - the early stages keep a slightly stronger exploration bonus, and later stages reduce `reward_new_cell` so delivery and trail reuse compete less with wandering
 - the trainer now keeps a fixed padded centralized critic state dimension across the selected curriculum so the critic can carry across stages instead of resetting whenever the stage shape changes
