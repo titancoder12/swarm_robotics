@@ -52,6 +52,14 @@ def ci95(values: list[float]) -> float:
     return float(stats.t.ppf(0.975, df=len(values) - 1) * sem)
 
 
+def sem(values: list[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    sample_mean = mean(values)
+    variance = sum((v - sample_mean) ** 2 for v in values) / (len(values) - 1)
+    return math.sqrt(variance) / math.sqrt(len(values))
+
+
 def grouped_means(rows_by_cond: dict[str, list[dict[str, str]]], columns: list[str]) -> dict[str, dict[str, float]]:
     data: dict[str, dict[str, float]] = {}
     for cond, rows in rows_by_cond.items():
@@ -99,6 +107,10 @@ def plot_pickup_delivery_final(means: dict[str, dict[str, float]]) -> Path:
     labels = [LABELS[c] for c in ORDER]
     picked_vals = [means[c]["food_picked_up"] for c in ORDER]
     delivered_vals = [means[c]["food_delivered"] for c in ORDER]
+    rows = load_rows()
+    rows_by_cond = by_condition(rows)
+    picked_sem = [sem([float(r["food_picked_up"]) for r in rows_by_cond[c]]) for c in ORDER]
+    delivered_sem = [sem([float(r["food_delivered"]) for r in rows_by_cond[c]]) for c in ORDER]
     conversions = [
         0.0 if picked == 0 else delivered / picked
         for picked, delivered in zip(picked_vals, delivered_vals)
@@ -127,24 +139,44 @@ def plot_pickup_delivery_final(means: dict[str, dict[str, float]]) -> Path:
     picked_bars = []
     delivered_bars = []
     for i, cond in enumerate(ORDER):
-        pb = ax.bar(x[i] - width / 2, picked_vals[i], width=width, color=picked_colors[i], edgecolor="black", linewidth=0.8, zorder=3)
-        db = ax.bar(x[i] + width / 2, delivered_vals[i], width=width, color=delivered_colors[i], edgecolor="black", linewidth=0.8, zorder=3)
+        pb = ax.bar(
+            x[i] - width / 2,
+            picked_vals[i],
+            width=width,
+            color=picked_colors[i],
+            edgecolor="black",
+            linewidth=0.8,
+            yerr=picked_sem[i],
+            error_kw={"elinewidth": 1.2, "capsize": 5, "capthick": 1.2, "ecolor": "#333333"},
+            zorder=3,
+        )
+        db = ax.bar(
+            x[i] + width / 2,
+            delivered_vals[i],
+            width=width,
+            color=delivered_colors[i],
+            edgecolor="black",
+            linewidth=0.8,
+            yerr=delivered_sem[i],
+            error_kw={"elinewidth": 1.2, "capsize": 5, "capthick": 1.2, "ecolor": "#333333"},
+            zorder=3,
+        )
         picked_bars.extend(pb)
         delivered_bars.extend(db)
 
-    for bar, val in zip(picked_bars, picked_vals):
+    for bar, val, err in zip(picked_bars, picked_vals, picked_sem):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.05,
+            bar.get_height() + err + 0.05,
             f"{val:.2f}",
             ha="center",
             va="bottom",
             fontsize=12,
         )
-    for bar, val in zip(delivered_bars, delivered_vals):
+    for bar, val, err in zip(delivered_bars, delivered_vals, delivered_sem):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.05,
+            bar.get_height() + err + 0.05,
             f"{val:.2f}",
             ha="center",
             va="bottom",
@@ -155,7 +187,7 @@ def plot_pickup_delivery_final(means: dict[str, dict[str, float]]) -> Path:
     for i, xi in enumerate(x):
         ax.text(
             xi,
-            max(picked_vals[i], delivered_vals[i]) + 0.38,
+            max(picked_vals[i] + picked_sem[i], delivered_vals[i] + delivered_sem[i]) + 0.32,
             f"Conversion = {round(conversions[i] * 100):.0f}%",
             ha="center",
             va="bottom",
@@ -182,15 +214,22 @@ def plot_pickup_delivery_final(means: dict[str, dict[str, float]]) -> Path:
     ax.grid(False, axis="x")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.set_ylim(0, max(max(picked_vals), max(delivered_vals)) + 0.85)
+    ax.set_ylim(0, max(max(picked_vals[i] + picked_sem[i], delivered_vals[i] + delivered_sem[i]) for i in range(len(ORDER))) + 1.00)
 
     legend_handles = [
         plt.Rectangle((0, 0), 1, 1, facecolor="#BFCFE0", edgecolor="black", linewidth=0.8),
         plt.Rectangle((0, 0), 1, 1, facecolor="#4E6B8A", edgecolor="black", linewidth=0.8),
     ]
-    ax.legend(legend_handles, ["Picked up", "Delivered"], frameon=False, loc="upper right")
+    ax.legend(
+        legend_handles,
+        ["Picked up", "Delivered"],
+        frameon=False,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.10),
+        ncol=2,
+    )
 
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
     out = OUT_DIR / "baseline_pickup_delivery_final.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -292,10 +331,12 @@ def plot_food_delivered_final(rows_by_cond: dict[str, list[dict[str, str]]]) -> 
         zorder=3,
     )
 
-    for bar, label in zip(bars, ["1.25", "0.30", "0.05"]):
+    label_offsets = [0.10, 0.10, 0.10]
+    x_offsets = [0.0, 0.0, 0.0]
+    for bar, label, ci, x_offset, y_offset in zip(bars, ["1.25", "0.30", "0.05"], cis, x_offsets, label_offsets):
         ax.text(
-            bar.get_x() + bar.get_width() / 2,
-            bar.get_height() + 0.05,
+            bar.get_x() + bar.get_width() / 2 + x_offset,
+            bar.get_height() + ci + y_offset,
             label,
             ha="center",
             va="bottom",
@@ -313,9 +354,9 @@ def plot_food_delivered_final(rows_by_cond: dict[str, list[dict[str, str]]]) -> 
     ax.spines["right"].set_visible(False)
 
     ymax = max(m + c for m, c in zip(means, cis))
-    ax.set_ylim(0, ymax + 0.55)
-    add_pvalue_bracket(ax, x[0], x[1], ymax + 0.05, 0.05, "p = 0.0123", fontsize=12)
-    add_pvalue_bracket(ax, x[0], x[2], ymax + 0.20, 0.05, "p = 0.0012", fontsize=12)
+    ax.set_ylim(0, ymax + 0.92)
+    add_pvalue_bracket(ax, x[0], x[1], ymax + 0.22, 0.05, "p = 0.0123", fontsize=12)
+    add_pvalue_bracket(ax, x[0], x[2], ymax + 0.40, 0.05, "p = 0.0012", fontsize=12)
 
     fig.tight_layout()
     out = OUT_DIR / "baseline_food_delivered_final.png"

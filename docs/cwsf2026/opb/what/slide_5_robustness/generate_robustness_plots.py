@@ -108,14 +108,39 @@ def plot_combined_metrics(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path
     labels = [LABELS[c] for c in ORDER]
     delivered = [mean([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
     explore = [mean([float(r["exploration_coverage"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+    delivered_sem = [sem([float(r["food_delivered"]) for r in rows_by_cond[cond]]) for cond in ORDER]
+    explore_sem = [sem([float(r["exploration_coverage"]) for r in rows_by_cond[cond]]) for cond in ORDER]
     x = list(range(len(ORDER)))
     width = 0.34
 
     plt.rcParams.update({"font.size": 13, "axes.titlesize": 20, "axes.titleweight": "bold", "axes.labelsize": 15, "xtick.labelsize": 12, "ytick.labelsize": 12})
     fig, ax1 = plt.subplots(figsize=(10.8, 6.1))
     ax2 = ax1.twinx()
-    ax1.bar([i - width / 2 for i in x], delivered, width=width, color="#1565C0", edgecolor="black", linewidth=0.8, label="Food delivered", zorder=3)
-    ax2.bar([i + width / 2 for i in x], explore, width=width, color="#D97706", edgecolor="black", linewidth=0.8, label="Exploration coverage", alpha=0.85, zorder=2)
+    ax1.bar(
+        [i - width / 2 for i in x],
+        delivered,
+        width=width,
+        color="#1565C0",
+        edgecolor="black",
+        linewidth=0.8,
+        yerr=delivered_sem,
+        error_kw={"elinewidth": 1.1, "capsize": 4, "capthick": 1.1, "ecolor": "#333333"},
+        label="Food delivered",
+        zorder=3,
+    )
+    ax2.bar(
+        [i + width / 2 for i in x],
+        explore,
+        width=width,
+        color="#D97706",
+        edgecolor="black",
+        linewidth=0.8,
+        yerr=explore_sem,
+        error_kw={"elinewidth": 1.1, "capsize": 4, "capthick": 1.1, "ecolor": "#333333"},
+        label="Exploration coverage",
+        alpha=0.85,
+        zorder=2,
+    )
     ax1.set_xticks(x)
     ax1.set_xticklabels(labels)
     ax1.set_ylabel("Food delivered", color="#1565C0")
@@ -129,8 +154,15 @@ def plot_combined_metrics(rows_by_cond: dict[str, list[dict[str, str]]]) -> Path
         plt.Rectangle((0, 0), 1, 1, facecolor="#1565C0", edgecolor="black"),
         plt.Rectangle((0, 0), 1, 1, facecolor="#D97706", edgecolor="black"),
     ]
-    ax1.legend(handles, ["Food delivered", "Exploration coverage"], frameon=False, loc="upper right")
-    fig.tight_layout()
+    ax1.legend(
+        handles,
+        ["Food delivered", "Exploration coverage"],
+        frameon=False,
+        loc="upper center",
+        bbox_to_anchor=(0.5, -0.12),
+        ncol=2,
+    )
+    fig.tight_layout(rect=(0, 0.04, 1, 1))
     out = OUT_DIR / "robustness_delivery_and_exploration_combined.png"
     fig.savefig(out, dpi=300, bbox_inches="tight")
     plt.close(fig)
@@ -285,8 +317,8 @@ def plot_food_delivered_board_ready(rows_by_cond: dict[str, list[dict[str, str]]
     baseline_val = delivered[0]
     ax.axhline(baseline_val, color="#444444", linestyle="--", linewidth=1.5, zorder=2)
     ax.text(
-        3.38,
-        baseline_val + 0.03,
+        3.28,
+        baseline_val + 0.04,
         "Baseline performance",
         ha="right",
         va="bottom",
@@ -294,10 +326,10 @@ def plot_food_delivered_board_ready(rows_by_cond: dict[str, list[dict[str, str]]
         color="#444444",
     )
 
-    for bar, val in zip(bars, delivered):
+    for bar, val, err in zip(bars, delivered, delivered_sem):
         ax.text(
             bar.get_x() + bar.get_width() / 2,
-            val + 0.045,
+            val + err + 0.05,
             f"{val:.2f}",
             ha="center",
             va="bottom",
@@ -308,8 +340,8 @@ def plot_food_delivered_board_ready(rows_by_cond: dict[str, list[dict[str, str]]
 
     obstacle_bar = bars[-1]
     ax.text(
-        obstacle_bar.get_x() + obstacle_bar.get_width() / 2,
-        obstacle_bar.get_height() + 0.22,
+        obstacle_bar.get_x() + obstacle_bar.get_width() / 2 + 0.06,
+        obstacle_bar.get_height() + delivered_sem[-1] + 0.18,
         "Largest drop:\nnavigation complexity",
         ha="center",
         va="bottom",
@@ -321,7 +353,6 @@ def plot_food_delivered_board_ready(rows_by_cond: dict[str, list[dict[str, str]]
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     ax.set_ylabel("Mean food delivered per episode")
-    ax.set_title("Food Delivered Under Robustness Conditions", pad=16)
     ax.set_ylim(0, max(delivered) * 1.32)
     ax.grid(True, axis="y", color="#D9D9D9", linewidth=0.8, alpha=0.65)
     ax.grid(False, axis="x")

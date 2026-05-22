@@ -88,6 +88,14 @@ def compute_condition_means(rows: list[dict[str, str]]) -> dict[str, dict[str, f
     return grouped
 
 
+def sem(values: list[float]) -> float:
+    if len(values) <= 1:
+        return 0.0
+    m = sum(values) / len(values)
+    variance = sum((v - m) ** 2 for v in values) / (len(values) - 1)
+    return (variance ** 0.5) / (len(values) ** 0.5)
+
+
 def generate_original_delta_by_seed(trials: list[dict[str, float]]) -> Path:
     fig, ax = plt.subplots(figsize=(8.5, 4.8))
     ax.axhline(0, color="black", linewidth=1)
@@ -776,6 +784,107 @@ def generate_pickup_to_delivery_arrows(condition_means: dict[str, dict[str, floa
     return out
 
 
+def generate_pickups_vs_deliveries_grouped(
+    rows: list[dict[str, str]], condition_means: dict[str, dict[str, float]]
+) -> Path:
+    labels = ["Food picked up", "Food delivered"]
+    conditions = [CURRENT, OLDER]
+    picked_vals = [condition_means[c]["food_picked_up"] for c in conditions]
+    delivered_vals = [condition_means[c]["food_delivered"] for c in conditions]
+    picked_sem = [sem([float(r["food_picked_up"]) for r in rows if r["condition"] == c]) for c in conditions]
+    delivered_sem = [sem([float(r["food_delivered"]) for r in rows if r["condition"] == c]) for c in conditions]
+
+    x = [0.0, 1.5]
+    width = 0.34
+    newer_x = [pos - width / 2 for pos in x]
+    older_x = [pos + width / 2 for pos in x]
+
+    newer_color = "#1f77b4"
+    older_color = "#d95f02"
+
+    plt.rcParams.update(
+        {
+            "font.size": 14,
+            "axes.titlesize": 22,
+            "axes.titleweight": "bold",
+            "axes.labelsize": 16,
+            "xtick.labelsize": 13,
+            "ytick.labelsize": 13,
+        }
+    )
+    fig, ax = plt.subplots(figsize=(8.6, 5.2))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    newer_vals = [picked_vals[0], delivered_vals[0]]
+    older_vals = [picked_vals[1], delivered_vals[1]]
+    newer_sem = [picked_sem[0], delivered_sem[0]]
+    older_sem = [picked_sem[1], delivered_sem[1]]
+
+    newer_bars = ax.bar(
+        newer_x,
+        newer_vals,
+        width=width,
+        color=newer_color,
+        edgecolor="black",
+        linewidth=0.4,
+        yerr=newer_sem,
+        error_kw={"elinewidth": 1.2, "capsize": 5, "capthick": 1.2, "ecolor": "#333333"},
+        zorder=3,
+        label="Newer curriculum",
+    )
+    older_bars = ax.bar(
+        older_x,
+        older_vals,
+        width=width,
+        color=older_color,
+        edgecolor="black",
+        linewidth=0.4,
+        yerr=older_sem,
+        error_kw={"elinewidth": 1.2, "capsize": 5, "capthick": 1.2, "ecolor": "#333333"},
+        zorder=3,
+        label="Older config",
+    )
+
+    top_data = max(newer_vals[0] + newer_sem[0], newer_vals[1] + newer_sem[1], older_vals[0] + older_sem[0], older_vals[1] + older_sem[1], 1.0)
+    ax.set_ylim(0, top_data + 0.45)
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.set_ylabel("Mean per episode")
+
+    ax.grid(True, axis="y", color="#B0B0B0", linewidth=0.8, alpha=0.25, zorder=0)
+    ax.grid(False, axis="x")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    for bar, val, err in zip(newer_bars, newer_vals, newer_sem):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + err + 0.06,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=11,
+        )
+    for bar, val, err in zip(older_bars, older_vals, older_sem):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            bar.get_height() + err + 0.06,
+            f"{val:.2f}",
+            ha="center",
+            va="bottom",
+            fontsize=11,
+        )
+
+    ax.legend(frameon=False, loc="upper right", fontsize=11)
+
+    fig.tight_layout()
+    out = OUT_DIR / "curriculum_pickups_vs_deliveries_grouped.png"
+    fig.savefig(out, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+    return out
+
+
 def generate_pickups_vs_deliveries_grouped_improved(condition_means: dict[str, dict[str, float]]) -> Path:
     labels = ["New curriculum", "Older configuration"]
     conditions = [CURRENT, OLDER]
@@ -1025,6 +1134,7 @@ def main() -> None:
     generate_final_delta_by_trial_4(trials)
     generate_task_efficiency_funnel(condition_means)
     generate_pickup_to_delivery_arrows(condition_means)
+    generate_pickups_vs_deliveries_grouped(rows, condition_means)
     generate_pickups_vs_deliveries_grouped_improved(condition_means)
     generate_pickups_vs_deliveries_grouped_2(condition_means)
 
