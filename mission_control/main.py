@@ -208,9 +208,24 @@ def main(argv: list[str] | None = None) -> int:
                     elif event.key == pygame.K_y:
                         world.flash_control("y")
                         world.toggle_targets()
+                    elif event.key == pygame.K_UP:
+                        world.flash_control("status_scroll")
+                        world.scroll_status(-32)
+                    elif event.key == pygame.K_DOWN:
+                        world.flash_control("status_scroll")
+                        world.scroll_status(32)
+                    elif event.key == pygame.K_PAGEUP:
+                        world.flash_control("status_scroll")
+                        world.scroll_status(-160)
+                    elif event.key == pygame.K_PAGEDOWN:
+                        world.flash_control("status_scroll")
+                        world.scroll_status(160)
                     elif event.key in (pygame.K_f, pygame.K_F11):
                         world.flash_control("f")
                         renderer.toggle_fullscreen()
+                elif event.type == pygame.MOUSEWHEEL:
+                    world.flash_control("status_scroll")
+                    world.scroll_status(-event.y * 40)
 
             world.tick()
             renderer.draw(world.snapshot())

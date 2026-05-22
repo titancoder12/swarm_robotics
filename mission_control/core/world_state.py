@@ -35,6 +35,7 @@ class WorldState:
         self._show_trails = True
         self._show_pheromone = True
         self._show_targets = True
+        self._status_scroll_px = 0
         self._last_decay = time.time()
         self._control_flash_until: dict[str, float] = {}
 
@@ -145,6 +146,16 @@ class WorldState:
         with self._lock:
             self._control_flash_until[control_id] = time.time() + max(0.0, duration_s)
 
+    def scroll_status(self, delta_px: int) -> int:
+        with self._lock:
+            self._status_scroll_px = max(0, self._status_scroll_px + int(delta_px))
+            return self._status_scroll_px
+
+    def set_status_scroll(self, value_px: int) -> int:
+        with self._lock:
+            self._status_scroll_px = max(0, int(value_px))
+            return self._status_scroll_px
+
     def snapshot(self) -> WorldSnapshot:
         with self._lock:
             now = time.time()
@@ -166,6 +177,7 @@ class WorldState:
                 "show_trails": self._show_trails,
                 "show_pheromone": self._show_pheromone,
                 "show_targets": self._show_targets,
+                "status_scroll_px": self._status_scroll_px,
                 "stale_ids": stale_ids,
                 "flashed_controls": flashed_controls,
             }
