@@ -55,12 +55,41 @@ def _format_action(row: dict) -> str:
     return f"action: {label} ({', '.join(motion)})"
 
 
+def _draw_wrapped_text(
+    surface: pygame.Surface,
+    font: pygame.font.Font,
+    text: str,
+    color: tuple[int, int, int],
+    x: int,
+    y: int,
+    max_width: int,
+    line_height: int,
+) -> int:
+    words = text.split()
+    if not words:
+        return y + line_height
+
+    current = words[0]
+    for word in words[1:]:
+        candidate = f"{current} {word}"
+        if font.size(candidate)[0] <= max_width:
+            current = candidate
+            continue
+        surface.blit(font.render(current, True, color), (x, y))
+        y += line_height
+        current = word
+
+    surface.blit(font.render(current, True, color), (x, y))
+    return y + line_height
+
+
 def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dict) -> None:
     pygame.draw.rect(surface, colors.PANEL_BG, rect)
     title_font = pygame.font.SysFont("Menlo", 22, bold=True)
     body_font = pygame.font.SysFont("Menlo", 16)
     body_font_bold = pygame.font.SysFont("Menlo", 16, bold=True)
     body_font_flash = pygame.font.SysFont("Menlo", 19, bold=True)
+    content_width = rect.width - 32
 
     y = rect.top + 16
     surface.blit(title_font.render("Mission Control", True, colors.TEXT), (rect.left + 16, y))
@@ -81,8 +110,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
     ]
 
     for row in rows:
-        surface.blit(body_font.render(row, True, colors.TEXT), (rect.left + 16, y))
-        y += 24
+        y = _draw_wrapped_text(surface, body_font, row, colors.TEXT, rect.left + 16, y, content_width, 24)
 
     y += 8
     robot_rows = telemetry.get("robot_rows", [])
@@ -90,8 +118,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
     surface.blit(body_font.render("Robots", True, colors.SUBTEXT), (rect.left + 16, y))
     y += 24
     if not robot_rows:
-        surface.blit(body_font.render("none", True, colors.SUBTEXT), (rect.left + 16, y))
-        y += 22
+        y = _draw_wrapped_text(surface, body_font, "none", colors.SUBTEXT, rect.left + 16, y, content_width, 22)
     else:
         for row in robot_rows[:8]:
             heading = row.get("heading_deg")
@@ -107,14 +134,12 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                 f"hdg={heading_text} "
                 f"age={row['age_s']:.1f}s"
             )
-            surface.blit(body_font.render(label, True, row_color), (rect.left + 16, y))
-            y += 22
+            y = _draw_wrapped_text(surface, body_font, label, row_color, rect.left + 16, y, content_width, 22)
             lidar_ranges_mm = row.get("lidar_ranges_mm", [])
             if lidar_ranges_mm:
                 lidar_text = "lidar: " + " ".join(f"{int(round(value)):>3d}" for value in lidar_ranges_mm[:9])
                 lidar_color = colors.SUBTEXT if not is_stale else colors.STALE
-                surface.blit(body_font.render(lidar_text, True, lidar_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, lidar_text, lidar_color, rect.left + 24, y, content_width - 8, 20)
             target_x_cm = row.get("target_x_cm")
             target_y_cm = row.get("target_y_cm")
             target_age_s = row.get("target_age_s")
@@ -124,13 +149,11 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                     f"conf={row.get('target_confidence', 0.0):.2f} age={target_age_s:.1f}s"
                 )
                 target_color = colors.TARGET_MARKER if not is_stale else colors.STALE
-                surface.blit(body_font.render(target_text, True, target_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, target_text, target_color, rect.left + 24, y, content_width - 8, 20)
             status_age_s = row.get("status_age_s")
             if status_age_s is not None and status_age_s <= 5.0:
                 action_text = _format_action(row)
-                surface.blit(body_font.render(action_text, True, row_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, action_text, row_color, rect.left + 24, y, content_width - 8, 20)
 
                 obstacle_text, obstacle_color = _infer_obstacle(
                     float(row.get("front_min_mm", 0.0)),
@@ -139,8 +162,7 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                 )
                 if is_stale:
                     obstacle_color = colors.STALE
-                surface.blit(body_font.render(obstacle_text, True, obstacle_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, obstacle_text, obstacle_color, rect.left + 24, y, content_width - 8, 20)
 
                 if row.get("camera_found", False):
                     camera_text = (
@@ -151,15 +173,13 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                 else:
                     camera_text = "camera: no target"
                     camera_color = colors.SUBTEXT if not is_stale else colors.STALE
-                surface.blit(body_font.render(camera_text, True, camera_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, camera_text, camera_color, rect.left + 24, y, content_width - 8, 20)
 
                 serial_cmd = str(row.get("serial_cmd", "")).replace(";", ",")
                 serial_reply = str(row.get("serial_reply", ""))
                 serial_text = f"motor: {serial_cmd or '-'} -> {serial_reply or '-'}"
                 serial_color = colors.TRAIL if row.get("serial_ok", False) and not is_stale else (colors.HEAT_HOT if not is_stale else colors.STALE)
-                surface.blit(body_font.render(serial_text, True, serial_color), (rect.left + 24, y))
-                y += 20
+                y = _draw_wrapped_text(surface, body_font, serial_text, serial_color, rect.left + 24, y, content_width - 8, 20)
 
     y += 8
     flashed_controls = set(telemetry.get("flashed_controls", []))
