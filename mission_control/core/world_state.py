@@ -64,6 +64,43 @@ class WorldState:
         with self._lock:
             self.robot_registry.update_target(robot_id, x_cm, y_cm, confidence)
 
+    def update_status(
+        self,
+        robot_id: str,
+        control_mode: str,
+        action_id: int,
+        throttle: float,
+        turn: float,
+        deposit: bool,
+        camera_found: bool,
+        camera_distance_m: float,
+        camera_angle_deg: float,
+        front_min_mm: float,
+        left_min_mm: float,
+        right_min_mm: float,
+        serial_ok: bool,
+        serial_cmd: str,
+        serial_reply: str,
+    ) -> None:
+        with self._lock:
+            self.robot_registry.update_status(
+                robot_id=robot_id,
+                control_mode=control_mode,
+                action_id=action_id,
+                throttle=throttle,
+                turn=turn,
+                deposit=deposit,
+                camera_found=camera_found,
+                camera_distance_m=camera_distance_m,
+                camera_angle_deg=camera_angle_deg,
+                front_min_mm=front_min_mm,
+                left_min_mm=left_min_mm,
+                right_min_mm=right_min_mm,
+                serial_ok=serial_ok,
+                serial_cmd=serial_cmd,
+                serial_reply=serial_reply,
+            )
+
     def sample_pheromone(self, x_cm: float, y_cm: float, heading_deg: float) -> np.ndarray:
         heading_rad = math.radians(heading_deg)
         with self._lock:

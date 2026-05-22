@@ -12,6 +12,7 @@ from mission_control.comms.protocol import (
     PositionMessage,
     ProtocolError,
     SenseMessage,
+    StatusMessage,
     TargetMessage,
     format_pheromone_response,
     parse_line,
@@ -114,6 +115,26 @@ def main(argv: list[str] | None = None) -> int:
 
         if isinstance(msg, TargetMessage):
             world.update_target_detection(msg.robot_id, msg.x_cm, msg.y_cm, msg.confidence)
+            return []
+
+        if isinstance(msg, StatusMessage):
+            world.update_status(
+                robot_id=msg.robot_id,
+                control_mode=msg.control_mode,
+                action_id=msg.action_id,
+                throttle=msg.throttle,
+                turn=msg.turn,
+                deposit=msg.deposit,
+                camera_found=msg.camera_found,
+                camera_distance_m=msg.camera_distance_m,
+                camera_angle_deg=msg.camera_angle_deg,
+                front_min_mm=msg.front_min_mm,
+                left_min_mm=msg.left_min_mm,
+                right_min_mm=msg.right_min_mm,
+                serial_ok=msg.serial_ok,
+                serial_cmd=msg.serial_cmd,
+                serial_reply=msg.serial_reply,
+            )
             return []
 
         if isinstance(msg, SenseMessage):

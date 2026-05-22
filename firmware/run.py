@@ -194,6 +194,24 @@ def bucketize_scan(cfg: PolicyConfig, scan_points: list[dict]) -> list[float]:
     return buckets
 
 
+def summarize_lidar_sectors(lidar_ranges_mm: list[float]) -> tuple[float, float, float]:
+    if not lidar_ranges_mm:
+        return 0.0, 0.0, 0.0
+
+    def sector_min(indices: tuple[int, ...]) -> float:
+        values = [
+            float(lidar_ranges_mm[index])
+            for index in indices
+            if 0 <= index < len(lidar_ranges_mm) and float(lidar_ranges_mm[index]) > 0.0
+        ]
+        return min(values) if values else 0.0
+
+    left_min_mm = sector_min((0, 1, 2))
+    front_min_mm = sector_min((3, 4, 5))
+    right_min_mm = sector_min((6, 7, 8))
+    return front_min_mm, left_min_mm, right_min_mm
+
+
 def normalize_ranges(cfg: PolicyConfig, ranges_m: list[float]) -> np.ndarray:
     # Training used lidar normalized to [-1, 1], not [0, 1]. Far readings land
     # near +1 while close obstacles land near -1.
@@ -831,6 +849,28 @@ def main(argv=None):
                 # robot's current position rather than only the previous step.
                 x_cm, y_cm = pose_to_cm(pose)
                 mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                if hasattr(mission_control_link, "send_status"):
+                    front_min_mm, left_min_mm, right_min_mm = summarize_lidar_sectors(lidar_ranges_mm)
+                    camera_found = bool(camera_detection and camera_detection.found)
+                    camera_distance_m = camera_detection.distance_m if camera_detection is not None else 0.0
+                    camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
+                    mission_control_link.send_status(
+                        robot_id=args.robot_id,
+                        control_mode=args.control_mode,
+                        action_id=action_id,
+                        throttle=throttle,
+                        turn=turn,
+                        deposit=deposit,
+                        camera_found=camera_found,
+                        camera_distance_m=camera_distance_m,
+                        camera_angle_deg=camera_angle_deg,
+                        front_min_mm=front_min_mm,
+                        left_min_mm=left_min_mm,
+                        right_min_mm=right_min_mm,
+                        serial_ok=robot.last_response_ok,
+                        serial_cmd=robot.last_command,
+                        serial_reply=robot.last_response_raw,
+                    )
             if (
                 mission_control_link is not None
                 and args.cc_deposit_enable

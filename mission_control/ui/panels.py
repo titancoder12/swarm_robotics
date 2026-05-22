@@ -5,6 +5,56 @@ import pygame
 from mission_control.ui import colors
 
 
+ACTION_LABELS: dict[int, str] = {
+    0: "reverse-left",
+    1: "reverse-left-deposit",
+    2: "reverse-straight",
+    3: "reverse-straight-deposit",
+    4: "reverse-right",
+    5: "reverse-right-deposit",
+    6: "stop-left",
+    7: "stop-left-deposit",
+    8: "stop",
+    9: "stop-deposit",
+    10: "stop-right",
+    11: "stop-right-deposit",
+    12: "forward-left",
+    13: "forward-left-deposit",
+    14: "forward-straight",
+    15: "forward-straight-deposit",
+    16: "forward-right",
+    17: "forward-right-deposit",
+}
+
+
+def _infer_obstacle(front_min_mm: float, left_min_mm: float, right_min_mm: float) -> tuple[str, tuple[int, int, int]]:
+    valid = [value for value in (front_min_mm, left_min_mm, right_min_mm) if value > 0.0]
+    if not valid:
+        return "sense: no obstacle data", colors.SUBTEXT
+    if 0.0 < front_min_mm < 120.0:
+        return f"sense: blocked ahead ({front_min_mm:.0f} mm)", colors.TARGET_MARKER
+    if 0.0 < front_min_mm < 300.0:
+        return f"sense: close obstacle ahead ({front_min_mm:.0f} mm)", colors.HEAT_HOT
+    nearest = min(valid)
+    if nearest < 500.0:
+        return f"sense: near obstacle ({nearest:.0f} mm)", colors.HEAT_HOT
+    return f"sense: path mostly clear ({nearest:.0f} mm)", colors.TRAIL
+
+
+def _format_action(row: dict) -> str:
+    action_id = int(row.get("action_id", -1))
+    label = ACTION_LABELS.get(action_id, f"action_{action_id}")
+    throttle = float(row.get("throttle", 0.0))
+    turn = float(row.get("turn", 0.0))
+    deposit = bool(row.get("deposit", False))
+    motion: list[str] = []
+    motion.append("forward" if throttle > 0 else ("reverse" if throttle < 0 else "stop"))
+    motion.append("left" if turn < 0 else ("right" if turn > 0 else "straight"))
+    if deposit:
+        motion.append("deposit")
+    return f"action: {label} ({', '.join(motion)})"
+
+
 def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dict) -> None:
     pygame.draw.rect(surface, colors.PANEL_BG, rect)
     title_font = pygame.font.SysFont("Menlo", 22, bold=True)
@@ -75,6 +125,40 @@ def draw_status_panel(surface: pygame.Surface, rect: pygame.Rect, telemetry: dic
                 )
                 target_color = colors.TARGET_MARKER if not is_stale else colors.STALE
                 surface.blit(body_font.render(target_text, True, target_color), (rect.left + 24, y))
+                y += 20
+            status_age_s = row.get("status_age_s")
+            if status_age_s is not None and status_age_s <= 5.0:
+                action_text = _format_action(row)
+                surface.blit(body_font.render(action_text, True, row_color), (rect.left + 24, y))
+                y += 20
+
+                obstacle_text, obstacle_color = _infer_obstacle(
+                    float(row.get("front_min_mm", 0.0)),
+                    float(row.get("left_min_mm", 0.0)),
+                    float(row.get("right_min_mm", 0.0)),
+                )
+                if is_stale:
+                    obstacle_color = colors.STALE
+                surface.blit(body_font.render(obstacle_text, True, obstacle_color), (rect.left + 24, y))
+                y += 20
+
+                if row.get("camera_found", False):
+                    camera_text = (
+                        f"camera: target {float(row.get('camera_distance_m', 0.0)):.2f} m, "
+                        f"{float(row.get('camera_angle_deg', 0.0)):+.1f} deg"
+                    )
+                    camera_color = colors.TRAIL if not is_stale else colors.STALE
+                else:
+                    camera_text = "camera: no target"
+                    camera_color = colors.SUBTEXT if not is_stale else colors.STALE
+                surface.blit(body_font.render(camera_text, True, camera_color), (rect.left + 24, y))
+                y += 20
+
+                serial_cmd = str(row.get("serial_cmd", "")).replace(";", ",")
+                serial_reply = str(row.get("serial_reply", ""))
+                serial_text = f"motor: {serial_cmd or '-'} -> {serial_reply or '-'}"
+                serial_color = colors.TRAIL if row.get("serial_ok", False) and not is_stale else (colors.HEAT_HOT if not is_stale else colors.STALE)
+                surface.blit(body_font.render(serial_text, True, serial_color), (rect.left + 24, y))
                 y += 20
 
     y += 8

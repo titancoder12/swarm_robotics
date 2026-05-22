@@ -69,6 +69,38 @@ class CommandCenterRelayClient:
             if self.debug:
                 print(f"[debug] RELAY TARGET send failed: {type(exc).__name__}: {exc!r}", flush=True)
 
+    def send_status(
+        self,
+        robot_id: str,
+        control_mode: str,
+        action_id: int,
+        throttle: float,
+        turn: float,
+        deposit: bool,
+        camera_found: bool,
+        camera_distance_m: float,
+        camera_angle_deg: float,
+        front_min_mm: float,
+        left_min_mm: float,
+        right_min_mm: float,
+        serial_ok: bool,
+        serial_cmd: str,
+        serial_reply: str,
+    ) -> None:
+        try:
+            safe_cmd = str(serial_cmd).replace(",", ";")
+            safe_reply = str(serial_reply).replace(",", ";")
+            self._send_line(
+                "STATUS,"
+                f"{robot_id},{control_mode},{int(action_id)},{float(throttle):.1f},{float(turn):.1f},{int(bool(deposit))},"
+                f"{int(bool(camera_found))},{float(camera_distance_m):.3f},{float(camera_angle_deg):.1f},"
+                f"{float(front_min_mm):.1f},{float(left_min_mm):.1f},{float(right_min_mm):.1f},"
+                f"{int(bool(serial_ok))},{safe_cmd},{safe_reply}"
+            )
+        except Exception as exc:  # pragma: no cover - network-dependent path
+            if self.debug:
+                print(f"[debug] RELAY STATUS send failed: {type(exc).__name__}: {exc!r}", flush=True)
+
     def deposit_pheromone(self, robot_id: str, x_cm: float, y_cm: float, amount: float) -> None:
         try:
             self._send_line(f"PHER,{robot_id},{x_cm:.2f},{y_cm:.2f},{amount:.3f}")

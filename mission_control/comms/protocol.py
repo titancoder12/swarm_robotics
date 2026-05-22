@@ -52,6 +52,25 @@ class TargetMessage(Message):
     confidence: float
 
 
+@dataclass(frozen=True)
+class StatusMessage(Message):
+    robot_id: str
+    control_mode: str
+    action_id: int
+    throttle: float
+    turn: float
+    deposit: bool
+    camera_found: bool
+    camera_distance_m: float
+    camera_angle_deg: float
+    front_min_mm: float
+    left_min_mm: float
+    right_min_mm: float
+    serial_ok: bool
+    serial_cmd: str
+    serial_reply: str
+
+
 def parse_line(line: str) -> Message:
     # Keep the wire format deliberately small and line-oriented so it can be
     # mirrored easily on the robot side with serial.readline()-style loops.
@@ -94,6 +113,28 @@ def parse_line(line: str) -> Message:
             x_cm=float(parts[2]),
             y_cm=float(parts[3]),
             confidence=float(parts[4]),
+        )
+
+    if kind == "STATUS":
+        if len(parts) != 16:
+            raise ProtocolError(f"STATUS expects 16 fields, got {len(parts)}")
+        return StatusMessage(
+            kind="STATUS",
+            robot_id=parts[1],
+            control_mode=parts[2],
+            action_id=int(parts[3]),
+            throttle=float(parts[4]),
+            turn=float(parts[5]),
+            deposit=parts[6] == "1",
+            camera_found=parts[7] == "1",
+            camera_distance_m=float(parts[8]),
+            camera_angle_deg=float(parts[9]),
+            front_min_mm=float(parts[10]),
+            left_min_mm=float(parts[11]),
+            right_min_mm=float(parts[12]),
+            serial_ok=parts[13] == "1",
+            serial_cmd=parts[14],
+            serial_reply=parts[15],
         )
 
     raise ProtocolError(f"unknown message type {kind}")

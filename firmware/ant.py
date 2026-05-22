@@ -22,6 +22,10 @@ class ESP32Robot:
         self.debug = debug
         self.ser: Optional[serial.Serial] = None
         self._rx_buffer = bytearray()
+        self.last_command: str = ""
+        self.last_response_raw: str = ""
+        self.last_response_type: str = ""
+        self.last_response_ok: bool = False
 
     @staticmethod
     def _require_pyserial() -> None:
@@ -68,6 +72,7 @@ class ESP32Robot:
     def send_raw(self, cmd: str) -> None:
         ser = self._require_serial()
         line = cmd.strip() + "\n"
+        self.last_command = cmd.strip()
         if self.debug:
             print(f"[debug] serial -> {line.strip()}", flush=True)
         ser.write(line.encode("utf-8"))
@@ -157,6 +162,9 @@ class ESP32Robot:
     def command(self, cmd: str, timeout: float = 5.0) -> Dict[str, Any]:
         self.send_raw(cmd)
         response = self.wait_response(timeout=timeout)
+        self.last_response_raw = str(response.get("raw", ""))
+        self.last_response_type = str(response.get("parsed", {}).get("type", ""))
+        self.last_response_ok = bool(response.get("ok", False))
         if self.debug:
             print(f"[debug] serial <- {response.get('raw')}", flush=True)
         return response
