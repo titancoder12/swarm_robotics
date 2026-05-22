@@ -10,6 +10,9 @@ CAMERA_HEIGHT="480"
 CAMERA_HORIZONTAL_FOV_DEG="62.0"
 CAMERA_TARGET_WIDTH_CM="6.0"
 CAMERA_MIN_AREA_PX="100"
+CAMERA_DETECTOR_MODE="apriltag"
+CAMERA_APRILTAG_FAMILY="DICT_APRILTAG_25h9"
+CAMERA_APRILTAG_ID="0"
 CAMERA_HSV_LOWER="35,70,70"
 CAMERA_HSV_UPPER="100,255,255"
 CAMERA_FPS="2.0"
@@ -43,6 +46,18 @@ while [[ $# -gt 0 ]]; do
       CAMERA_MIN_AREA_PX="$2"
       shift 2
       ;;
+    --camera-detector-mode)
+      CAMERA_DETECTOR_MODE="$2"
+      shift 2
+      ;;
+    --camera-apriltag-family)
+      CAMERA_APRILTAG_FAMILY="$2"
+      shift 2
+      ;;
+    --camera-apriltag-id)
+      CAMERA_APRILTAG_ID="$2"
+      shift 2
+      ;;
     --camera-hsv-lower)
       CAMERA_HSV_LOWER="$2"
       shift 2
@@ -69,7 +84,7 @@ Usage: bash firmware/run_camera_test.sh [options] [-- test_camera.py args]
 
 Defaults:
   continuous terminal output enabled
-  green target HSV defaults enabled
+  AprilTag detection enabled
   image saving disabled
   preview window disabled
 
@@ -80,6 +95,9 @@ Options:
   --camera-horizontal-fov-deg DEGREES
   --camera-target-width-cm CM
   --camera-min-area-px PIXELS
+  --camera-detector-mode MODE
+  --camera-apriltag-family FAMILY
+  --camera-apriltag-id ID
   --camera-hsv-lower H,S,V
   --camera-hsv-upper H,S,V
   --fps FPS
@@ -89,6 +107,8 @@ Options:
 Examples:
   bash firmware/run_camera_test.sh
   bash firmware/run_camera_test.sh --show
+  bash firmware/run_camera_test.sh --camera-detector-mode apriltag --camera-apriltag-id 0
+  bash firmware/run_camera_test.sh --camera-detector-mode hsv --camera-hsv-lower 40,120,120 --camera-hsv-upper 85,255,255
   bash firmware/run_camera_test.sh --camera-hsv-lower 40,120,120 --camera-hsv-upper 85,255,255
   bash firmware/run_camera_test.sh --fps 4
 EOF
@@ -126,6 +146,9 @@ python firmware/test_camera.py \
   --camera-horizontal-fov-deg "$CAMERA_HORIZONTAL_FOV_DEG" \
   --camera-target-width-cm "$CAMERA_TARGET_WIDTH_CM" \
   --camera-min-area-px "$CAMERA_MIN_AREA_PX" \
+  --camera-detector-mode "$CAMERA_DETECTOR_MODE" \
+  --camera-apriltag-family "$CAMERA_APRILTAG_FAMILY" \
+  --camera-apriltag-id "$CAMERA_APRILTAG_ID" \
   --camera-hsv-lower "$CAMERA_HSV_LOWER" \
   --camera-hsv-upper "$CAMERA_HSV_UPPER" \
   --fps "$CAMERA_FPS" \

@@ -40,6 +40,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--camera-horizontal-fov-deg", type=float, default=62.0)
     parser.add_argument("--camera-target-width-cm", type=float, default=6.0)
     parser.add_argument("--camera-min-area-px", type=int, default=100)
+    parser.add_argument("--camera-detector-mode", choices=("apriltag", "hsv"), default="apriltag")
+    parser.add_argument("--camera-apriltag-family", type=str, default="DICT_APRILTAG_25h9")
+    parser.add_argument("--camera-apriltag-id", type=int, default=0)
     parser.add_argument("--camera-hsv-lower", type=parse_hsv, default=(35, 70, 70))
     parser.add_argument("--camera-hsv-upper", type=parse_hsv, default=(100, 255, 255))
     parser.add_argument("--output", type=Path, default=Path("camera_frame.jpg"))
@@ -189,6 +192,87 @@ def run_hsv_detection(
     }
 
 
+def run_apriltag_detection(
+    frame: np.ndarray,
+    *,
+    width: int,
+    height: int,
+    horizontal_fov_deg: float,
+    target_width_cm: float,
+    min_area_px: int,
+    apriltag_family: str,
+    apriltag_id: int,
+) -> tuple[np.ndarray, np.ndarray, dict]:
+    if cv2 is None or not hasattr(cv2, "aruco"):
+        raise RuntimeError("OpenCV aruco module is required for AprilTag detection")
+    if not hasattr(cv2.aruco, apriltag_family):
+        raise RuntimeError(f"Unknown AprilTag family: {apriltag_family}")
+
+    focal_px = (width * 0.5) / max(math.tan(math.radians(horizontal_fov_deg) * 0.5), 1e-6)
+    dictionary = cv2.aruco.getPredefinedDictionary(getattr(cv2.aruco, apriltag_family))
+    detector = cv2.aruco.ArucoDetector(dictionary, cv2.aruco.DetectorParameters())
+    corners, ids, _rejected = detector.detectMarkers(frame)
+
+    annotated = frame.copy()
+    mask = np.zeros((height, width), dtype=np.uint8)
+    if ids is None or len(ids) == 0:
+        return annotated, mask, {"found": False}
+
+    chosen_index = None
+    chosen_area = -1.0
+    chosen_id = -1
+    for i, raw_id in enumerate(ids.flatten().tolist()):
+        tag_id = int(raw_id)
+        if apriltag_id >= 0 and tag_id != apriltag_id:
+            continue
+        pts = np.asarray(corners[i], dtype=np.float32).reshape(-1, 2)
+        area = float(cv2.contourArea(pts.reshape(-1, 1, 2)))
+        if area > chosen_area:
+            chosen_area = area
+            chosen_index = i
+            chosen_id = tag_id
+
+    if chosen_index is None:
+        return annotated, mask, {"found": False}
+
+    pts = np.asarray(corners[chosen_index], dtype=np.float32).reshape(-1, 2)
+    cv2.polylines(annotated, [pts.astype(np.int32)], True, (0, 255, 0), 2)
+    cv2.fillPoly(mask, [pts.astype(np.int32)], 255)
+
+    area = float(cv2.contourArea(pts.reshape(-1, 1, 2)))
+    if area < float(min_area_px):
+        return annotated, mask, {"found": False, "area": area}
+
+    min_x = int(max(0, math.floor(float(np.min(pts[:, 0])))))
+    max_x = int(min(width - 1, math.ceil(float(np.max(pts[:, 0])))))
+    min_y = int(max(0, math.floor(float(np.min(pts[:, 1])))))
+    max_y = int(min(height - 1, math.ceil(float(np.max(pts[:, 1])))))
+    bbox_w = max_x - min_x
+    bbox_h = max_y - min_y
+    center_x = float(np.mean(pts[:, 0]))
+    center_y = float(np.mean(pts[:, 1]))
+    pixel_offset = center_x - (width * 0.5)
+    angle_rad = math.atan2(pixel_offset, focal_px)
+    edge_lengths = [float(np.linalg.norm(pts[i] - pts[(i + 1) % 4])) for i in range(4)]
+    apparent_width_px = max(1.0, sum(edge_lengths) / 4.0)
+    distance_m = ((target_width_cm / 100.0) * focal_px) / apparent_width_px
+    confidence = float(np.clip(area / float(width * height), 0.0, 1.0))
+
+    cv2.circle(annotated, (int(round(center_x)), int(round(center_y))), 5, (0, 255, 255), -1)
+    label = f"id={chosen_id} area={area:.0f} dist={distance_m:.2f}m angle={math.degrees(angle_rad):+.1f}deg"
+    cv2.putText(annotated, label, (12, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 2, cv2.LINE_AA)
+
+    return annotated, mask, {
+        "found": True,
+        "tag_id": chosen_id,
+        "area": area,
+        "bbox": (min_x, min_y, bbox_w, bbox_h),
+        "distance_m": distance_m,
+        "angle_deg": math.degrees(angle_rad),
+        "confidence": confidence,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
 
@@ -217,16 +301,28 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"error: camera capture failed: {type(exc).__name__}: {exc}", file=sys.stderr)
                 return 1
 
-            annotated, mask, result = run_hsv_detection(
-                frame,
-                width=args.camera_width,
-                height=args.camera_height,
-                horizontal_fov_deg=args.camera_horizontal_fov_deg,
-                target_width_cm=args.camera_target_width_cm,
-                min_area_px=args.camera_min_area_px,
-                hsv_lower=args.camera_hsv_lower,
-                hsv_upper=args.camera_hsv_upper,
-            )
+            if args.camera_detector_mode == "apriltag":
+                annotated, mask, result = run_apriltag_detection(
+                    frame,
+                    width=args.camera_width,
+                    height=args.camera_height,
+                    horizontal_fov_deg=args.camera_horizontal_fov_deg,
+                    target_width_cm=args.camera_target_width_cm,
+                    min_area_px=args.camera_min_area_px,
+                    apriltag_family=args.camera_apriltag_family,
+                    apriltag_id=args.camera_apriltag_id,
+                )
+            else:
+                annotated, mask, result = run_hsv_detection(
+                    frame,
+                    width=args.camera_width,
+                    height=args.camera_height,
+                    horizontal_fov_deg=args.camera_horizontal_fov_deg,
+                    target_width_cm=args.camera_target_width_cm,
+                    min_area_px=args.camera_min_area_px,
+                    hsv_lower=args.camera_hsv_lower,
+                    hsv_upper=args.camera_hsv_upper,
+                )
 
             if not args.no_save:
                 args.output.parent.mkdir(parents=True, exist_ok=True)
@@ -238,8 +334,13 @@ def main(argv: list[str] | None = None) -> int:
 
             if not announced_settings:
                 print(f"backend: {backend}")
-                print(f"hsv lower: {args.camera_hsv_lower}")
-                print(f"hsv upper: {args.camera_hsv_upper}")
+                print(f"detector mode: {args.camera_detector_mode}")
+                if args.camera_detector_mode == "apriltag":
+                    print(f"apriltag family: {args.camera_apriltag_family}")
+                    print(f"apriltag id: {args.camera_apriltag_id}")
+                else:
+                    print(f"hsv lower: {args.camera_hsv_lower}")
+                    print(f"hsv upper: {args.camera_hsv_upper}")
                 print(f"min area px: {args.camera_min_area_px}")
                 if not args.no_save:
                     print(f"saved raw frame: {args.output}")
@@ -253,6 +354,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(
                         prefix
                         + "found=True "
+                        + (f"tag_id={result['tag_id']} " if "tag_id" in result else "")
                         + f"area={result['area']:.1f} bbox={result['bbox']} "
                         + f"distance_m={result['distance_m']:.3f} angle_deg={result['angle_deg']:.1f} "
                         + f"confidence={result['confidence']:.3f}",
@@ -267,7 +369,8 @@ def main(argv: list[str] | None = None) -> int:
                 if result.get("found"):
                     print(
                         "detection: "
-                        f"found=True area={result['area']:.1f} bbox={result['bbox']} "
+                        + (f"tag_id={result['tag_id']} " if "tag_id" in result else "")
+                        + f"found=True area={result['area']:.1f} bbox={result['bbox']} "
                         f"distance_m={result['distance_m']:.3f} angle_deg={result['angle_deg']:.1f} "
                         f"confidence={result['confidence']:.3f}"
                     )

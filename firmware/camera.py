@@ -27,6 +27,7 @@ class CameraDetection:
     bbox_y: int = 0
     bbox_w: int = 0
     bbox_h: int = 0
+    tag_id: int = -1
 
 
 class CameraTargetDetector:
@@ -40,6 +41,9 @@ class CameraTargetDetector:
         horizontal_fov_deg: float = 62.0,
         target_width_cm: float = 6.0,
         min_area_px: int = 400,
+        detector_mode: str = "apriltag",
+        apriltag_family: str = "DICT_APRILTAG_25h9",
+        apriltag_id: int = 0,
         hsv_lower: tuple[int, int, int] = (20, 120, 120),
         hsv_upper: tuple[int, int, int] = (40, 255, 255),
         hold_time_s: float = 0.75,
@@ -51,6 +55,9 @@ class CameraTargetDetector:
         self.horizontal_fov_deg = horizontal_fov_deg
         self.target_width_cm = target_width_cm
         self.min_area_px = min_area_px
+        self.detector_mode = detector_mode.lower()
+        self.apriltag_family = apriltag_family
+        self.apriltag_id = int(apriltag_id)
         self.hsv_lower = hsv_lower
         self.hsv_upper = hsv_upper
         self.hold_time_s = max(0.0, hold_time_s)
@@ -65,6 +72,8 @@ class CameraTargetDetector:
         self._last_detection_at = 0.0
         # Simple pinhole estimate. Good enough for a first feature-level integration.
         self._focal_px = (self.width * 0.5) / max(math.tan(math.radians(self.horizontal_fov_deg) * 0.5), 1e-6)
+        self._aruco_dictionary = None
+        self._aruco_detector = None
 
     def _schedule_open_retry(self) -> None:
         self._next_open_retry_at = time.monotonic() + self._open_retry_backoff_s
@@ -154,6 +163,147 @@ class CameraTargetDetector:
             self._reported_backend = True
         return True
 
+    def _ensure_apriltag_detector(self) -> bool:
+        if self.detector_mode != "apriltag":
+            return True
+        if cv2 is None or not hasattr(cv2, "aruco"):
+            if self.debug and not self._warned_unavailable:
+                print("[debug] camera disabled: cv2.aruco is required for AprilTag detection", flush=True)
+                self._warned_unavailable = True
+            return False
+        if self._aruco_detector is not None:
+            return True
+        family_name = self.apriltag_family
+        if not hasattr(cv2.aruco, family_name):
+            if self.debug and not self._warned_unavailable:
+                print(f"[debug] camera disabled: unknown AprilTag family {family_name}", flush=True)
+                self._warned_unavailable = True
+            return False
+        dictionary_id = getattr(cv2.aruco, family_name)
+        self._aruco_dictionary = cv2.aruco.getPredefinedDictionary(dictionary_id)
+        params = cv2.aruco.DetectorParameters()
+        self._aruco_detector = cv2.aruco.ArucoDetector(self._aruco_dictionary, params)
+        return True
+
+    def _detect_hsv(self, frame: np.ndarray) -> CameraDetection:
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        mask = cv2.inRange(
+            hsv,
+            np.array(self.hsv_lower, dtype=np.uint8),
+            np.array(self.hsv_upper, dtype=np.uint8),
+        )
+        kernel = np.ones((5, 5), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return self._held_detection()
+
+        contour = max(contours, key=cv2.contourArea)
+        area = float(cv2.contourArea(contour))
+        if area < float(self.min_area_px):
+            return self._held_detection()
+
+        x, y, w, h = cv2.boundingRect(contour)
+        if w <= 0 or h <= 0:
+            return self._held_detection()
+
+        center_x = float(x + w * 0.5)
+        pixel_offset = center_x - (self.width * 0.5)
+        angle_rad = math.atan2(pixel_offset, self._focal_px)
+        distance_m = ((self.target_width_cm / 100.0) * self._focal_px) / max(float(w), 1.0)
+        confidence = float(np.clip(area / float(self.width * self.height), 0.0, 1.0))
+
+        if self.debug:
+            print(
+                f"[debug] camera target found area={area:.1f} bbox=({x},{y},{w},{h}) "
+                f"distance_m={distance_m:.3f} angle_deg={math.degrees(angle_rad):.1f}",
+                flush=True,
+            )
+
+        return self._remember_detection(
+            CameraDetection(
+                found=True,
+                distance_m=max(distance_m, 0.0),
+                angle_rad=angle_rad,
+                confidence=confidence,
+                bbox_x=int(x),
+                bbox_y=int(y),
+                bbox_w=int(w),
+                bbox_h=int(h),
+            )
+        )
+
+    def _detect_apriltag(self, frame: np.ndarray) -> CameraDetection:
+        if not self._ensure_apriltag_detector():
+            return self._held_detection()
+        corners, ids, _rejected = self._aruco_detector.detectMarkers(frame)
+        if ids is None or len(ids) == 0:
+            return self._held_detection()
+
+        chosen_index = None
+        chosen_perimeter = -1.0
+        chosen_id = -1
+        for i, raw_id in enumerate(ids.flatten().tolist()):
+            tag_id = int(raw_id)
+            if self.apriltag_id >= 0 and tag_id != self.apriltag_id:
+                continue
+            pts = np.asarray(corners[i], dtype=np.float32).reshape(-1, 2)
+            perimeter = float(cv2.arcLength(pts.reshape(-1, 1, 2), True))
+            if perimeter > chosen_perimeter:
+                chosen_index = i
+                chosen_perimeter = perimeter
+                chosen_id = tag_id
+
+        if chosen_index is None:
+            return self._held_detection()
+
+        pts = np.asarray(corners[chosen_index], dtype=np.float32).reshape(-1, 2)
+        min_x = int(max(0, math.floor(float(np.min(pts[:, 0])))))
+        max_x = int(min(self.width - 1, math.ceil(float(np.max(pts[:, 0])))))
+        min_y = int(max(0, math.floor(float(np.min(pts[:, 1])))))
+        max_y = int(min(self.height - 1, math.ceil(float(np.max(pts[:, 1])))))
+        w = max_x - min_x
+        h = max_y - min_y
+        if w <= 0 or h <= 0:
+            return self._held_detection()
+
+        edge_lengths = [
+            float(np.linalg.norm(pts[i] - pts[(i + 1) % 4]))
+            for i in range(4)
+        ]
+        apparent_width_px = max(1.0, sum(edge_lengths) / 4.0)
+        center_x = float(np.mean(pts[:, 0]))
+        pixel_offset = center_x - (self.width * 0.5)
+        angle_rad = math.atan2(pixel_offset, self._focal_px)
+        distance_m = ((self.target_width_cm / 100.0) * self._focal_px) / apparent_width_px
+        area = float(cv2.contourArea(pts.reshape(-1, 1, 2)))
+        if area < float(self.min_area_px):
+            return self._held_detection()
+        confidence = float(np.clip(area / float(self.width * self.height), 0.0, 1.0))
+
+        if self.debug:
+            print(
+                f"[debug] camera tag found family={self.apriltag_family} id={chosen_id} "
+                f"area={area:.1f} bbox=({min_x},{min_y},{w},{h}) "
+                f"distance_m={distance_m:.3f} angle_deg={math.degrees(angle_rad):.1f}",
+                flush=True,
+            )
+
+        return self._remember_detection(
+            CameraDetection(
+                found=True,
+                distance_m=max(distance_m, 0.0),
+                angle_rad=angle_rad,
+                confidence=confidence,
+                bbox_x=min_x,
+                bbox_y=min_y,
+                bbox_w=w,
+                bbox_h=h,
+                tag_id=chosen_id,
+            )
+        )
+
     def detect(self) -> CameraDetection:
         if not self._ensure_open():
             return self._held_detection()
@@ -195,51 +345,9 @@ class CameraTargetDetector:
         if frame is None:
             return self._held_detection()
 
-        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        mask = cv2.inRange(
-            hsv,
-            np.array(self.hsv_lower, dtype=np.uint8),
-            np.array(self.hsv_upper, dtype=np.uint8),
-        )
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if not contours:
-            return self._held_detection()
-
-        contour = max(contours, key=cv2.contourArea)
-        area = float(cv2.contourArea(contour))
-        if area < float(self.min_area_px):
-            return self._held_detection()
-
-        x, y, w, h = cv2.boundingRect(contour)
-        if w <= 0 or h <= 0:
-            return self._held_detection()
-
-        center_x = float(x + w * 0.5)
-        pixel_offset = center_x - (self.width * 0.5)
-        angle_rad = math.atan2(pixel_offset, self._focal_px)
-        distance_m = ((self.target_width_cm / 100.0) * self._focal_px) / max(float(w), 1.0)
-        confidence = float(np.clip(area / float(self.width * self.height), 0.0, 1.0))
-
-        if self.debug:
-            print(
-                f"[debug] camera target found area={area:.1f} bbox=({x},{y},{w},{h}) "
-                f"distance_m={distance_m:.3f} angle_deg={math.degrees(angle_rad):.1f}",
-                flush=True,
-            )
-
-        return self._remember_detection(CameraDetection(
-            found=True,
-            distance_m=max(distance_m, 0.0),
-            angle_rad=angle_rad,
-            confidence=confidence,
-            bbox_x=int(x),
-            bbox_y=int(y),
-            bbox_w=int(w),
-            bbox_h=int(h),
-        ))
+        if self.detector_mode == "apriltag":
+            return self._detect_apriltag(frame)
+        return self._detect_hsv(frame)
 
     def warmup(self, timeout_s: float = 4.0) -> bool:
         start = time.monotonic()

@@ -137,6 +137,9 @@ def parse_args(argv=None):
     parser.add_argument("--camera-horizontal-fov-deg", type=float, default=62.0)
     parser.add_argument("--camera-target-width-cm", type=float, default=6.0)
     parser.add_argument("--camera-min-area-px", type=int, default=100)
+    parser.add_argument("--camera-detector-mode", choices=("apriltag", "hsv"), default="apriltag")
+    parser.add_argument("--camera-apriltag-family", type=str, default="DICT_APRILTAG_25h9")
+    parser.add_argument("--camera-apriltag-id", type=int, default=0)
     parser.add_argument("--camera-hsv-lower", type=str, default="35,70,70")
     parser.add_argument("--camera-hsv-upper", type=str, default="100,255,255")
     parser.add_argument("--camera-hold-time-s", type=float, default=1.0)
@@ -619,6 +622,9 @@ def main(argv=None):
                 horizontal_fov_deg=args.camera_horizontal_fov_deg,
                 target_width_cm=args.camera_target_width_cm,
                 min_area_px=args.camera_min_area_px,
+                detector_mode=args.camera_detector_mode,
+                apriltag_family=args.camera_apriltag_family,
+                apriltag_id=args.camera_apriltag_id,
                 hsv_lower=lower,
                 hsv_upper=upper,
                 hold_time_s=args.camera_hold_time_s,
