@@ -19,7 +19,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 # ant.py should be in the same dir.
-from ant import ESP32Robot
+from ant import ESP32Robot, RobotConnectionError
 from algorithms.mappo.inference import load_actor
 from firmware.bluetooth import (
     DEFAULT_BLE_SERVICE_UUID,
@@ -210,6 +210,36 @@ def summarize_lidar_sectors(lidar_ranges_mm: list[float]) -> tuple[float, float,
     front_min_mm = sector_min((3, 4, 5))
     right_min_mm = sector_min((6, 7, 8))
     return front_min_mm, left_min_mm, right_min_mm
+
+
+def recover_robot_connection(
+    robot: ESP32Robot,
+    scan_duration: float,
+    debug: bool,
+    attempts: int = 2,
+) -> bool:
+    for attempt in range(1, attempts + 1):
+        try:
+            robot.close()
+        except Exception:
+            pass
+        time.sleep(0.5)
+        try:
+            robot.connect()
+            if debug:
+                print(f"[debug] robot reconnect attempt={attempt} connected", flush=True)
+            stream_ready = robot.wait_for_stream_ready(timeout=max(3.0, scan_duration + 1.0))
+            if debug:
+                print(f"[debug] robot reconnect attempt={attempt} stream_ready={stream_ready}", flush=True)
+            if stream_ready:
+                return True
+        except RobotConnectionError as exc:
+            if debug:
+                print(f"[debug] robot reconnect attempt={attempt} failed: {type(exc).__name__}: {exc}", flush=True)
+        except Exception as exc:
+            if debug:
+                print(f"[debug] robot reconnect attempt={attempt} unexpected failure: {type(exc).__name__}: {exc!r}", flush=True)
+    return False
 
 
 def normalize_ranges(cfg: PolicyConfig, ranges_m: list[float]) -> np.ndarray:
@@ -730,12 +760,7 @@ def main(argv=None):
     if not stream_ready:
         if args.debug:
             print("[debug] robot stream not ready after first connect; retrying serial startup once", flush=True)
-        robot.close()
-        time.sleep(0.5)
-        robot.connect()
-        if args.debug:
-            print("[debug] robot reconnected for startup retry", flush=True)
-        stream_ready = robot.wait_for_stream_ready(timeout=max(3.0, args.scan_duration + 1.0))
+        stream_ready = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=1)
         if args.debug:
             print(f"[debug] robot stream_ready_after_retry={stream_ready}", flush=True)
 
@@ -760,51 +785,38 @@ def main(argv=None):
             # 5. execute the selected movement
             # 6. update local dead-reckoned state and optional pheromone deposit
             start = time.perf_counter()
-            scan_points = robot.read_sensor_lines(duration=args.scan_duration)
-            lidar_ranges_mm = bucketize_scan(cfg, scan_points)
-            camera_detection = camera_detector.detect() if camera_detector is not None else None
-            pheromone_values = (0.0, 0.0, 0.0)
-            if mission_control_link is not None:
-                # Publish the latest dead-reckoned pose before the query so
-                # Mission Control samples pheromone against the same nest-relative
-                # displacement estimate the robot uses locally.
-                x_cm, y_cm = pose_to_cm(pose)
-                mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
-                mission_control_link.send_lidar(args.robot_id, lidar_ranges_mm)
-                if camera_detection is not None and camera_detection.found:
-                    target_x_cm, target_y_cm = project_camera_target_to_world_cm(pose, camera_detection)
-                    mission_control_link.send_target(args.robot_id, target_x_cm, target_y_cm, camera_detection.confidence)
-                # Mission Control is the source of truth for the digital pheromone
-                # field, so the runtime pulls the latest 3-sample slice right
-                # before inference.
-                pheromone_values = mission_control_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
+            try:
+                scan_points = robot.read_sensor_lines(duration=args.scan_duration)
+                lidar_ranges_mm = bucketize_scan(cfg, scan_points)
+                camera_detection = camera_detector.detect() if camera_detector is not None else None
+                pheromone_values = (0.0, 0.0, 0.0)
+                if mission_control_link is not None:
+                    # Publish the latest dead-reckoned pose before the query so
+                    # Mission Control samples pheromone against the same nest-relative
+                    # displacement estimate the robot uses locally.
+                    x_cm, y_cm = pose_to_cm(pose)
+                    mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                    mission_control_link.send_lidar(args.robot_id, lidar_ranges_mm)
+                    if camera_detection is not None and camera_detection.found:
+                        target_x_cm, target_y_cm = project_camera_target_to_world_cm(pose, camera_detection)
+                        mission_control_link.send_target(args.robot_id, target_x_cm, target_y_cm, camera_detection.confidence)
+                    # Mission Control is the source of truth for the digital pheromone
+                    # field, so the runtime pulls the latest 3-sample slice right
+                    # before inference.
+                    pheromone_values = mission_control_link.sense_pheromone(args.robot_id, x_cm, y_cm, pose.heading_deg)
 
-            current_frame = build_single_observation(
-                cfg,
-                scan_points,
-                pose=pose,
-                camera_detection=camera_detection,
-                pheromone_values=pheromone_values,
-                speed_mps=speed_mps,
-            )
-            obs_history.append(current_frame)
-            obs_history = obs_history[-cfg.observation_history_steps :]
-            observation = build_observation_history(cfg, obs_history)
-            if args.control_mode == "heuristic":
-                action_id, q_values = choose_heuristic_action(
+                current_frame = build_single_observation(
                     cfg,
-                    lidar_ranges_mm=lidar_ranges_mm,
+                    scan_points,
+                    pose=pose,
                     camera_detection=camera_detection,
-                    deposit_default=args.cc_deposit_enable,
-                    rng=heuristic_rng,
-                    random_turn_prob=args.heuristic_random_turn_prob,
+                    pheromone_values=pheromone_values,
+                    speed_mps=speed_mps,
                 )
-            else:
-                policy_action_id, policy_q_values = predict_action(policy, observation)
-                if args.control_mode == "hybrid" and should_use_heuristic_override(
-                    lidar_ranges_mm=lidar_ranges_mm,
-                    camera_detection=camera_detection,
-                ):
+                obs_history.append(current_frame)
+                obs_history = obs_history[-cfg.observation_history_steps :]
+                observation = build_observation_history(cfg, obs_history)
+                if args.control_mode == "heuristic":
                     action_id, q_values = choose_heuristic_action(
                         cfg,
                         lidar_ranges_mm=lidar_ranges_mm,
@@ -814,78 +826,101 @@ def main(argv=None):
                         random_turn_prob=args.heuristic_random_turn_prob,
                     )
                 else:
-                    action_id, q_values = policy_action_id, policy_q_values
-            if args.control_mode in ("policy", "hybrid") and should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
-                print_policy_debug(
-                    step=step,
-                    agent_index=0,
-                    agent_id=args.robot_id,
-                    policy_label="mappo_gru" if policy.kind == "mappo_gru" else ("shared" if args.shared_policy else "agent_0"),
-                    mode="greedy",
-                    output_name="policy_logits" if policy.kind == "mappo_gru" else "q_values",
-                    output_values=q_values,
-                    action=action_id,
-                    num_actions=cfg.num_actions,
-                )
-            throttle, turn, deposit = execute_action(
-                robot,
-                action_id=action_id,
-                turn_step_deg=args.turn_step_deg,
-                move_distance_mm=args.move_distance_mm,
-                reverse_distance_mm=args.reverse_distance_mm,
-            )
-            pose, commanded_distance_mm = update_pose_estimate(
-                pose,
-                throttle=throttle,
-                turn=turn,
-                turn_step_deg=args.turn_step_deg,
-                move_distance_mm=args.move_distance_mm,
-                reverse_distance_mm=args.reverse_distance_mm,
-            )
-            speed_mps = commanded_distance_mm / 1000.0 / period_s
-            if mission_control_link is not None:
-                # Send the post-action pose as soon as the dead-reckoned
-                # displacement update is applied so Mission Control tracks the
-                # robot's current position rather than only the previous step.
-                x_cm, y_cm = pose_to_cm(pose)
-                mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
-                if hasattr(mission_control_link, "send_status"):
-                    front_min_mm, left_min_mm, right_min_mm = summarize_lidar_sectors(lidar_ranges_mm)
-                    camera_found = bool(camera_detection and camera_detection.found)
-                    camera_distance_m = camera_detection.distance_m if camera_detection is not None else 0.0
-                    camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
-                    mission_control_link.send_status(
-                        robot_id=args.robot_id,
-                        control_mode=args.control_mode,
-                        action_id=action_id,
-                        throttle=throttle,
-                        turn=turn,
-                        deposit=deposit,
-                        camera_found=camera_found,
-                        camera_distance_m=camera_distance_m,
-                        camera_angle_deg=camera_angle_deg,
-                        front_min_mm=front_min_mm,
-                        left_min_mm=left_min_mm,
-                        right_min_mm=right_min_mm,
-                        serial_ok=robot.last_response_ok,
-                        serial_cmd=robot.last_command,
-                        serial_reply=robot.last_response_raw,
+                    policy_action_id, policy_q_values = predict_action(policy, observation)
+                    if args.control_mode == "hybrid" and should_use_heuristic_override(
+                        lidar_ranges_mm=lidar_ranges_mm,
+                        camera_detection=camera_detection,
+                    ):
+                        action_id, q_values = choose_heuristic_action(
+                            cfg,
+                            lidar_ranges_mm=lidar_ranges_mm,
+                            camera_detection=camera_detection,
+                            deposit_default=args.cc_deposit_enable,
+                            rng=heuristic_rng,
+                            random_turn_prob=args.heuristic_random_turn_prob,
+                        )
+                    else:
+                        action_id, q_values = policy_action_id, policy_q_values
+                if args.control_mode in ("policy", "hybrid") and should_debug_policy(debug_policy_cfg, step, 0, args.robot_id):
+                    print_policy_debug(
+                        step=step,
+                        agent_index=0,
+                        agent_id=args.robot_id,
+                        policy_label="mappo_gru" if policy.kind == "mappo_gru" else ("shared" if args.shared_policy else "agent_0"),
+                        mode="greedy",
+                        output_name="policy_logits" if policy.kind == "mappo_gru" else "q_values",
+                        output_values=q_values,
+                        action=action_id,
+                        num_actions=cfg.num_actions,
                     )
-            if (
-                mission_control_link is not None
-                and args.cc_deposit_enable
-                and deposit
-            ):
-                # Digital pheromone placement is now policy-driven. The action
-                # id carries a deposit bit, so the robot only emits PHER when
-                # the model explicitly selects a depositing action.
-                mission_control_link.deposit_pheromone(
-                    args.robot_id,
-                    pose.x_mm / 10.0,
-                    pose.y_mm / 10.0,
-                    args.cc_pheromone_deposit_amount,
+                throttle, turn, deposit = execute_action(
+                    robot,
+                    action_id=action_id,
+                    turn_step_deg=args.turn_step_deg,
+                    move_distance_mm=args.move_distance_mm,
+                    reverse_distance_mm=args.reverse_distance_mm,
                 )
-            step += 1
+                pose, commanded_distance_mm = update_pose_estimate(
+                    pose,
+                    throttle=throttle,
+                    turn=turn,
+                    turn_step_deg=args.turn_step_deg,
+                    move_distance_mm=args.move_distance_mm,
+                    reverse_distance_mm=args.reverse_distance_mm,
+                )
+                speed_mps = commanded_distance_mm / 1000.0 / period_s
+                if mission_control_link is not None:
+                    # Send the post-action pose as soon as the dead-reckoned
+                    # displacement update is applied so Mission Control tracks the
+                    # robot's current position rather than only the previous step.
+                    x_cm, y_cm = pose_to_cm(pose)
+                    mission_control_link.send_position(args.robot_id, x_cm, y_cm, pose.heading_deg)
+                    if hasattr(mission_control_link, "send_status"):
+                        front_min_mm, left_min_mm, right_min_mm = summarize_lidar_sectors(lidar_ranges_mm)
+                        camera_found = bool(camera_detection and camera_detection.found)
+                        camera_distance_m = camera_detection.distance_m if camera_detection is not None else 0.0
+                        camera_angle_deg = math.degrees(camera_detection.angle_rad) if camera_detection is not None else 0.0
+                        mission_control_link.send_status(
+                            robot_id=args.robot_id,
+                            control_mode=args.control_mode,
+                            action_id=action_id,
+                            throttle=throttle,
+                            turn=turn,
+                            deposit=deposit,
+                            camera_found=camera_found,
+                            camera_distance_m=camera_distance_m,
+                            camera_angle_deg=camera_angle_deg,
+                            front_min_mm=front_min_mm,
+                            left_min_mm=left_min_mm,
+                            right_min_mm=right_min_mm,
+                            serial_ok=robot.last_response_ok,
+                            serial_cmd=robot.last_command,
+                            serial_reply=robot.last_response_raw,
+                        )
+                if (
+                    mission_control_link is not None
+                    and args.cc_deposit_enable
+                    and deposit
+                ):
+                    # Digital pheromone placement is now policy-driven. The action
+                    # id carries a deposit bit, so the robot only emits PHER when
+                    # the model explicitly selects a depositing action.
+                    mission_control_link.deposit_pheromone(
+                        args.robot_id,
+                        pose.x_mm / 10.0,
+                        pose.y_mm / 10.0,
+                        args.cc_pheromone_deposit_amount,
+                    )
+                step += 1
+            except RobotConnectionError as exc:
+                if args.debug:
+                    print(f"[debug] serial connection error during control step: {exc}", flush=True)
+                recovered = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=2)
+                if not recovered:
+                    raise
+                obs_history.clear()
+                speed_mps = 0.0
+                continue
 
             elapsed = time.perf_counter() - start
             sleep_time = period_s - elapsed

@@ -6,6 +6,10 @@ import json
 from typing import Optional, Dict, Any
 #import cv2
 
+
+class RobotConnectionError(RuntimeError):
+    """Raised when the serial link to the robot becomes unavailable."""
+
 class ESP32Robot:
     def __init__(
         self,
@@ -27,6 +31,16 @@ class ESP32Robot:
         self.last_response_type: str = ""
         self.last_response_ok: bool = False
 
+    def _handle_serial_error(self, exc: Exception, context: str) -> None:
+        self.last_response_raw = f"SERIAL_ERROR: {context}: {exc}"
+        self.last_response_type = "serial_error"
+        self.last_response_ok = False
+        try:
+            self.close()
+        except Exception:
+            pass
+        raise RobotConnectionError(f"{context} failed on {self.port}: {exc}") from exc
+
     @staticmethod
     def _require_pyserial() -> None:
         if not hasattr(serial, "Serial"):
@@ -40,23 +54,29 @@ class ESP32Robot:
         if self.ser is not None and self.ser.is_open:
             return
 
-        self.ser = serial.Serial(
-            port=self.port,
-            baudrate=self.baudrate,
-            timeout=self.timeout,
-        )
+        try:
+            self.ser = serial.Serial(
+                port=self.port,
+                baudrate=self.baudrate,
+                timeout=self.timeout,
+            )
 
-        # Give ESP32 time in case opening serial resets it
-        time.sleep(self.startup_delay)
-        self.ser.reset_input_buffer()
-        self.ser.reset_output_buffer()
-        self._rx_buffer.clear()
+            # Give ESP32 time in case opening serial resets it
+            time.sleep(self.startup_delay)
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+            self._rx_buffer.clear()
+        except (OSError, serial.SerialException) as exc:
+            self._handle_serial_error(exc, "connect")
 
     def reset_buffers(self) -> None:
         ser = self._require_serial()
-        ser.reset_input_buffer()
-        ser.reset_output_buffer()
-        self._rx_buffer.clear()
+        try:
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
+            self._rx_buffer.clear()
+        except (OSError, serial.SerialException) as exc:
+            self._handle_serial_error(exc, "reset_buffers")
 
     def close(self) -> None:
         if self.ser is not None:
@@ -75,20 +95,26 @@ class ESP32Robot:
         self.last_command = cmd.strip()
         if self.debug:
             print(f"[debug] serial -> {line.strip()}", flush=True)
-        ser.write(line.encode("utf-8"))
-        ser.flush()
+        try:
+            ser.write(line.encode("utf-8"))
+            ser.flush()
+        except (OSError, serial.SerialException) as exc:
+            self._handle_serial_error(exc, "send_raw")
 
     def read_line(self, timeout_override: float | None = None) -> Optional[str]:
         ser = self._require_serial()
-        if timeout_override is None:
-            raw = ser.readline()
-        else:
-            original_timeout = ser.timeout
-            try:
-                ser.timeout = max(0.0, float(timeout_override))
+        try:
+            if timeout_override is None:
                 raw = ser.readline()
-            finally:
-                ser.timeout = original_timeout
+            else:
+                original_timeout = ser.timeout
+                try:
+                    ser.timeout = max(0.0, float(timeout_override))
+                    raw = ser.readline()
+                finally:
+                    ser.timeout = original_timeout
+        except (OSError, serial.SerialException) as exc:
+            self._handle_serial_error(exc, "read_line")
         if not raw:
             return None
 
@@ -98,11 +124,14 @@ class ESP32Robot:
 
     def poll_line(self) -> Optional[str]:
         ser = self._require_serial()
-        waiting = ser.in_waiting
-        if waiting:
-            chunk = ser.read(waiting)
-            if chunk:
-                self._rx_buffer.extend(chunk)
+        try:
+            waiting = ser.in_waiting
+            if waiting:
+                chunk = ser.read(waiting)
+                if chunk:
+                    self._rx_buffer.extend(chunk)
+        except (OSError, serial.SerialException) as exc:
+            self._handle_serial_error(exc, "poll_line")
 
         newline_index = self._rx_buffer.find(b"\n")
         if newline_index < 0:
@@ -119,8 +148,11 @@ class ESP32Robot:
         saw_any_bytes = False
 
         while time.time() - start < timeout:
-            if ser.in_waiting:
-                saw_any_bytes = True
+            try:
+                if ser.in_waiting:
+                    saw_any_bytes = True
+            except (OSError, serial.SerialException) as exc:
+                self._handle_serial_error(exc, "wait_for_stream_ready")
             line = self.poll_line()
             if line:
                 parsed = self.parse_line(line)
@@ -137,20 +169,23 @@ class ESP32Robot:
         start = time.time()
 
         while time.time() - start < timeout:
-            if ser.in_waiting:
-                line = self.read_line()
-                if not line:
-                    continue
+            try:
+                if ser.in_waiting:
+                    line = self.read_line()
+                    if not line:
+                        continue
 
-                parsed = self.parse_line(line)
+                    parsed = self.parse_line(line)
 
-                if parsed.get("type") == "ack":
-                    return {"ok": True, "raw": line, "parsed": parsed}
+                    if parsed.get("type") == "ack":
+                        return {"ok": True, "raw": line, "parsed": parsed}
 
-                if parsed.get("type") == "err":
-                    return {"ok": False, "raw": line, "parsed": parsed}
+                    if parsed.get("type") == "err":
+                        return {"ok": False, "raw": line, "parsed": parsed}
 
-                # Ignore scan/debug lines while waiting for ack/err
+                    # Ignore scan/debug lines while waiting for ack/err
+            except (OSError, serial.SerialException) as exc:
+                self._handle_serial_error(exc, "wait_response")
             time.sleep(0.01)
 
         return {
@@ -191,12 +226,15 @@ class ESP32Robot:
         start = time.time()
 
         while time.time() - start < duration:
-            if ser.in_waiting:
-                while True:
-                    line = self.poll_line()
-                    if not line:
-                        break
-                    results.append(self.parse_line(line))
+            try:
+                if ser.in_waiting:
+                    while True:
+                        line = self.poll_line()
+                        if not line:
+                            break
+                        results.append(self.parse_line(line))
+            except (OSError, serial.SerialException) as exc:
+                self._handle_serial_error(exc, "read_sensor_lines")
             time.sleep(0.005)
 
         return results
@@ -207,14 +245,17 @@ class ESP32Robot:
 
         while time.time() - start < timeout:
 
-            if ser.in_waiting:
-                while True:
-                    line = self.poll_line()
-                    if not line:
-                        break
-                    data = self.parse_line(line)
-                    if data.get("type") == "scan":
-                        return data
+            try:
+                if ser.in_waiting:
+                    while True:
+                        line = self.poll_line()
+                        if not line:
+                            break
+                        data = self.parse_line(line)
+                        if data.get("type") == "scan":
+                            return data
+            except (OSError, serial.SerialException) as exc:
+                self._handle_serial_error(exc, "get_TOF")
 
             time.sleep(0.005)
 
@@ -239,25 +280,28 @@ class ESP32Robot:
         seen_angles = set()
 
         while time.time() - start < timeout:
-            if self._require_serial().in_waiting:
-                while True:
-                    line = self.poll_line()
-                    if not line:
-                        break
+            try:
+                if self._require_serial().in_waiting:
+                    while True:
+                        line = self.poll_line()
+                        if not line:
+                            break
 
-                    item = self.parse_line(line)
-                    if item.get("type") != "scan":
-                        continue
+                        item = self.parse_line(line)
+                        if item.get("type") != "scan":
+                            continue
 
-                    angle = item.get("angle")
-                    if angle is None:
-                        continue
+                        angle = item.get("angle")
+                        if angle is None:
+                            continue
 
-                    if points and angle in seen_angles:
-                        return points
+                        if points and angle in seen_angles:
+                            return points
 
-                    points.append(item)
-                    seen_angles.add(angle)
+                        points.append(item)
+                        seen_angles.add(angle)
+            except (OSError, serial.SerialException) as exc:
+                self._handle_serial_error(exc, "read_full_sweep")
 
             time.sleep(0.005)
 
