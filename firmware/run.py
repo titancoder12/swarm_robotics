@@ -760,7 +760,7 @@ def main(argv=None):
     if not stream_ready:
         if args.debug:
             print("[debug] robot stream not ready after first connect; retrying serial startup once", flush=True)
-        stream_ready = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=1)
+        stream_ready = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=2)
         if args.debug:
             print(f"[debug] robot stream_ready_after_retry={stream_ready}", flush=True)
 
@@ -915,7 +915,7 @@ def main(argv=None):
             except RobotConnectionError as exc:
                 if args.debug:
                     print(f"[debug] serial connection error during control step: {exc}", flush=True)
-                recovered = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=2)
+                recovered = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=4)
                 if not recovered:
                     raise
                 obs_history.clear()

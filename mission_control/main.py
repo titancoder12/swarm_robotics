@@ -67,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
     ble_addresses = _parse_multi_value_flags(args.ble_address)
     ble_device_names = _parse_multi_value_flags(args.ble_device_name)
     if not ble_addresses and not ble_device_names:
-        ble_device_names = ("robot_0",)
+        ble_device_names = ("robot_1", "robot_2", "robot_3")
 
     # One shared world model backs both the receiver threads and the renderer.
     cfg = CommandCenterConfig(
