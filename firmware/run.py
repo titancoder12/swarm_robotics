@@ -915,7 +915,7 @@ def main(argv=None):
             except RobotConnectionError as exc:
                 if args.debug:
                     print(f"[debug] serial connection error during control step: {exc}", flush=True)
-                recovered = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=4)
+                recovered = recover_robot_connection(robot, args.scan_duration, args.debug, attempts=5)
                 if not recovered:
                     raise
                 obs_history.clear()
